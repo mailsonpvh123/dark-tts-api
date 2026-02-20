@@ -11,7 +11,6 @@ import uuid
 
 app = FastAPI(title="Dark TTS Master API")
 
-# Libera o CORS na própria API para garantir que o site consegue puxar a lista de vozes
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -32,27 +31,26 @@ async def load_voices():
             short = v.get('ShortName')
             full = v.get('Name')
             loc = v.get('Locale')
+            gender = v.get('Gender') # <-- PEGANDO O GÊNERO AQUI
             if not short: continue
             
             try: disp = full.split('(')[-1].split(')')[0].split(',')[-1].strip()
             except: disp = short
             name = f"{disp} ({loc})"
             
-            # --- O SEU FILTRO MÁGICO AQUI ---
-            if "Multilingual" in disp or "Multilingual" in name:
-                prio = 0
-            elif loc == "pt-BR":
-                prio = 1
-            else:
-                continue # IGNORA TUDO O RESTO DO MUNDO!
+            if "Multilingual" in disp or "Multilingual" in name: prio = 0
+            elif loc == "pt-BR": prio = 1
+            else: continue 
             
             VOICE_MAP[name] = short
-            lst.append((prio, loc, name))
+            lst.append((prio, loc, name, gender)) # <-- SALVANDO O GÊNERO
         
         lst.sort(key=lambda x: (x[0], x[1], x[2]))
         for item in lst:
-            AVAILABLE_VOICES.append({"name": item[2], "shortName": VOICE_MAP[item[2]], "locale": item[1]})
-        print(f"✅ {len(AVAILABLE_VOICES)} Vozes (Apenas Multi e PT-BR) carregadas!")
+            # Traduzindo para o Front-end
+            gen_pt = "Masculino" if item[3] == "Male" else "Feminino" if item[3] == "Female" else "Neutro"
+            AVAILABLE_VOICES.append({"name": item[2], "shortName": VOICE_MAP[item[2]], "locale": item[1], "gender": gen_pt})
+        print(f"✅ {len(AVAILABLE_VOICES)} Vozes carregadas!")
     except Exception as e:
         print(f"❌ Erro ao carregar vozes: {e}")
 
@@ -91,31 +89,22 @@ async def gerar_audio_completo(req: TTSRequest):
 
     chunks = split_text_inteligentemente(req.texto)
     arquivos_gerados = []
-    timeline_lines = []
+    
     current_ms = 0
     PAUSE_DURATION_MS = 250 
 
     for chunk in chunks:
         if not chunk.strip(): continue
-        
         temp_mp3 = os.path.join(tempfile.gettempdir(), f"chunk_{uuid.uuid4()}.mp3")
         try:
             communicate = edge_tts.Communicate(chunk, req.voz, rate=rate_str, pitch=pitch_str, volume=vol_str)
             await communicate.save(temp_mp3)
-            
             wav_path = temp_mp3.replace(".mp3", ".wav")
             segment = AudioSegment.from_file(temp_mp3)
             segment.export(wav_path, format="wav")
             arquivos_gerados.append(wav_path)
-            
-            ts_sec = int(current_ms / 1000)
-            m, s = divmod(ts_sec, 60)
-            preview = chunk.replace('\n', ' ').strip()[:40]
-            timeline_lines.append(f"{m:02d}:{s:02d} - {preview}...")
-            
             current_ms += len(segment) + PAUSE_DURATION_MS
-        except Exception as e:
-            print(f"Erro no chunk: {e}")
+        except Exception as e: print(f"Erro no chunk: {e}")
         finally:
             if os.path.exists(temp_mp3): os.remove(temp_mp3)
 
@@ -123,7 +112,6 @@ async def gerar_audio_completo(req: TTSRequest):
 
     final_audio = AudioSegment.empty()
     pause = AudioSegment.silent(duration=PAUSE_DURATION_MS)
-    
     for i, f in enumerate(arquivos_gerados):
         try: final_audio += (pause + AudioSegment.from_wav(f)) if i > 0 else AudioSegment.from_wav(f)
         finally:
@@ -136,12 +124,9 @@ async def gerar_audio_completo(req: TTSRequest):
         audio_base64 = base64.b64encode(audio_file.read()).decode('utf-8')
     os.remove(final_path)
 
-    timeline_texto = "\n".join(timeline_lines)
-    return {"status": "sucesso", "audio_base64": audio_base64, "timeline": timeline_texto}
+    return {"status": "sucesso", "audio_base64": audio_base64}
 
 @app.post("/gerar_narracao")
 async def api_gerar_narracao(req: TTSRequest):
-    try:
-        return await gerar_audio_completo(req)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    try: return await gerar_audio_completo(req)
+    except Exception as e: raise HTTPException(status_code=500, detail=str(e))
