@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import edge_tts
 import nltk
@@ -6,16 +7,22 @@ from pydub import AudioSegment
 import tempfile
 import os
 import base64
-import asyncio
 import uuid
 
 app = FastAPI(title="Dark TTS Master API")
 
-# --- LISTA GLOBAL DE VOZES ---
+# Libera o CORS na própria API para garantir que o site consegue puxar a lista de vozes
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 AVAILABLE_VOICES = []
 VOICE_MAP = {}
 
-# Puxa e organiza as vozes magicamente ao ligar o servidor (Igual ao Desktop)
 @app.on_event("startup")
 async def load_voices():
     try:
@@ -26,33 +33,39 @@ async def load_voices():
             full = v.get('Name')
             loc = v.get('Locale')
             if not short: continue
+            
             try: disp = full.split('(')[-1].split(')')[0].split(',')[-1].strip()
             except: disp = short
             name = f"{disp} ({loc})"
-            VOICE_MAP[name] = short
             
-            prio = 0 if "Multilingual" in disp else (1 if loc == "pt-BR" else 2)
+            # --- O SEU FILTRO MÁGICO AQUI ---
+            if "Multilingual" in disp or "Multilingual" in name:
+                prio = 0
+            elif loc == "pt-BR":
+                prio = 1
+            else:
+                continue # IGNORA TUDO O RESTO DO MUNDO!
+            
+            VOICE_MAP[name] = short
             lst.append((prio, loc, name))
         
         lst.sort(key=lambda x: (x[0], x[1], x[2]))
         for item in lst:
             AVAILABLE_VOICES.append({"name": item[2], "shortName": VOICE_MAP[item[2]], "locale": item[1]})
-        print(f"✅ {len(AVAILABLE_VOICES)} Vozes carregadas com sucesso na memória!")
+        print(f"✅ {len(AVAILABLE_VOICES)} Vozes (Apenas Multi e PT-BR) carregadas!")
     except Exception as e:
         print(f"❌ Erro ao carregar vozes: {e}")
 
-# Rota para o seu site listar as vozes
 @app.get("/vozes")
 async def listar_vozes():
     return {"vozes": AVAILABLE_VOICES}
 
-# O Modelo de Dados que aceita todos os controlos finos
 class TTSRequest(BaseModel):
     texto: str
     voz: str = "pt-BR-AntonioNeural" 
-    velocidade: float = 1.0  # 1.0 é o normal, 1.5 é mais rápido
-    pitch: int = 0           # -100 a +100
-    volume: int = 0          # -50 a +50
+    velocidade: float = 1.0  
+    pitch: int = 0           
+    volume: int = 0          
 
 def split_text_inteligentemente(texto, max_chars=1500):
     texto = texto.replace('*', '').replace('#', '').replace('"', '').replace('”', '').replace('“', '')
@@ -71,7 +84,6 @@ def split_text_inteligentemente(texto, max_chars=1500):
     return chunks
 
 async def gerar_audio_completo(req: TTSRequest):
-    # Converte os números da interface web para a linguagem do Edge TTS
     rate_val = int((req.velocidade - 1.0) * 100)
     rate_str = f"+{rate_val}%" if rate_val >= 0 else f"{rate_val}%"
     pitch_str = f"+{req.pitch}Hz" if req.pitch >= 0 else f"{req.pitch}Hz"
@@ -79,7 +91,6 @@ async def gerar_audio_completo(req: TTSRequest):
 
     chunks = split_text_inteligentemente(req.texto)
     arquivos_gerados = []
-    
     timeline_lines = []
     current_ms = 0
     PAUSE_DURATION_MS = 250 
