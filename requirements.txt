@@ -3,3 +3,4 @@ uvicorn
 edge-tts
 pydub
 nltk
+youtube-transcript-api
