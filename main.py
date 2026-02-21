@@ -6,7 +6,6 @@ import base64
 import uvicorn
 import os
 import re
-import time
 import requests
 import html
 import urllib.parse
@@ -40,7 +39,7 @@ class MinerRedditRequest(BaseModel):
     query: str
     min_words: int
     min_score: int
-    traduzir: bool
+    sem_atualizacao: bool
 
 class MinerWebRequest(BaseModel):
     query: str
@@ -129,10 +128,14 @@ def traduzir_texto_longo(texto, source='auto', target='pt'):
 @app.post("/miner/reddit")
 async def miner_reddit(req: MinerRedditRequest):
     try:
+        # Traduz a busca para o inglês silenciosamente para raspar melhor o Reddit
         termo_busca = req.query
-        if req.traduzir:
-            try: termo_busca = GoogleTranslator(source='auto', target='en').translate(req.query)
-            except: pass
+        try: termo_busca = GoogleTranslator(source='auto', target='en').translate(req.query)
+        except: pass
+
+        # Filtro de Sem Atualização
+        if req.sem_atualizacao:
+            termo_busca += " -update -title:update"
 
         sub = req.sub.strip().replace("r/", "").replace("/", "")
         endpoint = f"/r/{sub}/search.json?q={urllib.parse.quote(termo_busca)} self:yes&restrict_sr=1&sort=relevance&limit=25" if sub else f"/search.json?q={urllib.parse.quote(termo_busca)} self:yes&sort=relevance&limit=25"
@@ -150,13 +153,12 @@ async def miner_reddit(req: MinerRedditRequest):
             word_count = len(texto.split())
             score = data.get('score', 0)
             
+            # Filtro de Score e Palavras
             if word_count < req.min_words or score < req.min_score: continue
 
             titulo = data.get('title', '')
-            if req.traduzir:
-                titulo = traduzir_texto_longo(titulo)
-                texto = traduzir_texto_longo(texto)
-
+            
+            # Não traduzimos mais os resultados, entregamos o bruto gringo.
             resultados.append({
                 "titulo": titulo,
                 "fonte": f"r/{data.get('subreddit')}",
@@ -219,9 +221,6 @@ async def miner_wiki(req: MinerWikiNewsRequest):
         return {"status": "sucesso", "data": resultados}
     except Exception as e: return {"status": "erro", "mensagem": str(e)}
 
-# ==========================================
-# 4. EXTRATOR GOOGLE NEWS
-# ==========================================
 @app.post("/miner/news")
 async def miner_news(req: MinerWikiNewsRequest):
     try:
@@ -230,12 +229,11 @@ async def miner_news(req: MinerWikiNewsRequest):
         root = ET.fromstring(r.text)
         
         resultados = []
-        for item in root.findall('.//item')[:10]: # Limite de 10 notícias para não poluir
+        for item in root.findall('.//item')[:10]:
             titulo = item.find('title').text if item.find('title') is not None else 'Sem título'
             link = item.find('link').text if item.find('link') is not None else ''
             desc_html = item.find('description').text if item.find('description') is not None else ''
             
-            # Limpa as tags HTML que o Google News joga na descrição
             texto = re.sub(r'<[^>]+>', ' ', html.unescape(desc_html))
             texto = re.sub(r'\s+', ' ', texto).strip()
             
