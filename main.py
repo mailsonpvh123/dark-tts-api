@@ -164,7 +164,7 @@ async def miner_reddit(req: MinerRedditRequest):
                 "texto": texto,
                 "palavras": word_count
             })
-            if len(resultados) >= 10: break # Limite de 10 pra não travar a API
+            if len(resultados) >= 10: break
 
         return {"status": "sucesso", "data": resultados}
     except Exception as e: return {"status": "erro", "mensagem": str(e)}
@@ -218,6 +218,38 @@ async def miner_wiki(req: MinerWikiNewsRequest):
                     resultados.append({"titulo": tit, "fonte": "Wikipedia PT", "url": "", "texto": texto, "palavras": len(texto.split())})
         return {"status": "sucesso", "data": resultados}
     except Exception as e: return {"status": "erro", "mensagem": str(e)}
+
+# ==========================================
+# 4. EXTRATOR GOOGLE NEWS
+# ==========================================
+@app.post("/miner/news")
+async def miner_news(req: MinerWikiNewsRequest):
+    try:
+        url = f"https://news.google.com/rss/search?q={urllib.parse.quote(req.query)}&hl=pt-BR&gl=BR&ceid=BR:pt-419"
+        r = requests.get(url, timeout=10)
+        root = ET.fromstring(r.text)
+        
+        resultados = []
+        for item in root.findall('.//item')[:10]: # Limite de 10 notícias para não poluir
+            titulo = item.find('title').text if item.find('title') is not None else 'Sem título'
+            link = item.find('link').text if item.find('link') is not None else ''
+            desc_html = item.find('description').text if item.find('description') is not None else ''
+            
+            # Limpa as tags HTML que o Google News joga na descrição
+            texto = re.sub(r'<[^>]+>', ' ', html.unescape(desc_html))
+            texto = re.sub(r'\s+', ' ', texto).strip()
+            
+            resultados.append({
+                "titulo": titulo,
+                "fonte": "Google News",
+                "url": link,
+                "texto": texto,
+                "palavras": len(texto.split())
+            })
+            
+        return {"status": "sucesso", "data": resultados}
+    except Exception as e: 
+        return {"status": "erro", "mensagem": str(e)}
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
