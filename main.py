@@ -128,45 +128,58 @@ def traduzir_texto_longo(texto, source='auto', target='pt'):
 @app.post("/miner/reddit")
 async def miner_reddit(req: MinerRedditRequest):
     try:
-        # Traduz a busca para o inglês silenciosamente para raspar melhor o Reddit
+        # Traduz a busca para o inglês silenciosamente
         termo_busca = req.query
         try: termo_busca = GoogleTranslator(source='auto', target='en').translate(req.query)
         except: pass
 
-        # Filtro de Sem Atualização
+        # Aplica o filtro de Sem Atualização
         if req.sem_atualizacao:
             termo_busca += " -update -title:update"
 
         sub = req.sub.strip().replace("r/", "").replace("/", "")
-        endpoint = f"/r/{sub}/search.json?q={urllib.parse.quote(termo_busca)} self:yes&restrict_sr=1&sort=relevance&limit=25" if sub else f"/search.json?q={urllib.parse.quote(termo_busca)} self:yes&sort=relevance&limit=25"
+        endpoint = f"/r/{sub}/search.json?q={urllib.parse.quote(termo_busca)} self:yes&restrict_sr=1&sort=relevance&limit=100" if sub else f"/search.json?q={urllib.parse.quote(termo_busca)} self:yes&sort=relevance&limit=100"
         
-        headers = {'User-Agent': 'DarkMinerCloud/1.0'}
-        r = requests.get(f"https://www.reddit.com{endpoint}", headers=headers)
-        if r.status_code != 200: return {"status": "erro", "mensagem": f"Erro no Reddit: {r.status_code}"}
-
-        posts = r.json().get('data', {}).get('children', [])
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+        
         resultados = []
-
-        for post in posts:
-            data = post['data']
-            texto = data.get('selftext', '')
-            word_count = len(texto.split())
-            score = data.get('score', 0)
+        after = None
+        
+        # Loop de busca profunda (Vasculha até 4 páginas de 100 resultados)
+        for _ in range(4):
+            url_final = f"https://www.reddit.com{endpoint}"
+            if after: url_final += f"&after={after}"
             
-            # Filtro de Score e Palavras
-            if word_count < req.min_words or score < req.min_score: continue
-
-            titulo = data.get('title', '')
+            r = requests.get(url_final, headers=headers)
+            if r.status_code != 200: break
             
-            # Não traduzimos mais os resultados, entregamos o bruto gringo.
-            resultados.append({
-                "titulo": titulo,
-                "fonte": f"r/{data.get('subreddit')}",
-                "url": f"https://reddit.com{data.get('permalink')}",
-                "texto": texto,
-                "palavras": word_count
-            })
-            if len(resultados) >= 10: break
+            data_json = r.json()
+            posts = data_json.get('data', {}).get('children', [])
+            after = data_json.get('data', {}).get('after')
+            
+            if not posts: break
+
+            for post in posts:
+                data = post['data']
+                texto = data.get('selftext', '')
+                word_count = len(texto.split())
+                score = data.get('score', 0)
+                
+                if word_count < req.min_words or score < req.min_score: continue
+
+                titulo = data.get('title', '')
+                
+                resultados.append({
+                    "titulo": titulo,
+                    "fonte": f"r/{data.get('subreddit')}",
+                    "url": f"https://reddit.com{data.get('permalink')}",
+                    "texto": texto,
+                    "palavras": word_count
+                })
+                
+                if len(resultados) >= 10: break
+            
+            if len(resultados) >= 10 or not after: break
 
         return {"status": "sucesso", "data": resultados}
     except Exception as e: return {"status": "erro", "mensagem": str(e)}
@@ -208,12 +221,13 @@ async def miner_web(req: MinerWebRequest):
 
 @app.post("/miner/wiki")
 async def miner_wiki(req: MinerWikiNewsRequest):
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
     try:
-        r = requests.get("https://pt.wikipedia.org/w/api.php", params={"action": "opensearch", "search": req.query, "limit": "5", "format": "json"})
+        r = requests.get("https://pt.wikipedia.org/w/api.php", params={"action": "opensearch", "search": req.query, "limit": "5", "format": "json"}, headers=headers)
         titulos = r.json()[1]
         resultados = []
         for tit in titulos:
-            p = requests.get("https://pt.wikipedia.org/w/api.php", params={"action": "query", "prop": "extracts", "titles": tit, "explaintext": "1", "format": "json"}).json()
+            p = requests.get("https://pt.wikipedia.org/w/api.php", params={"action": "query", "prop": "extracts", "titles": tit, "explaintext": "1", "format": "json"}, headers=headers).json()
             for pid, pdata in p.get("query", {}).get("pages", {}).items():
                 if pid != "-1" and pdata.get("extract"):
                     texto = pdata.get("extract")
@@ -221,11 +235,13 @@ async def miner_wiki(req: MinerWikiNewsRequest):
         return {"status": "sucesso", "data": resultados}
     except Exception as e: return {"status": "erro", "mensagem": str(e)}
 
+
 @app.post("/miner/news")
 async def miner_news(req: MinerWikiNewsRequest):
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
     try:
         url = f"https://news.google.com/rss/search?q={urllib.parse.quote(req.query)}&hl=pt-BR&gl=BR&ceid=BR:pt-419"
-        r = requests.get(url, timeout=10)
+        r = requests.get(url, headers=headers, timeout=10)
         root = ET.fromstring(r.text)
         
         resultados = []
