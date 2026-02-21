@@ -7,3 +7,5 @@ youtube-transcript-api
 requests
 deep-translator
 beautifulsoup4
+python-multipart
+faster-whisper
