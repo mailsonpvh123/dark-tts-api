@@ -8,6 +8,7 @@ import os
 
 app = FastAPI()
 
+# Configuração do CORS (A ponte de segurança entre o seu site e a API)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -23,6 +24,7 @@ class AudioRequest(BaseModel):
     pitch: int = 0
     volume: int = 0
 
+# --- SISTEMA DE CACHE DE VOZES ---
 vozes_cache = []
 
 @app.on_event("startup")
@@ -31,6 +33,7 @@ async def carregar_vozes_memoria():
     try:
         voices = await edge_tts.list_voices()
         for v in voices:
+            # Filtra PT-BR e Multilingual e formata para o Front-end
             if v["Locale"].startswith("pt-") or "Multilingual" in v["ShortName"]:
                 vozes_cache.append({
                     "name": v["Name"],
@@ -51,9 +54,11 @@ async def listar_vozes():
 @app.post("/gerar_narracao")
 async def gerar_narracao(req: AudioRequest):
     try:
+        # Formata a velocidade e o pitch para o padrão da API (+0%, +0Hz)
         velocidade_formatada = f"{int((req.velocidade - 1.0) * 100):+d}%"
         pitch_formatado = f"{req.pitch:+d}Hz"
         
+        # Prepara o comunicador e o criador de legendas (SubMaker)
         communicate = edge_tts.Communicate(
             text=req.texto, 
             voice=req.voz, 
@@ -64,13 +69,17 @@ async def gerar_narracao(req: AudioRequest):
         
         audio_data = bytearray()
         
+        # Inicia o streaming usando o PADRÃO NOVO (feed)
         async for chunk in communicate.stream():
             if chunk["type"] == "audio":
                 audio_data.extend(chunk["data"])
-            elif chunk["type"] == "WordBoundary":
-                submaker.create_sub((chunk["offset"], chunk["duration"]), chunk["text"])
+            elif chunk["type"] in ("WordBoundary", "SentenceBoundary"):
+                submaker.feed(chunk)
         
-        srt_content = submaker.generate_subs()
+        # Gera o arquivo SRT completo usando o PADRÃO NOVO (get_srt)
+        srt_content = submaker.get_srt()
+        
+        # Converte o áudio para base64
         audio_base64 = base64.b64encode(audio_data).decode('utf-8')
         
         return {
