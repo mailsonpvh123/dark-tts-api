@@ -4,3 +4,6 @@ edge-tts
 pydub
 nltk
 youtube-transcript-api
+requests
+deep-translator
+beautifulsoup4
