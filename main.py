@@ -128,25 +128,26 @@ def traduzir_texto_longo(texto, source='auto', target='pt'):
 @app.post("/miner/reddit")
 async def miner_reddit(req: MinerRedditRequest):
     try:
-        # Traduz a busca para o inglês silenciosamente
+        # Traduz a busca para o inglês silenciosamente para raspar melhor o Reddit
         termo_busca = req.query
         try: termo_busca = GoogleTranslator(source='auto', target='en').translate(req.query)
         except: pass
 
-        # Aplica o filtro de Sem Atualização
+        # Filtro de Sem Atualização
         if req.sem_atualizacao:
             termo_busca += " -update -title:update"
 
         sub = req.sub.strip().replace("r/", "").replace("/", "")
         endpoint = f"/r/{sub}/search.json?q={urllib.parse.quote(termo_busca)} self:yes&restrict_sr=1&sort=relevance&limit=100" if sub else f"/search.json?q={urllib.parse.quote(termo_busca)} self:yes&sort=relevance&limit=100"
         
-        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+        # Identidade Secreta do seu script desktop!
+        headers = {'User-Agent': 'DarkMinerBot/5.0 (Windows NT 10.0; Win64; x64)'}
         
         resultados = []
         after = None
         
-        # Loop de busca profunda (Vasculha até 4 páginas de 100 resultados)
-        for _ in range(4):
+        # Loop de busca profunda (Vasculha até 5 páginas procurando histórias que batam com a sua Régua)
+        for _ in range(5):
             url_final = f"https://www.reddit.com{endpoint}"
             if after: url_final += f"&after={after}"
             
@@ -165,6 +166,7 @@ async def miner_reddit(req: MinerRedditRequest):
                 word_count = len(texto.split())
                 score = data.get('score', 0)
                 
+                # Filtro de Score e Palavras
                 if word_count < req.min_words or score < req.min_score: continue
 
                 titulo = data.get('title', '')
@@ -176,10 +178,12 @@ async def miner_reddit(req: MinerRedditRequest):
                     "texto": texto,
                     "palavras": word_count
                 })
-                
                 if len(resultados) >= 10: break
             
             if len(resultados) >= 10 or not after: break
+
+        if not resultados:
+            return {"status": "erro", "mensagem": f"Nenhuma história encontrada! A sua régua está muito alta. Tente diminuir o Mín. Palavras (ex: 500) ou o Score."}
 
         return {"status": "sucesso", "data": resultados}
     except Exception as e: return {"status": "erro", "mensagem": str(e)}
@@ -215,16 +219,23 @@ async def miner_web(req: MinerWebRequest):
                 resultados.append({"titulo": titulo, "fonte": "Web", "url": link, "texto": texto, "palavras": len(texto.split())})
             except: pass
 
+        if not resultados:
+            return {"status": "erro", "mensagem": "Nenhum artigo longo encontrado na Web."}
         return {"status": "sucesso", "data": resultados}
     except Exception as e: return {"status": "erro", "mensagem": str(e)}
 
 
 @app.post("/miner/wiki")
 async def miner_wiki(req: MinerWikiNewsRequest):
-    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+    # Identidade Secreta do seu script desktop!
+    headers = {'User-Agent': 'DarkCreatorBot/2.0'}
     try:
         r = requests.get("https://pt.wikipedia.org/w/api.php", params={"action": "opensearch", "search": req.query, "limit": "5", "format": "json"}, headers=headers)
-        titulos = r.json()[1]
+        if r.status_code != 200: return {"status": "erro", "mensagem": f"Wikipedia bloqueou (HTTP {r.status_code})"}
+        
+        try: titulos = r.json()[1]
+        except: return {"status": "erro", "mensagem": "Falha de Leitura. A Wikipédia rejeitou a busca."}
+
         resultados = []
         for tit in titulos:
             p = requests.get("https://pt.wikipedia.org/w/api.php", params={"action": "query", "prop": "extracts", "titles": tit, "explaintext": "1", "format": "json"}, headers=headers).json()
@@ -232,17 +243,23 @@ async def miner_wiki(req: MinerWikiNewsRequest):
                 if pid != "-1" and pdata.get("extract"):
                     texto = pdata.get("extract")
                     resultados.append({"titulo": tit, "fonte": "Wikipedia PT", "url": "", "texto": texto, "palavras": len(texto.split())})
+        
+        if not resultados: return {"status": "erro", "mensagem": "Nenhum fato detalhado encontrado."}
         return {"status": "sucesso", "data": resultados}
     except Exception as e: return {"status": "erro", "mensagem": str(e)}
 
 
 @app.post("/miner/news")
 async def miner_news(req: MinerWikiNewsRequest):
-    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+    # Sem Headers forçados para não assustar o Google RSS
     try:
         url = f"https://news.google.com/rss/search?q={urllib.parse.quote(req.query)}&hl=pt-BR&gl=BR&ceid=BR:pt-419"
-        r = requests.get(url, headers=headers, timeout=10)
-        root = ET.fromstring(r.text)
+        r = requests.get(url, timeout=10)
+        
+        if r.status_code != 200: return {"status": "erro", "mensagem": f"Google News negou acesso (HTTP {r.status_code})"}
+        
+        try: root = ET.fromstring(r.text)
+        except: return {"status": "erro", "mensagem": "O Google News enviou um formato inválido."}
         
         resultados = []
         for item in root.findall('.//item')[:10]:
@@ -261,6 +278,7 @@ async def miner_news(req: MinerWikiNewsRequest):
                 "palavras": len(texto.split())
             })
             
+        if not resultados: return {"status": "erro", "mensagem": "Nenhuma notícia encontrada."}
         return {"status": "sucesso", "data": resultados}
     except Exception as e: 
         return {"status": "erro", "mensagem": str(e)}
