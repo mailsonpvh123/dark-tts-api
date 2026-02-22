@@ -1,30 +1,32 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-# Importando nossas ferramentas modulares
+# Importa as rotas dos arquivos modulares que criamos
 from rotas import minerador, voice_synth, audio_mixer, gen_legends
 
+# Inicializa o app FastAPI
 app = FastAPI(
-    title="Dark Creator API", 
-    description="API Modular para o Dark Creator OS", 
+    title="Dark Creator OS - API",
+    description="Motores neurais separados de forma modular.",
     version="2.0"
 )
 
-# Configuração do CORS (MUITO IMPORTANTE para não dar erro no Front)
+# Configuração de CORS (Essencial para seu HTML conversar com a API sem bloqueios)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # Se quiser, depois mude para o domínio do seu front-end
+    allow_origins=["*"], # Permite qualquer origem
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Plugando as ferramentas no servidor principal
+# Acoplando as ferramentas no motor principal
 app.include_router(minerador.router)
 app.include_router(voice_synth.router)
 app.include_router(audio_mixer.router)
 app.include_router(gen_legends.router)
 
+# Rota de Status / Ping
 @app.get("/")
-def ping():
-    return {"status": "Dark Creator OS Backend 100% Online e Modular"}
+def check_status():
+    return {"status": "online", "message": "Servidor do Dark Creator está rodando liso e modular!"}
