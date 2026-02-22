@@ -253,20 +253,16 @@ async def gen_legends(
     try:
         from faster_whisper import WhisperModel
     except ImportError:
-        return {"status": "erro", "mensagem": "Biblioteca faster-whisper não está instalada no servidor."}
+        return {"status": "erro", "mensagem": "Biblioteca faster-whisper não instalada."}
 
-    # Salva o arquivo de áudio temporariamente no servidor
     ext = os.path.splitext(file.filename)[1]
     with tempfile.NamedTemporaryFile(delete=False, suffix=ext) as tmp:
         shutil.copyfileobj(file.file, tmp)
         tmp_path = tmp.name
 
     try:
-        # Carrega o modelo (Na primeira vez que rodar, o servidor vai baixar o modelo, pode levar uns segundos a mais)
         model = WhisperModel(model_size, device="cpu", compute_type="int8")
         lang = None if language == "auto" else language
-        
-        # Faz a Mágica
         segments, info = model.transcribe(tmp_path, language=lang, beam_size=5, vad_filter=True)
 
         srt_lines = []
@@ -285,14 +281,109 @@ async def gen_legends(
 
         srt_content = "\n".join(srt_lines)
         txt_content = "\n\n".join(txt_lines)
-
         return {"status": "sucesso", "srt": srt_content, "txt": txt_content}
-        
     except Exception as e:
-        return {"status": "erro", "mensagem": f"Erro na transcrição: {str(e)}"}
+        return {"status": "erro", "mensagem": f"Erro: {str(e)}"}
     finally:
-        # Limpa o lixo do servidor para não lotar o HD
         os.remove(tmp_path)
+
+
+# ==========================================
+# 6. AUDIO MIXER (A MESA DE SOM EM NUVEM)
+# ==========================================
+@app.post("/audio_mixer")
+async def audio_mixer(
+    voice_file: UploadFile = File(...),
+    bg_file: UploadFile = File(...),
+    voice_vol: float = Form(0.0),
+    bg_vol: float = Form(-15.0),
+    ducking: bool = Form(True)
+):
+    try:
+        from pydub import AudioSegment
+    except ImportError:
+        return {"status": "erro", "mensagem": "Biblioteca pydub não instalada."}
+
+    # Salva arquivos temporários
+    v_ext = os.path.splitext(voice_file.filename)[1]
+    b_ext = os.path.splitext(bg_file.filename)[1]
+    
+    with tempfile.NamedTemporaryFile(delete=False, suffix=v_ext) as v_tmp:
+        shutil.copyfileobj(voice_file.file, v_tmp)
+        v_path = v_tmp.name
+        
+    with tempfile.NamedTemporaryFile(delete=False, suffix=b_ext) as b_tmp:
+        shutil.copyfileobj(bg_file.file, b_tmp)
+        b_path = b_tmp.name
+
+    out_path = ""
+    try:
+        # Carrega áudios
+        voice = AudioSegment.from_file(v_path)
+        bg = AudioSegment.from_file(b_path)
+
+        # Ajuste de Volume
+        voice = voice + voice_vol
+        bg = bg + bg_vol
+
+        # A GRANDE CORREÇÃO (O FIM DA SÍLABA CORTADA):
+        # Adiciona 2.5 segundos de silêncio no final da voz, assim o fade out 
+        # acontece depois que a voz termina, sem cortar a última palavra!
+        silence_tail = AudioSegment.silent(duration=2500)
+        voice = voice + silence_tail
+
+        # Loop do BG se for menor que a voz
+        if len(bg) < len(voice):
+            loops = (len(voice) // len(bg)) + 1
+            bg = bg * loops
+            
+        # Corta o BG no tamanho exato da voz nova (com a cauda)
+        bg = bg[:len(voice)]
+
+        # Efeito de Ducking (Baixa a música quando a voz fala)
+        if ducking:
+            window_ms = 250  # Analisa o áudio a cada 0.25 segundos
+            threshold_dbfs = -35.0
+            duck_gain = -12.0
+            
+            out_bg = AudioSegment.empty()
+            # Varre o áudio em chunks
+            for i in range(0, len(voice), window_ms):
+                v_chunk = voice[i:i + window_ms]
+                b_chunk = bg[i:i + window_ms]
+                
+                # Se a voz for mais alta que o limite, abaixa o chunk do BG
+                if v_chunk.max_dBFS > threshold_dbfs:
+                    b_chunk = b_chunk + duck_gain
+                    
+                out_bg += b_chunk
+            bg = out_bg
+
+        # Mixagem Final
+        mixed = bg.overlay(voice)
+
+        # Fade In e Fade Out cinematográfico (agora seguro pela cauda de silêncio)
+        mixed = mixed.fade_in(1000).fade_out(2500)
+
+        # Exporta temporariamente
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as out_tmp:
+            out_path = out_tmp.name
+            
+        mixed.export(out_path, format="mp3", bitrate="192k")
+        
+        # Converte para Base64 para devolver ao navegador
+        with open(out_path, "rb") as f:
+            audio_base64 = base64.b64encode(f.read()).decode('utf-8')
+            
+        return {"status": "sucesso", "audio_base64": audio_base64}
+
+    except Exception as e:
+        return {"status": "erro", "mensagem": f"Falha na Mixagem: {str(e)}"}
+    finally:
+        os.remove(v_path)
+        os.remove(b_path)
+        if out_path and os.path.exists(out_path):
+            os.remove(out_path)
 
 
 if __name__ == "__main__":
