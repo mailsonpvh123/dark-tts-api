@@ -231,7 +231,7 @@ async def miner_news(req: MinerWikiNewsRequest):
 
 
 # ==========================================
-# 5. GERADOR DE LEGENDAS (WHISPER)
+# 4. GERADOR DE LEGENDAS (WHISPER)
 # ==========================================
 def _fmt_ts(seconds: float) -> str:
     if seconds < 0: seconds = 0
@@ -289,22 +289,45 @@ async def gen_legends(
 
 
 # ==========================================
-# 6. AUDIO MIXER (A MESA DE SOM EM NUVEM)
+# 5. AUDIO MIXER PRO (NUVEM COM EQUALIZADOR E MP3)
 # ==========================================
+def apply_limiter(seg, ceiling_dbfs):
+    try:
+        peak_dbfs = seg.max_dBFS
+        if peak_dbfs == float("-inf") or peak_dbfs <= ceiling_dbfs:
+            return seg
+        reduce_db = ceiling_dbfs - peak_dbfs
+        return seg.apply_gain(reduce_db)
+    except: return seg
+
 @app.post("/audio_mixer")
 async def audio_mixer(
     voice_file: UploadFile = File(...),
     bg_file: UploadFile = File(...),
     voice_vol: float = Form(0.0),
     bg_vol: float = Form(-15.0),
-    ducking: bool = Form(True)
+    ducking: bool = Form(True),
+    duck_amount: float = Form(-12.0),
+    fade_in: int = Form(120),
+    fade_out: int = Form(2000),
+    trim_silence: bool = Form(True),
+    trim_pad: int = Form(80),
+    compressor: bool = Form(True),
+    comp_th: float = Form(-18.0),
+    comp_ratio: float = Form(4.0),
+    comp_makeup: float = Form(3.0),
+    limiter: bool = Form(True),
+    limiter_ceil: float = Form(-1.0),
+    eq_bass: float = Form(0.0),
+    eq_treble: float = Form(0.0)
 ):
     try:
         from pydub import AudioSegment
+        from pydub.silence import detect_nonsilent
+        from pydub.effects import normalize, compress_dynamic_range
     except ImportError:
-        return {"status": "erro", "mensagem": "Biblioteca pydub não instalada."}
+        return {"status": "erro", "mensagem": "Biblioteca pydub não está instalada."}
 
-    # Salva arquivos temporários
     v_ext = os.path.splitext(voice_file.filename)[1]
     b_ext = os.path.splitext(bg_file.filename)[1]
     
@@ -318,60 +341,76 @@ async def audio_mixer(
 
     out_path = ""
     try:
-        # Carrega áudios
+        # Carrega os áudios (Pydub detecta MP3 ou WAV automaticamente)
         voice = AudioSegment.from_file(v_path)
         bg = AudioSegment.from_file(b_path)
 
-        # Ajuste de Volume
+        # 1. Corte de Silêncio
+        if trim_silence and len(voice) > 0:
+            ranges = detect_nonsilent(voice, min_silence_len=200, silence_thresh=-40.0, seek_step=10)
+            if ranges:
+                start = max(0, int(ranges[0][0] - trim_pad))
+                end = min(len(voice), int(ranges[-1][1] + trim_pad))
+                if end > start: voice = voice[start:end]
+
+        # 2. Equalizador (Bass & Treble Boost)
+        if eq_bass > 0:
+            bass_seg = voice.low_pass_filter(250)
+            voice = voice.overlay(bass_seg + eq_bass)
+        if eq_treble > 0:
+            treble_seg = voice.high_pass_filter(4000)
+            voice = voice.overlay(treble_seg + eq_treble)
+
+        # 3. Ganhos Manuais
         voice = voice + voice_vol
         bg = bg + bg_vol
 
-        # A GRANDE CORREÇÃO (O FIM DA SÍLABA CORTADA):
-        # Adiciona 2.5 segundos de silêncio no final da voz, assim o fade out 
-        # acontece depois que a voz termina, sem cortar a última palavra!
-        silence_tail = AudioSegment.silent(duration=2500)
-        voice = voice + silence_tail
+        # 4. Cauda de Segurança (A correção do corte da última sílaba!)
+        tail_ms = fade_out if fade_out > 0 else 1500
+        voice = voice + AudioSegment.silent(duration=tail_ms)
 
-        # Loop do BG se for menor que a voz
-        if len(bg) < len(voice):
+        # 5. Loop do Background
+        if len(bg) > 0 and len(bg) < len(voice):
             loops = (len(voice) // len(bg)) + 1
             bg = bg * loops
-            
-        # Corta o BG no tamanho exato da voz nova (com a cauda)
         bg = bg[:len(voice)]
 
-        # Efeito de Ducking (Baixa a música quando a voz fala)
+        # 6. Efeito Ducking Automático
         if ducking:
-            window_ms = 250  # Analisa o áudio a cada 0.25 segundos
+            window_ms = 150
             threshold_dbfs = -35.0
-            duck_gain = -12.0
-            
             out_bg = AudioSegment.empty()
-            # Varre o áudio em chunks
+            
             for i in range(0, len(voice), window_ms):
                 v_chunk = voice[i:i + window_ms]
                 b_chunk = bg[i:i + window_ms]
-                
-                # Se a voz for mais alta que o limite, abaixa o chunk do BG
-                if v_chunk.max_dBFS > threshold_dbfs:
-                    b_chunk = b_chunk + duck_gain
-                    
+                if v_chunk.dBFS != float("-inf") and v_chunk.dBFS > threshold_dbfs:
+                    b_chunk = b_chunk + duck_amount
                 out_bg += b_chunk
             bg = out_bg
 
-        # Mixagem Final
+        # 7. Mixagem Final
         mixed = bg.overlay(voice)
 
-        # Fade In e Fade Out cinematográfico (agora seguro pela cauda de silêncio)
-        mixed = mixed.fade_in(1000).fade_out(2500)
+        # 8. Efeitos Master: Fades, Compressor, Normalização e Limiter
+        if fade_in > 0: mixed = mixed.fade_in(fade_in)
+        if fade_out > 0: mixed = mixed.fade_out(fade_out)
 
-        # Exporta temporariamente
+        if compressor:
+            mixed = compress_dynamic_range(mixed, threshold=comp_th, ratio=comp_ratio, attack=10, release=200)
+            if comp_makeup > 0: mixed = mixed + comp_makeup
+
+        mixed = normalize(mixed, headroom=1.0)
+
+        if limiter:
+            mixed = apply_limiter(mixed, limiter_ceil)
+
+        # Exporta como MP3 (já que o seu Easypanel aguenta!)
         with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as out_tmp:
             out_path = out_tmp.name
             
         mixed.export(out_path, format="mp3", bitrate="192k")
         
-        # Converte para Base64 para devolver ao navegador
         with open(out_path, "rb") as f:
             audio_base64 = base64.b64encode(f.read()).decode('utf-8')
             
@@ -384,7 +423,6 @@ async def audio_mixer(
         os.remove(b_path)
         if out_path and os.path.exists(out_path):
             os.remove(out_path)
-
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
