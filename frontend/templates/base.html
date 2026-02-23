@@ -1,42 +1,88 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dark Creator OS | Dashboard</title>
+    <title>Dark Creator OS | {{ title }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}">
+    <link rel="stylesheet" href="/static/css/style.css"> <style>
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #10b981; }
+        
+        input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%; background: #a855f7; cursor: pointer; margin-top: -5px; transition: 0.3s; }
+        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 6px; cursor: pointer; background: #27272a; border-radius: 4px; border: 1px solid #3f3f46; }
+        
+        .aba-oculta { display: none; }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+    </style>
 </head>
 <body class="bg-[#09090b] text-zinc-300 font-sans antialiased flex h-screen overflow-hidden">
 
     <aside class="w-64 bg-[#09090b] border-r border-zinc-800 flex flex-col hidden md:flex relative overflow-hidden shrink-0">
+        <div class="absolute top-0 left-0 w-full h-32 bg-purple-600/5 blur-[50px] pointer-events-none"></div>
         <div class="h-16 flex items-center px-6 border-b border-zinc-800/80 relative z-10">
-            <span class="text-xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-purple-500 via-purple-400 to-emerald-400">
+            <a href="/" class="text-xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-purple-500 via-purple-400 to-emerald-400 drop-shadow-sm">
                 <i class="fa-solid fa-moon text-purple-500 mr-1"></i>DARK<span class="text-zinc-500 font-normal">CREATOR</span>
-            </span>
+            </a>
         </div>
         
         <nav class="flex-1 px-3 py-6 space-y-6 overflow-y-auto relative z-10 custom-scrollbar">
-            <button onclick="mudarAba('aba_reescritor', this)" class="menu-btn w-full flex items-center gap-3 px-3 py-2.5 text-zinc-400 hover:text-white rounded-lg transition-all text-sm border border-transparent">
-                <i class="fa-solid fa-rotate w-5"></i> Paraphraser
-            </button>
-            </nav>
+            <div>
+                <p class="px-3 text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-3">Produção</p>
+                <div class="space-y-1">
+                    <a href="/gen-insights" class="menu-btn w-full flex items-center gap-3 px-3 py-2.5 text-zinc-400 hover:text-white hover:bg-zinc-800/50 rounded-lg transition-all text-sm border border-transparent">
+                        <i class="fa-solid fa-lightbulb w-5 text-center"></i> Gen Insights
+                    </a>
+                    <a href="/miner" class="menu-btn w-full flex items-center gap-3 px-3 py-2.5 text-zinc-400 hover:text-white hover:bg-zinc-800/50 rounded-lg transition-all text-sm border border-transparent">
+                        <i class="fa-solid fa-magnet w-5 text-center"></i> Miner
+                    </a>
+                    <a href="/paraphraser" class="menu-btn w-full flex items-center gap-3 px-3 py-2.5 text-zinc-400 hover:text-white hover:bg-zinc-800/50 rounded-lg transition-all text-sm border border-transparent">
+                        <i class="fa-solid fa-rotate w-5 text-center"></i> Paraphraser
+                    </a>
+                    <a href="/script-forge" class="menu-btn w-full flex items-center gap-3 px-3 py-2.5 text-zinc-400 hover:text-white hover:bg-zinc-800/50 rounded-lg transition-all text-sm border border-transparent">
+                        <i class="fa-solid fa-pen-nib w-5 text-center"></i> Script Forge
+                    </a>
+                    <a href="/voice-synthesizer" class="menu-btn w-full flex items-center gap-3 px-3 py-2.5 text-zinc-400 hover:text-white hover:bg-zinc-800/50 rounded-lg transition-all text-sm border border-transparent">
+                        <i class="fa-solid fa-microphone-lines w-5 text-center"></i> Voice Synth
+                    </a>
+                    <a href="/audio-mixer" class="menu-btn w-full flex items-center gap-3 px-3 py-2.5 text-zinc-400 hover:text-white hover:bg-zinc-800/50 rounded-lg transition-all text-sm border border-transparent">
+                        <i class="fa-solid fa-sliders text-center w-5"></i> Audio Mixer
+                    </a>
+                    <a href="/meta-seo" class="menu-btn w-full flex items-center gap-3 px-3 py-2.5 text-zinc-400 hover:text-white hover:bg-zinc-800/50 rounded-lg transition-all text-sm border border-transparent">
+                        <i class="fa-solid fa-magnifying-glass-chart w-5 text-center"></i> Meta & SEO
+                    </a>
+                    <a href="/thumb-maker" class="menu-btn w-full flex items-center gap-3 px-3 py-2.5 text-zinc-400 hover:text-white hover:bg-zinc-800/50 rounded-lg transition-all text-sm border border-transparent">
+                        <i class="fa-solid fa-image w-5 text-center"></i> Thumb Maker
+                    </a>
+                    <a href="/gen-legends" class="menu-btn w-full flex items-center gap-3 px-3 py-2.5 text-zinc-400 hover:text-white hover:bg-zinc-800/50 rounded-lg transition-all text-sm border border-transparent">
+                        <i class="fa-solid fa-closed-captioning w-5 text-center"></i> Gen Legends
+                    </a>
+                </div>
+            </div>
+        </nav>
+        
+        <div class="p-4 border-t border-zinc-800 relative z-10">
+            <div class="flex items-center gap-3 bg-[#121214] p-3 rounded-lg border border-zinc-800/80">
+                <div class="w-8 h-8 rounded-full bg-gradient-to-br from-purple-600 to-emerald-500 flex items-center justify-center text-white font-bold text-sm shadow-inner">MB</div>
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-medium text-white truncate">mailsonpvh</p>
+                    <p class="text-xs text-emerald-400 font-semibold"><i class="fa-solid fa-coins"></i> 3.100 coins</p>
+                </div>
+            </div>
+        </div>
     </aside>
 
     <main class="flex-1 flex flex-col h-screen overflow-y-auto bg-[#0c0c0e] relative custom-scrollbar">
         <div class="p-6 md:p-10 max-w-7xl mx-auto w-full relative z-10">
-            
-            {% block content %}
-                <p>Selecione uma ferramenta no menu ao lado para começar.</p>
-            {% endblock %}
-
+            {% block content %}{% endblock %}
         </div>
     </main>
 
     <audio id="player_preview" class="hidden"></audio>
-
-    <script src="{{ url_for('static', path='/js/main.js') }}"></script>
+    <script src="/static/js/main.js"></script>
 </body>
 </html>
