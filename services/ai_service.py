@@ -12,7 +12,7 @@ async def call_gemini(system_prompt, user_content):
         raise Exception("CHAVE API AUSENTE: A variável GEMINI_API_KEY não foi encontrada no servidor.")
 
     # Usando o modelo flash mais estável da API
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_KEY}"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_KEY}"
     
     payload = {
         "systemInstruction": {"parts": [{"text": system_prompt}]},
