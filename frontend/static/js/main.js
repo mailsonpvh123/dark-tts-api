@@ -1,8 +1,8 @@
 // ==========================================
 // CONFIGURAÇÕES GLOBAIS
 // ==========================================
-const URL_API_VOZES = "https://tts.zappclube.com.br/vozes";
-const URL_API_DIRETA = "https://tts.zappclube.com.br/gerar_narracao"; 
+const URL_API_VOZES = "/vozes"; // Usando rota relativa agora que tudo está na mesma VPS
+const URL_API_DIRETA = "/gerar_narracao"; // Usando rota relativa
 let ideiasGlobais = []; 
 let srtGlobal = ""; 
 let vozSelecionada = "pt-BR-AntonioNeural"; 
@@ -14,7 +14,21 @@ let arquivoBgMixer = null;
 // INICIALIZAÇÃO E BLINDAGEM DE CARREGAMENTO
 // ==========================================
 window.onload = async function() {
-    // Proteções de Segurança: Só executa se os elementos existirem na página atual
+    
+    // --- RECEPTOR DE DADOS (PULA DE UMA TELA PRA OUTRA) ---
+    const textoVoice = localStorage.getItem('texto_pendente_voice');
+    if (textoVoice && document.getElementById('texto_voz')) {
+        document.getElementById('texto_voz').value = textoVoice;
+        localStorage.removeItem('texto_pendente_voice');
+    }
+    
+    if (localStorage.getItem('abrir_aba_voice') === 'true' && document.getElementById('btn_menu_voice')) {
+        mudarAba('aba_voice', document.getElementById('btn_menu_voice'));
+        localStorage.removeItem('abrir_aba_voice');
+    }
+    // ------------------------------------------------------------
+
+    // Proteções de Segurança Padrão
     const btnLegends = document.getElementById('btn_menu_legends');
     if(btnLegends && document.getElementById('aba_legends')) {
         mudarAba('aba_legends', btnLegends);
@@ -37,27 +51,23 @@ window.onload = async function() {
         }
     }
 
-    // Configura Drag and Drop do Paraphraser (se existir na tela)
     const dropzoneParaphraser = document.getElementById('dropzone_paraphraser');
     const fileInputParaphraser = document.getElementById('arquivo_txt_paraphraser');
     if(dropzoneParaphraser && fileInputParaphraser) {
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(ev => dropzoneParaphraser.addEventListener(ev, preventDefaults, false));
         function preventDefaults(e) { e.preventDefault(); e.stopPropagation(); }
-        
         ['dragenter', 'dragover'].forEach(ev => {
             dropzoneParaphraser.addEventListener(ev, () => {
                 dropzoneParaphraser.classList.add('border-pink-400', 'bg-pink-500/10', 'scale-[1.02]');
                 dropzoneParaphraser.querySelector('i').classList.add('text-pink-400', '-translate-y-1');
             }, false);
         });
-        
         ['dragleave', 'drop'].forEach(ev => {
             dropzoneParaphraser.addEventListener(ev, () => {
                 dropzoneParaphraser.classList.remove('border-pink-400', 'bg-pink-500/10', 'scale-[1.02]');
                 dropzoneParaphraser.querySelector('i').classList.remove('text-pink-400', '-translate-y-1');
             }, false);
         });
-        
         dropzoneParaphraser.addEventListener('drop', (e) => {
             let files = e.dataTransfer.files;
             if(files.length > 0 && files[0].name.endsWith('.txt')) { 
@@ -67,6 +77,60 @@ window.onload = async function() {
         }, false);
     }
 };
+
+// ==========================================
+// ROTEADORES DE FLUXO E MEMÓRIA (MULTI-PÁGINAS)
+// ==========================================
+function despacharParaVoice(idCampoOrigem) {
+    const texto = document.getElementById(idCampoOrigem).value;
+    if(!texto || texto.trim() === "") return alert("Aviso: O texto está vazio! Crie o roteiro primeiro."); 
+
+    // Salva na memória do navegador
+    localStorage.setItem('texto_pendente_voice', texto);
+    localStorage.setItem('abrir_aba_voice', 'true');
+
+    const campoVoz = document.getElementById('texto_voz');
+    const btnVoice = document.getElementById('btn_menu_voice');
+
+    if(campoVoz && btnVoice) {
+        campoVoz.value = texto;
+        mudarAba('aba_voice', btnVoice);
+        localStorage.removeItem('texto_pendente_voice');
+        localStorage.removeItem('abrir_aba_voice');
+    } else {
+        // CORREÇÃO DA ROTA: Agora aponta para a URL exata do Voice Synthesizer
+        window.location.href = '/voice-synthesizer'; 
+    }
+}
+
+function enviarScriptParaVoice() { despacharParaVoice('script_final_editavel'); }
+function enviarParaphraserParaVoice() { despacharParaVoice('paraphraser_resultado'); }
+
+
+function enviarMinerParaParaphraser(btnElement) {
+    const card = btnElement.closest('.miner-card');
+    const titulo = card.querySelector('h4').innerText;
+    const texto = card.querySelector('.miner-texto').innerText;
+    document.getElementById('paraphraser_conteudo').value = `TÍTULO ORIGINAL: ${titulo}\n\n${texto}`;
+    contarPalavras('paraphraser_conteudo', 'contador_palavras_in');
+    document.getElementById('btn_menu_reescritor').click();
+}
+
+function enviarLegendsParaParaphraser() {
+    const texto = document.getElementById('legends_txt_resultado').value;
+    if(!texto || texto.trim() === "") return alert("Transcreva um áudio primeiro!");
+    document.getElementById('paraphraser_conteudo').value = texto;
+    contarPalavras('paraphraser_conteudo', 'contador_palavras_in');
+    document.getElementById('btn_menu_reescritor').click();
+}
+
+function enviarParaScriptForge(index) {
+    const ideia = ideiasGlobais[index];
+    const textoMontado = `TÍTULO: ${ideia.titulo}\nGANCHO: ${ideia.gancho}\nRESUMO: ${ideia.resumo}`;
+    document.getElementById('script_ideia_base').value = textoMontado;
+    contarPalavras('script_ideia_base', 'contador_script_in');
+    document.getElementById('btn_menu_script').click(); 
+}
 
 // ==========================================
 // FUNÇÕES DE UTILIDADE E UI
@@ -153,172 +217,8 @@ function lerArquivoTXTParaphraser(event) {
 }
 
 // ==========================================
-// ROTEADORES DE FLUXO (ENVIAR DE UMA FERRAMENTA PARA OUTRA)
-// ==========================================
-function enviarMinerParaParaphraser(btnElement) {
-    const card = btnElement.closest('.miner-card');
-    const titulo = card.querySelector('h4').innerText;
-    const texto = card.querySelector('.miner-texto').innerText;
-    document.getElementById('paraphraser_conteudo').value = `TÍTULO ORIGINAL: ${titulo}\n\n${texto}`;
-    contarPalavras('paraphraser_conteudo', 'contador_palavras_in');
-    document.getElementById('btn_menu_reescritor').click();
-}
-
-function enviarLegendsParaParaphraser() {
-    const texto = document.getElementById('legends_txt_resultado').value;
-    if(!texto || texto.trim() === "") return alert("Transcreva um áudio primeiro!");
-    document.getElementById('paraphraser_conteudo').value = texto;
-    contarPalavras('paraphraser_conteudo', 'contador_palavras_in');
-    document.getElementById('btn_menu_reescritor').click();
-}
-
-function enviarParaScriptForge(index) {
-    const ideia = ideiasGlobais[index];
-    const textoMontado = `TÍTULO: ${ideia.titulo}\nGANCHO: ${ideia.gancho}\nRESUMO: ${ideia.resumo}`;
-    document.getElementById('script_ideia_base').value = textoMontado;
-    contarPalavras('script_ideia_base', 'contador_script_in');
-    document.getElementById('btn_menu_script').click(); 
-}
-
-function enviarScriptParaVoice() {
-    const roteiroPronto = document.getElementById('script_final_editavel').value;
-    if(!roteiroPronto || roteiroPronto.trim() === "") return alert("Aviso: O roteiro está vazio!"); 
-    document.getElementById('texto_voz').value = roteiroPronto;
-    document.getElementById('btn_menu_voice').click(); 
-}
-
-function enviarParaphraserParaVoice() {
-    const textoPronto = document.getElementById('paraphraser_resultado').value;
-    if(!textoPronto || textoPronto.trim() === "") return alert("Aviso: O texto está vazio!"); 
-    document.getElementById('texto_voz').value = textoPronto;
-    document.getElementById('btn_menu_voice').click(); 
-}
-
-// ==========================================
-// 🚀 NOVAS CHAMADAS FASTAPI (NATIVAS)
-// ==========================================
-
-// 1. GEN INSIGHTS (GROQ/LLAMA 3)
-async function chamarGeradorIdeias() {
-    const btn = document.getElementById('btn_gerar_ideias');
-    const container = document.getElementById('container_ideias');
-    const tema = document.getElementById('ideia_tema')?.value;
-    const publico = document.getElementById('ideia_publico')?.value || "Geral";
-    const tom = document.getElementById('ideia_tom')?.value;
-
-    if(!tema) return alert("Por favor, preencha o Nicho ou Tema."); 
-
-    btn.classList.add('opacity-70', 'cursor-not-allowed');
-    container.innerHTML = `<div class="flex flex-col items-center justify-center py-10 w-full h-full relative z-10"><i class="fa-solid fa-brain fa-fade text-4xl text-yellow-500 mb-4"></i><p class="text-zinc-400 text-sm animate-pulse">A IA Groq está analisando tendências e elaborando roteiros magnéticos...</p></div>`;
-
-    try {
-        const res = await fetch("/api/v1/gen-insights", { 
-            method: 'POST', 
-            headers: { 'Content-Type': 'application/json' }, 
-            body: JSON.stringify({ tema, publico, tom }) 
-        });
-        
-        if(!res.ok) {
-            let erroReal = "Erro desconhecido do servidor.";
-            try { const dadosErro = await res.json(); erroReal = dadosErro.detail || erroReal; } catch(e) {}
-            throw new Error(erroReal);
-        }
-
-        const dadosLimpos = await res.json();
-        
-        ideiasGlobais = dadosLimpos.ideias; 
-        container.innerHTML = '<div class="w-full text-left space-y-4 relative z-10" id="lista_ideias_geradas"></div>';
-        const listaDiv = document.getElementById('lista_ideias_geradas');
-
-        ideiasGlobais.forEach((ideia, index) => {
-            listaDiv.innerHTML += `
-                <div class="bg-[#121214] border border-yellow-500/30 rounded-xl p-5 hover:border-yellow-500/60 transition-colors shadow-inner">
-                    <div class="flex items-center justify-between mb-3 border-b border-zinc-800 pb-2">
-                        <span class="bg-yellow-500/20 text-yellow-400 text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider">Ideia ${index + 1}</span>
-                        <button onclick="enviarParaScriptForge(${index})" class="text-orange-400 hover:text-white transition-colors text-xs font-bold uppercase tracking-wider flex items-center gap-2 bg-orange-500/10 px-3 py-1.5 rounded-lg border border-orange-500/20 hover:bg-orange-600"><i class="fa-solid fa-fire"></i> Script Forge</button>
-                    </div>
-                    <h3 class="text-white font-bold text-lg mb-2 group-hover:text-yellow-300 transition-colors">${ideia.titulo}</h3>
-                    <p class="text-sm text-zinc-300 mb-2 border-l-2 border-yellow-500/50 pl-3"><strong class="text-yellow-500/80">Gancho:</strong> ${ideia.gancho}</p>
-                    <p class="text-sm text-zinc-400 leading-relaxed"><strong class="text-yellow-500/80">Visão Geral:</strong> ${ideia.resumo}</p>
-                </div>`;
-        });
-    } catch (error) { 
-        container.innerHTML = `<p class="text-red-400 font-bold p-5 relative z-10"><i class="fa-solid fa-triangle-exclamation"></i> Erro Técnico: ${error.message}</p>`; 
-    } finally { 
-        btn.classList.remove('opacity-70', 'cursor-not-allowed'); 
-    }
-}
-
-// 2. PARAPHRASER (GEMINI 2.5 FLASH)
-async function chamarParaphraser() {
-    const btn = document.getElementById('btn_gerar_paraphraser');
-    const btnTexto = document.getElementById('txt_btn_transmutar');
-    const conteudo = document.getElementById('paraphraser_conteudo').value;
-    const modo = document.getElementById('paraphraser_modo').value;
-    const canal = document.getElementById('paraphraser_canal').value || "Canal Genérico";
-
-    if(!conteudo.trim()) return alert("Por favor, cole um texto ou suba um arquivo .TXT.");
-
-    btn.classList.add('opacity-70', 'cursor-not-allowed');
-    btnTexto.innerHTML = `Transmutando... <i class="fa-solid fa-circle-notch fa-spin ml-1"></i>`;
-    document.getElementById('paraphraser_resultado').value = "Os motores neurais do Google estão reescrevendo seu texto. Aguarde...";
-
-    try {
-        const res = await fetch("/api/v1/paraphraser", {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ texto: conteudo, modo: modo, canal: canal })
-        });
-        
-        if(!res.ok) {
-            let erroReal = "Erro desconhecido do servidor.";
-            try { const dadosErro = await res.json(); erroReal = dadosErro.detail || erroReal; } catch(e) {}
-            throw new Error(erroReal);
-        }
-        
-        const dados = await res.json();
-        document.getElementById('paraphraser_resultado').value = dados.texto_transmutado;
-        contarPalavras('paraphraser_resultado', 'contador_palavras_out');
-
-    } catch (error) {
-        document.getElementById('paraphraser_resultado').value = "Erro Técnico: " + error.message;
-    } finally {
-        btn.classList.remove('opacity-70', 'cursor-not-allowed');
-        btnTexto.innerText = "Transmutar Texto";
-    }
-}
-
-// ==========================================
 // CHAMADAS ANTIGAS (AINDAS NO N8N - MIGRAR EM BREVE)
 // ==========================================
-async function chamarScriptForge() {
-    const btn = document.getElementById('btn_gerar_script');
-    const ideiaBase = document.getElementById('script_ideia_base').value;
-    const canal = document.getElementById('script_canal').value || "Canal Não Informado";
-    const formato = document.getElementById('script_formato').value;
-    const tamanho = document.getElementById('script_tamanho').value || "Duração livre";
-    const instrucoes = document.getElementById('script_instrucoes').value || "Nenhuma instrução extra.";
-    const tom = document.getElementById('ideia_tom') ? document.getElementById('ideia_tom').value : "Sombrio e Misterioso"; 
-
-    if(!ideiaBase.trim()) return alert("Você precisa de uma Ideia Base para gerar um roteiro."); 
-
-    btn.classList.add('opacity-70', 'cursor-not-allowed');
-    document.getElementById('script_final_editavel').value = "Nossos motores de inteligência artificial estão forjando o seu roteiro otimizado. Isso pode levar alguns segundos...\n\nAguarde o processamento neural...";
-
-    const WEBHOOK_SCRIPT = "https://n8n.zappclube.com.br/webhook-test/gerador-script";
-
-    try {
-        const res = await fetch(WEBHOOK_SCRIPT, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ideia_base: ideiaBase, canal: canal, formato: formato, tamanho: tamanho, tom: tom, instrucoes: instrucoes })
-        });
-        const dadosN8N = await res.json();
-        document.getElementById('script_final_editavel').value = dadosN8N.roteiro;
-        contarPalavras('script_final_editavel', 'contador_script_out');
-    } catch (error) { document.getElementById('script_final_editavel').value = "Erro na conexão com os motores neurais: " + error.message; } 
-    finally { btn.classList.remove('opacity-70', 'cursor-not-allowed'); }
-}
 
 async function chamarMetaSEO() {
     const btn = document.getElementById('btn_gerar_seo');
@@ -475,7 +375,7 @@ async function iniciarMineracao() {
         </div>
     `;
 
-    let url = "https://tts.zappclube.com.br/miner/" + fonte;
+    let url = "/miner/" + fonte;
     let payload = {};
 
     if (fonte === 'reddit') {
@@ -542,7 +442,76 @@ async function iniciarMineracao() {
     }
 }
 
-// ... [O restante do código do Audio Mixer, Legends e Downlodas continua idêntico] ...
+// ... Download functions
+function baixarAudioMixado(base64) {
+    const link = document.createElement('a');
+    link.href = "data:audio/wav;base64," + base64;
+    link.download = `Audio_Masterizado_DarkCreator_${new Date().getTime()}.wav`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+function baixarTXT(btnElement, titulo) {
+    const card = btnElement.closest('.miner-card');
+    const texto = card.querySelector('.miner-texto').innerText;
+    const blob = new Blob([texto], { type: 'text/plain' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `Miner_${titulo.substring(0, 20).replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().getTime()}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+function baixarTXTLegends() {
+    const texto = document.getElementById('legends_txt_resultado').value;
+    if(!texto || texto.trim() === "") return alert("Transcreva um áudio primeiro!");
+    const blob = new Blob([texto], { type: 'text/plain' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `Transcricao_Bruta_${new Date().getTime()}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+function baixarSRTLegends() {
+    const srt = document.getElementById('legends_srt_resultado').value;
+    if(!srt || srt.trim() === "") return alert("Transcreva um áudio primeiro!");
+    const blob = new Blob([srt], { type: 'text/plain' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `Legenda_Whisper_${new Date().getTime()}.srt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+function baixarTXTSEO() {
+    const textoSeo = document.getElementById('seo_resultado').value;
+    if(!textoSeo || textoSeo.trim() === "") return alert("Gere o SEO primeiro antes de baixar!"); 
+    const blob = new Blob([textoSeo], { type: 'text/plain' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `SEO_Otimizado_${new Date().getTime()}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+function baixarSRT() {
+    if(!srtGlobal) return alert("Nenhuma legenda disponível para download.");
+    const blob = new Blob([srtGlobal], { type: 'text/plain' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `Legenda_DarkCreator_${new Date().getTime()}.srt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+// ... Sliders e Preview
 function mostrarNomeMixer(event, idNome, idIcone) {
     const arquivo = event.target.files[0];
     if(arquivo) {
@@ -687,7 +656,7 @@ async function chamarAudioMixer() {
     formData.append("eq_treble", document.getElementById('mixer_eq_treble').value);
 
     try {
-        const res = await fetch("https://tts.zappclube.com.br/audio_mixer", { method: 'POST', body: formData });
+        const res = await fetch("/audio_mixer", { method: 'POST', body: formData });
         const dados = await res.json();
         if (dados.status === "erro") throw new Error(dados.mensagem);
 
@@ -708,74 +677,6 @@ async function chamarAudioMixer() {
         btn.classList.remove('opacity-70', 'cursor-not-allowed');
         txtBtn.innerHTML = "Iniciar Masterização (10 coins)";
     }
-}
-
-function baixarAudioMixado(base64) {
-    const link = document.createElement('a');
-    link.href = "data:audio/wav;base64," + base64;
-    link.download = `Audio_Masterizado_DarkCreator_${new Date().getTime()}.wav`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-}
-
-function baixarTXT(btnElement, titulo) {
-    const card = btnElement.closest('.miner-card');
-    const texto = card.querySelector('.miner-texto').innerText;
-    const blob = new Blob([texto], { type: 'text/plain' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `Miner_${titulo.substring(0, 20).replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().getTime()}.txt`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-}
-
-function baixarTXTLegends() {
-    const texto = document.getElementById('legends_txt_resultado').value;
-    if(!texto || texto.trim() === "") return alert("Transcreva um áudio primeiro!");
-    const blob = new Blob([texto], { type: 'text/plain' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `Transcricao_Bruta_${new Date().getTime()}.txt`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-}
-
-function baixarSRTLegends() {
-    const srt = document.getElementById('legends_srt_resultado').value;
-    if(!srt || srt.trim() === "") return alert("Transcreva um áudio primeiro!");
-    const blob = new Blob([srt], { type: 'text/plain' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `Legenda_Whisper_${new Date().getTime()}.srt`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-}
-
-function baixarTXTSEO() {
-    const textoSeo = document.getElementById('seo_resultado').value;
-    if(!textoSeo || textoSeo.trim() === "") return alert("Gere o SEO primeiro antes de baixar!"); 
-    const blob = new Blob([textoSeo], { type: 'text/plain' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `SEO_Otimizado_${new Date().getTime()}.txt`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-}
-
-function baixarSRT() {
-    if(!srtGlobal) return alert("Nenhuma legenda disponível para download.");
-    const blob = new Blob([srtGlobal], { type: 'text/plain' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `Legenda_DarkCreator_${new Date().getTime()}.srt`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
 }
 
 function mostrarNomeAudio(event) {
@@ -812,7 +713,7 @@ async function chamarGenLegends() {
     formData.append("model_size", modelo);
 
     try {
-        const res = await fetch("https://tts.zappclube.com.br/gen_legends", {
+        const res = await fetch("/gen_legends", {
             method: 'POST',
             body: formData
         });
