@@ -7,7 +7,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
 
 # Importa as rotas dos nossos arquivos modulares
-from rotas import minerador, voice_synth, audio_mixer, gen_legends, paraphraser, gen_insights
+from rotas import minerador, voice_synth, audio_mixer, gen_legends, paraphraser, gen_insights, script_forge
 
 # Inicializa o app FastAPI
 app = FastAPI(
@@ -36,12 +36,13 @@ app.include_router(audio_mixer.router)
 app.include_router(gen_legends.router)
 app.include_router(paraphraser.router)
 app.include_router(gen_insights.router)
+app.include_router(script_forge.router) # <--- API do Script Forge acoplada aqui
 
 # --- ROTAS VISUAIS (PÁGINAS DO SISTEMA) ---
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
-    """Renderiza a página principal (Dashboard vazio por enquanto)"""
+    """Renderiza a página principal"""
     return templates.TemplateResponse("base.html", {
         "request": request, 
         "title": "Home"
@@ -61,6 +62,14 @@ async def gen_insights_page(request: Request):
     return templates.TemplateResponse("gen_insights.html", {
         "request": request, 
         "title": "Gen Insights"
+    })
+
+@app.get("/script-forge", response_class=HTMLResponse)
+async def script_forge_page(request: Request):
+    """Renderiza a página visual do Script Forge"""
+    return templates.TemplateResponse("script_forge.html", {
+        "request": request, 
+        "title": "Script Forge"
     })
 
 # --- ROTA DE STATUS DA API ---
