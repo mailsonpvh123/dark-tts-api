@@ -1,8 +1,7 @@
-
 {% extends "base.html" %}
 
 {% block content %}
-<section id="aba_reescritor" class="aba-conteudo">
+<section id="aba_reescritor" class="aba-conteudo block">
     <div class="mb-8 relative z-10">
         <div class="flex items-center gap-3 mb-2">
             <div class="w-10 h-10 rounded-lg bg-pink-500/10 flex items-center justify-center border border-pink-500/20">
@@ -16,35 +15,164 @@
     <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
         <div class="space-y-6 flex flex-col">
             <div class="bg-[#18181b] border border-zinc-800/80 rounded-xl p-6 shadow-2xl flex-1 flex flex-col relative overflow-hidden">
+                <div class="absolute -top-20 -left-20 w-40 h-40 bg-pink-500/10 rounded-full blur-[60px] pointer-events-none"></div>
+                
                 <div class="flex items-center justify-between mb-4 pb-4 border-b border-zinc-800/80 relative z-10">
                     <h2 class="text-base font-semibold text-white flex items-center gap-2"><i class="fa-solid fa-file-alt text-pink-500"></i> Texto Original</h2>
-                    <span id="contador_palavras_in" class="text-xs bg-orange-500/20 text-orange-400 px-2.5 py-1 rounded-full font-bold">0 palavras</span>
+                    <span id="contador_palavras_in" class="text-xs bg-orange-500/20 text-orange-400 px-2.5 py-1 rounded-full font-bold border border-orange-500/30 shadow-inner">0 palavras</span>
                 </div>
                 
-                <div class="flex-1 flex flex-col space-y-5 relative z-10">
-                    <select id="paraphraser_modo" class="w-full bg-[#121214] border border-zinc-700/80 rounded-lg px-4 py-3 text-zinc-200 focus:border-pink-500 focus:outline-none">
-                        <option value="plagio">🔥 Fuga de Plágio (Deep Rewrite)</option>
-                        <option value="reddit">👽 Estilo Reddit (Primeira Pessoa)</option>
-                    </select>
+                <div class="flex-1 flex flex-col space-y-4 relative z-10">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-[10px] font-medium text-zinc-400 mb-1">Nome do Canal (Opcional)</label>
+                            <input type="text" id="paraphraser_canal" class="w-full bg-[#09090b] border border-zinc-700/80 rounded-lg px-3 py-2.5 text-zinc-200 text-sm focus:border-pink-500 focus:outline-none transition-colors shadow-inner" placeholder="Ex: Porão do Reddit">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-medium text-zinc-400 mb-1">Modo de Ação</label>
+                            <select id="paraphraser_modo" class="w-full bg-[#09090b] border border-zinc-700/80 rounded-lg px-3 py-2.5 text-zinc-200 text-sm focus:border-pink-500 focus:outline-none transition-colors shadow-inner cursor-pointer">
+                                <option value="plagio">🔥 Fuga de Plágio</option>
+                                <option value="reddit">👽 Estilo Reddit</option>
+                            </select>
+                        </div>
+                    </div>
 
-                    <textarea id="paraphraser_conteudo" oninput="contarPalavras('paraphraser_conteudo', 'contador_palavras_in')" class="flex-1 w-full bg-[#09090b] border border-zinc-700/80 rounded-lg px-4 py-3 text-zinc-200 min-h-[250px] focus:border-pink-500 focus:outline-none shadow-inner" placeholder="Cole seu texto aqui..."></textarea>
+                    <div class="mt-2">
+                        <input type="file" id="arquivo_txt_paraphraser" accept=".txt" class="hidden" onchange="lerArquivoTXT(event)">
+                        <div id="dropzone_paraphraser" onclick="document.getElementById('arquivo_txt_paraphraser').click()" class="border-2 border-dashed border-zinc-700 hover:border-pink-400 hover:bg-pink-500/5 hover:shadow-[0_0_20px_rgba(236,72,153,0.1)] rounded-xl p-6 text-center cursor-pointer transition-all duration-300 bg-[#09090b] flex flex-col items-center justify-center relative group min-h-[100px] shadow-inner">
+                            <i class="fa-solid fa-file-lines text-3xl text-zinc-500 group-hover:text-pink-400 group-hover:-translate-y-1 transition-all duration-300 mb-2 drop-shadow-md" id="icone_upload_txt"></i>
+                            <p class="text-zinc-300 font-bold text-sm mb-1 group-hover:text-white transition-colors" id="nome_arquivo_txt">Subir arquivo .TXT</p>
+                            <p class="text-[9px] text-zinc-500 font-medium mt-1">Clique ou Arraste o arquivo</p>
+                        </div>
+                    </div>
+
+                    <textarea id="paraphraser_conteudo" oninput="contarPalavras('paraphraser_conteudo', 'contador_palavras_in')" class="flex-1 w-full bg-[#09090b] border border-zinc-700/80 rounded-lg px-4 py-3 text-zinc-200 min-h-[180px] focus:border-pink-500 focus:outline-none transition-colors shadow-inner" placeholder="Ou cole seu texto original aqui..."></textarea>
                 </div>
 
-                <button id="btn_gerar_paraphraser" onclick="chamarParaphraser()" class="w-full mt-6 bg-[#831843] hover:bg-[#9d174d] text-white font-bold py-3.5 rounded-lg shadow-lg transition-all flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-rotate"></i> <span id="txt_btn_transmutar">Transmutar (1 coin)</span>
+                <button id="btn_gerar_paraphraser" onclick="chamarParaphraser()" class="w-full mt-6 bg-[#831843] hover:bg-[#9d174d] text-white font-bold py-3.5 rounded-lg shadow-[0_0_15px_rgba(236,72,153,0.3)] transition-all flex items-center justify-center gap-2 group border border-pink-500/30 relative z-10">
+                    <i class="fa-solid fa-rotate group-hover:rotate-180 transition-transform duration-500"></i> <span id="txt_btn_transmutar">Transmutar Texto</span>
                 </button>
             </div>
         </div>
 
         <div class="space-y-6 flex flex-col">
             <div class="bg-[#18181b] border border-zinc-800/80 rounded-xl p-6 shadow-2xl flex-1 flex flex-col relative overflow-hidden">
+                <div class="absolute -bottom-20 -right-20 w-40 h-40 bg-emerald-500/5 rounded-full blur-[60px] pointer-events-none"></div>
+                
                 <div class="flex items-center justify-between mb-4 pb-4 border-b border-zinc-800/80 relative z-10">
                     <h2 class="text-base font-semibold text-white flex items-center gap-2"><i class="fa-solid fa-wand-magic-sparkles text-emerald-500"></i> Texto Transmutado</h2>
-                    <span id="contador_palavras_out" class="text-xs bg-emerald-500/20 text-emerald-400 px-2.5 py-1 rounded-full font-bold">0 palavras</span>
+                    <span id="contador_palavras_out" class="text-xs bg-emerald-500/20 text-emerald-400 px-2.5 py-1 rounded-full font-bold border border-emerald-500/30 shadow-inner">0 palavras</span>
                 </div>
-                <textarea id="paraphraser_resultado" readonly class="flex-1 w-full bg-[#09090b] border border-zinc-700/80 rounded-lg px-5 py-4 text-emerald-500/90 text-sm leading-relaxed mb-5 focus:border-emerald-500 focus:outline-none" placeholder="O resultado aparecerá aqui..."></textarea>
+                
+                <textarea id="paraphraser_resultado" oninput="contarPalavras('paraphraser_resultado', 'contador_palavras_out')" class="flex-1 w-full bg-[#09090b] border border-zinc-700/80 rounded-lg px-5 py-4 text-emerald-500/90 text-sm leading-relaxed mb-5 focus:border-emerald-500 focus:outline-none transition-colors shadow-inner relative z-10" placeholder="O texto 100% original e otimizado para TTS aparecerá aqui..."></textarea>
+                
+                <button onclick="copiarResultado()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3.5 rounded-lg shadow-[0_0_15px_rgba(16,185,129,0.4)] transition-all flex items-center justify-center gap-2 group border border-emerald-500/50 relative z-10">
+                    <i class="fa-solid fa-copy group-hover:scale-110 transition-transform"></i> Copiar Texto
+                </button>
             </div>
         </div>
     </div>
 </section>
+
+<script>
+    // Lógica para ler o arquivo TXT arrastado ou clicado
+    function lerArquivoTXT(event) {
+        const arquivo = event.target.files[0];
+        if (!arquivo) return;
+        
+        // Muda o visual do botão para mostrar que carregou
+        document.getElementById('nome_arquivo_txt').innerText = arquivo.name;
+        document.getElementById('icone_upload_txt').className = "fa-solid fa-file-circle-check text-3xl text-pink-400 mb-2 drop-shadow-md";
+
+        const leitor = new FileReader();
+        leitor.onload = function(e) { 
+            const textarea = document.getElementById('paraphraser_conteudo');
+            textarea.value = e.target.result; 
+            // Dispara a contagem de palavras automaticamente
+            if (typeof contarPalavras === "function") {
+                contarPalavras('paraphraser_conteudo', 'contador_palavras_in');
+            }
+        };
+        leitor.readAsText(arquivo);
+    }
+
+    // Configuração do Drag and Drop (Arrastar e Soltar)
+    const dropzone = document.getElementById('dropzone_paraphraser');
+    const fileInput = document.getElementById('arquivo_txt_paraphraser');
+    
+    if(dropzone) {
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(ev => dropzone.addEventListener(ev, preventDefaults, false));
+        function preventDefaults(e) { e.preventDefault(); e.stopPropagation(); }
+        
+        ['dragenter', 'dragover'].forEach(ev => {
+            dropzone.addEventListener(ev, () => {
+                dropzone.classList.add('border-pink-400', 'bg-pink-500/10', 'scale-[1.02]');
+                dropzone.querySelector('i').classList.add('text-pink-400', '-translate-y-1');
+            }, false);
+        });
+        
+        ['dragleave', 'drop'].forEach(ev => {
+            dropzone.addEventListener(ev, () => {
+                dropzone.classList.remove('border-pink-400', 'bg-pink-500/10', 'scale-[1.02]');
+                dropzone.querySelector('i').classList.remove('text-pink-400', '-translate-y-1');
+            }, false);
+        });
+        
+        dropzone.addEventListener('drop', (e) => {
+            let files = e.dataTransfer.files;
+            if(files.length > 0 && files[0].name.endsWith('.txt')) { 
+                fileInput.files = files; 
+                lerArquivoTXT({target: fileInput}); 
+            } else {
+                alert("Por favor, solte apenas arquivos .txt");
+            }
+        }, false);
+    }
+
+    // Função de Copiar
+    function copiarResultado() {
+        const texto = document.getElementById('paraphraser_resultado').value;
+        if(!texto) return;
+        navigator.clipboard.writeText(texto).then(() => {
+            alert("Texto copiado para a área de transferência!");
+        });
+    }
+
+    // Chamada para a nossa nova API FastAPI
+    async function chamarParaphraser() {
+        const btn = document.getElementById('btn_gerar_paraphraser');
+        const btnTexto = document.getElementById('txt_btn_transmutar');
+        const conteudo = document.getElementById('paraphraser_conteudo').value;
+        const modo = document.getElementById('paraphraser_modo').value;
+        const canal = document.getElementById('paraphraser_canal').value || "Canal Genérico";
+
+        if(!conteudo.trim()) return alert("Por favor, cole um texto ou suba um arquivo .TXT.");
+
+        btn.classList.add('opacity-70', 'cursor-not-allowed');
+        btnTexto.innerHTML = `Transmutando... <i class="fa-solid fa-circle-notch fa-spin ml-1"></i>`;
+        document.getElementById('paraphraser_resultado').value = "Os motores neurais estão reescrevendo seu texto. Aguarde...";
+
+        try {
+            // Chamando a nossa própria API na mesma VPS!
+            const res = await fetch("/api/v1/paraphraser", {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ texto: conteudo, modo: modo, canal: canal })
+            });
+            
+            if(!res.ok) throw new Error("Erro na resposta do servidor.");
+            
+            const dados = await res.json();
+            document.getElementById('paraphraser_resultado').value = dados.texto_transmutado;
+            if (typeof contarPalavras === "function") {
+                contarPalavras('paraphraser_resultado', 'contador_palavras_out');
+            }
+        } catch (error) {
+            document.getElementById('paraphraser_resultado').value = "Erro: " + error.message;
+        } finally {
+            btn.classList.remove('opacity-70', 'cursor-not-allowed');
+            btnTexto.innerText = "Transmutar Texto";
+        }
+    }
+</script>
 {% endblock %}
