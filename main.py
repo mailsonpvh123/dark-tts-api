@@ -59,6 +59,13 @@ async def paraphraser_page(request: Request):
         "request": request, 
         "title": "Text Transmuter"
     })
+    @app.get("/gen-insights", response_class=HTMLResponse)
+async def gen_insights_page(request: Request):
+    """Renderiza a página visual do Gen Insights"""
+    return templates.TemplateResponse("gen_insights.html", {
+        "request": request, 
+        "title": "Gen Insights"
+    })
 
 # Rota de Status da API
 @app.get("/api/status")
