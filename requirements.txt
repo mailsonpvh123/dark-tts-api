@@ -11,3 +11,5 @@ python-multipart
 faster-whisper
 pydub
 jinja2
+httpx
+python-dotenv
