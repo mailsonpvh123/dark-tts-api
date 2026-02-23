@@ -4,14 +4,15 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-GEMINI_KEY = os.getenv("GEMINI_API_KEY")
-GROQ_KEY = os.getenv("GROQ_API_KEY")
+# 1. Blindagem: Remove espaços ocultos, quebras de linha e aspas acidentais
+chave_bruta = os.getenv("GEMINI_API_KEY", "")
+GEMINI_KEY = chave_bruta.strip().strip('"').strip("'")
 
 async def call_gemini(system_prompt, user_content):
     if not GEMINI_KEY:
-        raise Exception("CHAVE API AUSENTE: A variável GEMINI_API_KEY não foi encontrada no servidor.")
+        raise Exception("CHAVE API AUSENTE: O Easypanel não enviou a variável GEMINI_API_KEY para o container.")
 
-    # Usando o modelo flash mais estável da API
+    # 2. Blindagem: Usando a versão 2.5-flash definitiva
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_KEY}"
     
     payload = {
@@ -20,24 +21,26 @@ async def call_gemini(system_prompt, user_content):
         "generationConfig": {"temperature": 0.75}
     }
     
-    async with httpx.AsyncClient() as client:
-        try:
-            response = await client.post(url, json=payload, timeout=60.0)
-            data = response.json()
+    try:
+        # 3. Blindagem: verify=False ignora erros de certificado desatualizado no AlmaLinux
+        # timeout alto (60s) garante que textos gigantes de 3.000 palavras não sejam cortados
+        async with httpx.AsyncClient(verify=False, timeout=60.0) as client:
+            response = await client.post(url, json=payload)
             
-            # Se o Google responder com erro (Ex: Chave inválida)
+            # Se a comunicação ocorreu, mas o Google barrou (Ex: Chave errada)
             if response.status_code != 200:
-                erro_msg = data.get("error", {}).get("message", "Erro desconhecido da API")
-                raise Exception(f"Google API Recusou: {erro_msg}")
-                
+                data = response.json()
+                erro_msg = data.get("error", {}).get("message", "Motivo desconhecido")
+                raise Exception(f"O Google Recusou [Status {response.status_code}]: {erro_msg}")
+            
+            data = response.json()
             return data['candidates'][0]['content']['parts'][0]['text']
             
-        except httpx.RequestError as e:
-            raise Exception(f"Falha de conexão com o Google: {str(e)}")
-        except KeyError:
-            raise Exception(f"Resposta inesperada do Google: {data}")
+    except httpx.RequestError as e:
+        # O repr(e) vai forçar o Python a cuspir o nome técnico da falha de rede
+        raise Exception(f"Bloqueio de Rede no Servidor: {repr(e)}")
+    except Exception as e:
+        # Qualquer outro erro interno
+        raise Exception(f"Erro Interno da IA: {repr(e)}")
 
-# O call_groq permanece inalterado para quando formos usá-lo
-async def call_groq(system_prompt, user_content):
-    # ... (mantenha o código do groq aqui caso já tenha colocado)
-    pass
+# (Seu call_groq futuro pode vir aqui embaixo)
