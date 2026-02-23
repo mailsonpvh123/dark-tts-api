@@ -10,11 +10,27 @@ let arquivoBgMixer = null;
 
 // INICIALIZAÇÃO
 window.onload = async function() {
-    mudarAba('aba_legends', document.getElementById('btn_menu_legends'));
-    aplicarPresetMixer();
-    configurarDragAndDropLegends();
-    configurarDragAndDropMixer('dropzone_mixer_voz', 'arquivo_mixer_voz', 'nome_mixer_voz', 'icone_mixer_voz');
-    configurarDragAndDropMixer('dropzone_mixer_bg', 'arquivo_mixer_bg', 'nome_mixer_bg', 'icone_mixer_bg');
+    // Proteções de Segurança: Só executa se a aba existir na página atual!
+    const btnLegends = document.getElementById('btn_menu_legends');
+    if(btnLegends && document.getElementById('aba_legends')) {
+        mudarAba('aba_legends', btnLegends);
+    }
+    
+    if(document.getElementById('mixer_preset')) aplicarPresetMixer();
+    if(document.getElementById('dropzone_legends')) configurarDragAndDropLegends();
+    if(document.getElementById('dropzone_mixer_voz')) configurarDragAndDropMixer('dropzone_mixer_voz', 'arquivo_mixer_voz', 'nome_mixer_voz', 'icone_mixer_voz');
+    if(document.getElementById('dropzone_mixer_bg')) configurarDragAndDropMixer('dropzone_mixer_bg', 'arquivo_mixer_bg', 'nome_mixer_bg', 'icone_mixer_bg');
+    
+    if(document.getElementById('lista_vozes')) {
+        try {
+            const resposta = await fetch(URL_API_VOZES);
+            const dados = await resposta.json();
+            if(dados.status === "erro") throw new Error(dados.mensagem);
+            vozesData = dados.vozes;
+            renderizarListaVozes();
+        } catch (error) { console.log("Aviso: Falha ao carregar vozes.", error); }
+    }
+};
     
     try {
         const resposta = await fetch(URL_API_VOZES);
