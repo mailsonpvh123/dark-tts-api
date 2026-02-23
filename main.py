@@ -36,13 +36,13 @@ app.include_router(audio_mixer.router)
 app.include_router(gen_legends.router)
 app.include_router(paraphraser.router)
 app.include_router(gen_insights.router)
-app.include_router(script_forge.router) # <--- API do Script Forge acoplada aqui
+app.include_router(script_forge.router)
 
 # --- ROTAS VISUAIS (PÁGINAS DO SISTEMA) ---
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
-    """Renderiza a página principal"""
+    """Renderiza a página principal (Dashboard)"""
     return templates.TemplateResponse("base.html", {
         "request": request, 
         "title": "Home"
@@ -70,6 +70,15 @@ async def script_forge_page(request: Request):
     return templates.TemplateResponse("script_forge.html", {
         "request": request, 
         "title": "Script Forge"
+    })
+
+# NOVA ROTA CRIADA AQUI:
+@app.get("/voice-synthesizer", response_class=HTMLResponse)
+async def voice_synthesizer_page(request: Request):
+    """Renderiza a página visual do Voice Synthesizer"""
+    return templates.TemplateResponse("voice_synthesizer.html", {
+        "request": request, 
+        "title": "Voice Synthesizer"
     })
 
 # --- ROTA DE STATUS DA API ---
