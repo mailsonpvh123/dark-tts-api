@@ -1,1 +1,42 @@
 
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dark Creator OS | Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}">
+</head>
+<body class="bg-[#09090b] text-zinc-300 font-sans antialiased flex h-screen overflow-hidden">
+
+    <aside class="w-64 bg-[#09090b] border-r border-zinc-800 flex flex-col hidden md:flex relative overflow-hidden shrink-0">
+        <div class="h-16 flex items-center px-6 border-b border-zinc-800/80 relative z-10">
+            <span class="text-xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-purple-500 via-purple-400 to-emerald-400">
+                <i class="fa-solid fa-moon text-purple-500 mr-1"></i>DARK<span class="text-zinc-500 font-normal">CREATOR</span>
+            </span>
+        </div>
+        
+        <nav class="flex-1 px-3 py-6 space-y-6 overflow-y-auto relative z-10 custom-scrollbar">
+            <button onclick="mudarAba('aba_reescritor', this)" class="menu-btn w-full flex items-center gap-3 px-3 py-2.5 text-zinc-400 hover:text-white rounded-lg transition-all text-sm border border-transparent">
+                <i class="fa-solid fa-rotate w-5"></i> Paraphraser
+            </button>
+            </nav>
+    </aside>
+
+    <main class="flex-1 flex flex-col h-screen overflow-y-auto bg-[#0c0c0e] relative custom-scrollbar">
+        <div class="p-6 md:p-10 max-w-7xl mx-auto w-full relative z-10">
+            
+            {% block content %}
+                <p>Selecione uma ferramenta no menu ao lado para começar.</p>
+            {% endblock %}
+
+        </div>
+    </main>
+
+    <audio id="player_preview" class="hidden"></audio>
+
+    <script src="{{ url_for('static', path='/js/main.js') }}"></script>
+</body>
+</html>
