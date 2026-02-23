@@ -1,1 +1,50 @@
 
+{% extends "base.html" %}
+
+{% block content %}
+<section id="aba_reescritor" class="aba-conteudo">
+    <div class="mb-8 relative z-10">
+        <div class="flex items-center gap-3 mb-2">
+            <div class="w-10 h-10 rounded-lg bg-pink-500/10 flex items-center justify-center border border-pink-500/20">
+                <i class="fa-solid fa-rotate text-pink-400 text-lg"></i>
+            </div>
+            <h1 class="text-2xl md:text-3xl font-bold text-white">Text Transmuter</h1>
+        </div>
+        <p class="text-zinc-400">Reescreva textos blindando contra plágio e mantendo a retenção em alta.</p>
+    </div>
+
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <div class="space-y-6 flex flex-col">
+            <div class="bg-[#18181b] border border-zinc-800/80 rounded-xl p-6 shadow-2xl flex-1 flex flex-col relative overflow-hidden">
+                <div class="flex items-center justify-between mb-4 pb-4 border-b border-zinc-800/80 relative z-10">
+                    <h2 class="text-base font-semibold text-white flex items-center gap-2"><i class="fa-solid fa-file-alt text-pink-500"></i> Texto Original</h2>
+                    <span id="contador_palavras_in" class="text-xs bg-orange-500/20 text-orange-400 px-2.5 py-1 rounded-full font-bold">0 palavras</span>
+                </div>
+                
+                <div class="flex-1 flex flex-col space-y-5 relative z-10">
+                    <select id="paraphraser_modo" class="w-full bg-[#121214] border border-zinc-700/80 rounded-lg px-4 py-3 text-zinc-200 focus:border-pink-500 focus:outline-none">
+                        <option value="plagio">🔥 Fuga de Plágio (Deep Rewrite)</option>
+                        <option value="reddit">👽 Estilo Reddit (Primeira Pessoa)</option>
+                    </select>
+
+                    <textarea id="paraphraser_conteudo" oninput="contarPalavras('paraphraser_conteudo', 'contador_palavras_in')" class="flex-1 w-full bg-[#09090b] border border-zinc-700/80 rounded-lg px-4 py-3 text-zinc-200 min-h-[250px] focus:border-pink-500 focus:outline-none shadow-inner" placeholder="Cole seu texto aqui..."></textarea>
+                </div>
+
+                <button id="btn_gerar_paraphraser" onclick="chamarParaphraser()" class="w-full mt-6 bg-[#831843] hover:bg-[#9d174d] text-white font-bold py-3.5 rounded-lg shadow-lg transition-all flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-rotate"></i> <span id="txt_btn_transmutar">Transmutar (1 coin)</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="space-y-6 flex flex-col">
+            <div class="bg-[#18181b] border border-zinc-800/80 rounded-xl p-6 shadow-2xl flex-1 flex flex-col relative overflow-hidden">
+                <div class="flex items-center justify-between mb-4 pb-4 border-b border-zinc-800/80 relative z-10">
+                    <h2 class="text-base font-semibold text-white flex items-center gap-2"><i class="fa-solid fa-wand-magic-sparkles text-emerald-500"></i> Texto Transmutado</h2>
+                    <span id="contador_palavras_out" class="text-xs bg-emerald-500/20 text-emerald-400 px-2.5 py-1 rounded-full font-bold">0 palavras</span>
+                </div>
+                <textarea id="paraphraser_resultado" readonly class="flex-1 w-full bg-[#09090b] border border-zinc-700/80 rounded-lg px-5 py-4 text-emerald-500/90 text-sm leading-relaxed mb-5 focus:border-emerald-500 focus:outline-none" placeholder="O resultado aparecerá aqui..."></textarea>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
