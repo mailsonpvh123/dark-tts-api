@@ -16,16 +16,11 @@ app = FastAPI(
     version="2.1"
 )
 
-# --- CONFIGURAÇÃO DE FRONT-END ---
-
-# 1. Monta a pasta de arquivos estáticos (CSS, JS)
-# O diretório no servidor deve ser "frontend/static"
+# --- CONFIGURAÇÃO DE FRONT-END (HTML/CSS/JS) ---
 app.mount("/static", StaticFiles(directory="frontend/static"), name="static")
-
-# 2. Configura o diretório de templates do Jinja2
 templates = Jinja2Templates(directory="frontend/templates")
 
-# --- MIDDLEWARE ---
+# --- MIDDLEWARE (CORS) ---
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -34,7 +29,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# --- ACOPLANDO AS ROTAS DE API ---
+# --- ACOPLANDO AS ROTAS DE API (BACK-END) ---
 app.include_router(minerador.router)
 app.include_router(voice_synth.router)
 app.include_router(audio_mixer.router)
@@ -42,11 +37,11 @@ app.include_router(gen_legends.router)
 app.include_router(paraphraser.router)
 app.include_router(gen_insights.router)
 
-# --- ROTAS DE PÁGINAS (FRONT-END) ---
+# --- ROTAS VISUAIS (PÁGINAS DO SISTEMA) ---
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
-    """Renderiza a página principal do Dashboard"""
+    """Renderiza a página principal (Dashboard vazio por enquanto)"""
     return templates.TemplateResponse("base.html", {
         "request": request, 
         "title": "Home"
@@ -54,12 +49,13 @@ async def home(request: Request):
 
 @app.get("/paraphraser", response_class=HTMLResponse)
 async def paraphraser_page(request: Request):
-    """Renderiza a página específica do Paraphraser"""
+    """Renderiza a página visual do Paraphraser"""
     return templates.TemplateResponse("paraphraser.html", {
         "request": request, 
         "title": "Text Transmuter"
     })
-    @app.get("/gen-insights", response_class=HTMLResponse)
+
+@app.get("/gen-insights", response_class=HTMLResponse)
 async def gen_insights_page(request: Request):
     """Renderiza a página visual do Gen Insights"""
     return templates.TemplateResponse("gen_insights.html", {
@@ -67,12 +63,12 @@ async def gen_insights_page(request: Request):
         "title": "Gen Insights"
     })
 
-# Rota de Status da API
+# --- ROTA DE STATUS DA API ---
 @app.get("/api/status")
 def check_status():
     return {"status": "online", "message": "Motores neurais rodando liso!"}
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
-    # reload=True é ótimo para desenvolvimento, desative em produção
-    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True)
+    # reload=False é o recomendado para produção no Easypanel
+    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=False)
