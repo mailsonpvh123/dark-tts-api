@@ -1,8 +1,8 @@
 // ==========================================
 // CONFIGURAÇÕES GLOBAIS
 // ==========================================
-const URL_API_VOZES = "/vozes"; // Usando rota relativa agora que tudo está na mesma VPS
-const URL_API_DIRETA = "/gerar_narracao"; // Usando rota relativa
+const URL_API_VOZES = "/vozes"; // Rota relativa na sua VPS
+const URL_API_DIRETA = "/gerar_narracao"; // Rota relativa na sua VPS
 let ideiasGlobais = []; 
 let srtGlobal = ""; 
 let vozSelecionada = "pt-BR-AntonioNeural"; 
@@ -39,15 +39,38 @@ window.onload = async function() {
     if(document.getElementById('dropzone_mixer_voz')) configurarDragAndDropMixer('dropzone_mixer_voz', 'arquivo_mixer_voz', 'nome_mixer_voz', 'icone_mixer_voz');
     if(document.getElementById('dropzone_mixer_bg')) configurarDragAndDropMixer('dropzone_mixer_bg', 'arquivo_mixer_bg', 'nome_mixer_bg', 'icone_mixer_bg');
     
+    // --- BLINDAGEM DE CARREGAMENTO DE VOZES ---
     if(document.getElementById('lista_vozes')) {
         try {
             const resposta = await fetch(URL_API_VOZES);
+            
+            // SE O BACKEND RECUSAR A ROTA (EX: ERRO 404)
+            if (!resposta.ok) {
+                throw new Error(`Erro HTTP ${resposta.status}: A rota '${URL_API_VOZES}' não foi encontrada no Python.`);
+            }
+
             const dados = await resposta.json();
             if(dados.status === "erro") throw new Error(dados.mensagem);
-            vozesData = dados.vozes;
+            
+            // Tenta pegar do .vozes ou do próprio array direto (Blindagem)
+            vozesData = dados.vozes || dados; 
+            
+            if(!Array.isArray(vozesData)) {
+                throw new Error("O servidor respondeu, mas não retornou uma lista válida de vozes.");
+            }
+            
             renderizarListaVozes();
+            
         } catch (error) { 
-            console.log("Aviso: Falha ao carregar vozes.", error); 
+            console.error("Bug Interceptado:", error);
+            // EXIBE O ERRO NA TELA EM VEZ DE FICAR GIRANDO INFINITAMENTE
+            document.getElementById('lista_vozes').innerHTML = `
+                <div class="flex flex-col items-center justify-center p-6 text-center bg-red-500/10 border border-red-500/30 rounded-xl mt-4">
+                    <i class="fa-solid fa-triangle-exclamation text-3xl text-red-500 mb-3 drop-shadow-[0_0_8px_rgba(239,68,68,0.8)]"></i>
+                    <p class="text-sm font-bold text-red-400">Falha ao Carregar Vozes</p>
+                    <p class="text-xs text-zinc-400 mt-2">${error.message}</p>
+                </div>
+            `;
         }
     }
 
@@ -98,7 +121,6 @@ function despacharParaVoice(idCampoOrigem) {
         localStorage.removeItem('texto_pendente_voice');
         localStorage.removeItem('abrir_aba_voice');
     } else {
-        // CORREÇÃO DA ROTA: Agora aponta para a URL exata do Voice Synthesizer
         window.location.href = '/voice-synthesizer'; 
     }
 }
@@ -215,6 +237,163 @@ function lerArquivoTXTParaphraser(event) {
     };
     leitor.readAsText(arquivo);
 }
+
+// ==========================================
+// NOVAS CHAMADAS FASTAPI (NATIVAS)
+// ==========================================
+
+async function chamarGeradorIdeias() {
+    const btn = document.getElementById('btn_gerar_ideias');
+    const container = document.getElementById('container_ideias');
+    const tema = document.getElementById('ideia_tema')?.value;
+    const publico = document.getElementById('ideia_publico')?.value || "Geral";
+    const tom = document.getElementById('ideia_tom')?.value;
+
+    if(!tema) return alert("Por favor, preencha o Nicho ou Tema."); 
+
+    btn.classList.add('opacity-70', 'cursor-not-allowed');
+    container.innerHTML = `<div class="flex flex-col items-center justify-center py-10 w-full h-full relative z-10"><i class="fa-solid fa-brain fa-fade text-4xl text-yellow-500 mb-4"></i><p class="text-zinc-400 text-sm animate-pulse">A IA Groq está analisando tendências e elaborando roteiros magnéticos...</p></div>`;
+
+    try {
+        const res = await fetch("/api/v1/gen-insights", { 
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' }, 
+            body: JSON.stringify({ tema, publico, tom }) 
+        });
+        
+        if(!res.ok) {
+            let erroReal = "Erro desconhecido do servidor.";
+            try { const dadosErro = await res.json(); erroReal = dadosErro.detail || erroReal; } catch(e) {}
+            throw new Error(erroReal);
+        }
+
+        const dadosLimpos = await res.json();
+        
+        ideiasGlobais = dadosLimpos.ideias; 
+        container.innerHTML = '<div class="w-full text-left space-y-4 relative z-10" id="lista_ideias_geradas"></div>';
+        const listaDiv = document.getElementById('lista_ideias_geradas');
+
+        ideiasGlobais.forEach((ideia, index) => {
+            listaDiv.innerHTML += `
+                <div class="bg-[#121214] border border-yellow-500/30 rounded-xl p-5 hover:border-yellow-500/60 transition-colors shadow-inner">
+                    <div class="flex items-center justify-between mb-3 border-b border-zinc-800 pb-2">
+                        <span class="bg-yellow-500/20 text-yellow-400 text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider">Ideia ${index + 1}</span>
+                        <button onclick="copiarParaScriptForge(${index}, this)" class="text-orange-400 hover:text-white transition-colors text-xs font-bold uppercase tracking-wider flex items-center gap-2 bg-orange-500/10 px-3 py-1.5 rounded-lg border border-orange-500/20 hover:bg-orange-600"><i class="fa-solid fa-copy"></i> Copiar P/ Script</button>
+                    </div>
+                    <h3 class="text-white font-bold text-lg mb-2 group-hover:text-yellow-300 transition-colors">${ideia.titulo}</h3>
+                    <p class="text-sm text-zinc-300 mb-2 border-l-2 border-yellow-500/50 pl-3"><strong class="text-yellow-500/80">Gancho:</strong> ${ideia.gancho}</p>
+                    <p class="text-sm text-zinc-400 leading-relaxed"><strong class="text-yellow-500/80">Visão Geral:</strong> ${ideia.resumo}</p>
+                </div>`;
+        });
+    } catch (error) { 
+        container.innerHTML = `<p class="text-red-400 font-bold p-5 relative z-10"><i class="fa-solid fa-triangle-exclamation"></i> Erro Técnico: ${error.message}</p>`; 
+    } finally { 
+        btn.classList.remove('opacity-70', 'cursor-not-allowed'); 
+    }
+}
+
+function copiarParaScriptForge(index, btnElement) {
+    const ideia = ideiasGlobais[index];
+    const textoMontado = `TÍTULO: ${ideia.titulo}\nGANCHO: ${ideia.gancho}\nRESUMO: ${ideia.resumo}`;
+    
+    navigator.clipboard.writeText(textoMontado).then(() => {
+        const txtOriginal = btnElement.innerHTML;
+        btnElement.innerHTML = `<i class="fa-solid fa-check"></i> Copiado!`;
+        btnElement.classList.replace('text-orange-400', 'text-emerald-400');
+        setTimeout(() => {
+            btnElement.innerHTML = txtOriginal;
+            btnElement.classList.replace('text-emerald-400', 'text-orange-400');
+        }, 2000);
+    });
+}
+
+async function chamarParaphraser() {
+    const btn = document.getElementById('btn_gerar_paraphraser');
+    const btnTexto = document.getElementById('txt_btn_transmutar');
+    const conteudo = document.getElementById('paraphraser_conteudo').value;
+    const modo = document.getElementById('paraphraser_modo').value;
+    const canal = document.getElementById('paraphraser_canal').value || "Canal Genérico";
+
+    if(!conteudo.trim()) return alert("Por favor, cole um texto ou suba um arquivo .TXT.");
+
+    btn.classList.add('opacity-70', 'cursor-not-allowed');
+    btnTexto.innerHTML = `Transmutando... <i class="fa-solid fa-circle-notch fa-spin ml-1"></i>`;
+    document.getElementById('paraphraser_resultado').value = "Os motores neurais do Google estão reescrevendo seu texto. Aguarde...";
+
+    try {
+        const res = await fetch("/api/v1/paraphraser", {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ texto: conteudo, modo: modo, canal: canal })
+        });
+        
+        if(!res.ok) {
+            let erroReal = "Erro desconhecido do servidor.";
+            try { const dadosErro = await res.json(); erroReal = dadosErro.detail || erroReal; } catch(e) {}
+            throw new Error(erroReal);
+        }
+        
+        const dados = await res.json();
+        document.getElementById('paraphraser_resultado').value = dados.texto_transmutado;
+        contarPalavras('paraphraser_resultado', 'contador_palavras_out');
+
+    } catch (error) {
+        document.getElementById('paraphraser_resultado').value = "Erro Técnico: " + error.message;
+    } finally {
+        btn.classList.remove('opacity-70', 'cursor-not-allowed');
+        btnTexto.innerText = "Transmutar Texto";
+    }
+}
+
+async function chamarScriptForge() {
+    const btn = document.getElementById('btn_gerar_script');
+    const txtBtn = document.getElementById('txt_btn_script');
+    const ideiaBase = document.getElementById('script_ideia_base').value;
+    const canal = document.getElementById('script_canal').value || "Canal Não Informado";
+    const formato = document.getElementById('script_formato').value;
+    const tamanho = document.getElementById('script_tamanho').value || "Duração livre";
+    const instrucoes = document.getElementById('script_instrucoes').value || "Nenhuma instrução extra.";
+    
+    const tom = localStorage.getItem('ultimo_tom') || "Sombrio e Misterioso"; 
+
+    if(!ideiaBase.trim()) return alert("Você precisa de uma Ideia Base para gerar um roteiro. Cole os dados gerados no Gen Insights."); 
+
+    btn.classList.add('opacity-70', 'cursor-not-allowed');
+    txtBtn.innerHTML = `Forjando Roteiro... <i class="fa-solid fa-circle-notch fa-spin ml-1"></i>`;
+    document.getElementById('script_final_editavel').value = "O Gemini 2.5 está escrevendo o seu roteiro otimizado para retenção. Isso pode levar alguns segundos...\n\nAguarde o processamento neural...";
+
+    try {
+        const res = await fetch("/api/v1/script-forge", {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                ideia_base: ideiaBase, 
+                canal: canal, 
+                formato: formato, 
+                tamanho: tamanho, 
+                tom: tom, 
+                instrucoes: instrucoes 
+            })
+        });
+        
+        if(!res.ok) {
+            let erroReal = "Erro desconhecido do servidor.";
+            try { const dadosErro = await res.json(); erroReal = dadosErro.detail || erroReal; } catch(e) {}
+            throw new Error(erroReal);
+        }
+
+        const dados = await res.json();
+        document.getElementById('script_final_editavel').value = dados.roteiro;
+        contarPalavras('script_final_editavel', 'contador_script_out');
+
+    } catch (error) { 
+        document.getElementById('script_final_editavel').value = "Erro Técnico: " + error.message; 
+    } finally { 
+        btn.classList.remove('opacity-70', 'cursor-not-allowed'); 
+        txtBtn.innerText = "Forjar Roteiro";
+    }
+}
+
 
 // ==========================================
 // CHAMADAS ANTIGAS (AINDAS NO N8N - MIGRAR EM BREVE)
