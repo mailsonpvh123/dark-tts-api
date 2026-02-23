@@ -1,8 +1,8 @@
 // ==========================================
-// CONFIGURAÇÕES GLOBAIS
+// CONFIGURAÇÕES GLOBAIS (RESTAURADAS DO ORIGINAL)
 // ==========================================
-const URL_API_VOZES = "/vozes"; // Rota relativa na sua VPS
-const URL_API_DIRETA = "/gerar_narracao"; // Rota relativa na sua VPS
+const URL_API_VOZES = "https://tts.zappclube.com.br/vozes"; 
+const URL_API_DIRETA = "https://tts.zappclube.com.br/gerar_narracao"; 
 let ideiasGlobais = []; 
 let srtGlobal = ""; 
 let vozSelecionada = "pt-BR-AntonioNeural"; 
@@ -39,35 +39,23 @@ window.onload = async function() {
     if(document.getElementById('dropzone_mixer_voz')) configurarDragAndDropMixer('dropzone_mixer_voz', 'arquivo_mixer_voz', 'nome_mixer_voz', 'icone_mixer_voz');
     if(document.getElementById('dropzone_mixer_bg')) configurarDragAndDropMixer('dropzone_mixer_bg', 'arquivo_mixer_bg', 'nome_mixer_bg', 'icone_mixer_bg');
     
-    // --- BLINDAGEM DE CARREGAMENTO DE VOZES ---
+    // --- CARREGAMENTO DE VOZES (IDÊNTICO AO HTML ORIGINAL) ---
     if(document.getElementById('lista_vozes')) {
         try {
             const resposta = await fetch(URL_API_VOZES);
-            
-            // SE O BACKEND RECUSAR A ROTA (EX: ERRO 404)
-            if (!resposta.ok) {
-                throw new Error(`Erro HTTP ${resposta.status}: A rota '${URL_API_VOZES}' não foi encontrada no Python.`);
-            }
-
             const dados = await resposta.json();
+            
             if(dados.status === "erro") throw new Error(dados.mensagem);
             
-            // Tenta pegar do .vozes ou do próprio array direto (Blindagem)
-            vozesData = dados.vozes || dados; 
-            
-            if(!Array.isArray(vozesData)) {
-                throw new Error("O servidor respondeu, mas não retornou uma lista válida de vozes.");
-            }
-            
+            vozesData = dados.vozes || dados; // Fallback de segurança
             renderizarListaVozes();
             
         } catch (error) { 
-            console.error("Bug Interceptado:", error);
-            // EXIBE O ERRO NA TELA EM VEZ DE FICAR GIRANDO INFINITAMENTE
+            console.error("Aviso: Falha ao carregar vozes.", error); 
             document.getElementById('lista_vozes').innerHTML = `
                 <div class="flex flex-col items-center justify-center p-6 text-center bg-red-500/10 border border-red-500/30 rounded-xl mt-4">
-                    <i class="fa-solid fa-triangle-exclamation text-3xl text-red-500 mb-3 drop-shadow-[0_0_8px_rgba(239,68,68,0.8)]"></i>
-                    <p class="text-sm font-bold text-red-400">Falha ao Carregar Vozes</p>
+                    <i class="fa-solid fa-triangle-exclamation text-3xl text-red-500 mb-3"></i>
+                    <p class="text-sm font-bold text-red-400">Falha de Conexão TTS</p>
                     <p class="text-xs text-zinc-400 mt-2">${error.message}</p>
                 </div>
             `;
@@ -554,7 +542,7 @@ async function iniciarMineracao() {
         </div>
     `;
 
-    let url = "/miner/" + fonte;
+    let url = "https://tts.zappclube.com.br/miner/" + fonte;
     let payload = {};
 
     if (fonte === 'reddit') {
@@ -835,7 +823,7 @@ async function chamarAudioMixer() {
     formData.append("eq_treble", document.getElementById('mixer_eq_treble').value);
 
     try {
-        const res = await fetch("/audio_mixer", { method: 'POST', body: formData });
+        const res = await fetch("https://tts.zappclube.com.br/audio_mixer", { method: 'POST', body: formData });
         const dados = await res.json();
         if (dados.status === "erro") throw new Error(dados.mensagem);
 
@@ -892,7 +880,7 @@ async function chamarGenLegends() {
     formData.append("model_size", modelo);
 
     try {
-        const res = await fetch("/gen_legends", {
+        const res = await fetch("https://tts.zappclube.com.br/gen_legends", {
             method: 'POST',
             body: formData
         });
