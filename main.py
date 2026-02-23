@@ -7,7 +7,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
 
 # Importa as rotas dos nossos arquivos modulares
-from rotas import minerador, voice_synth, audio_mixer, gen_legends
+from rotas import minerador, voice_synth, audio_mixer, gen_legends, paraphraser
 
 # Inicializa o app FastAPI
 app = FastAPI(
@@ -39,6 +39,7 @@ app.include_router(minerador.router)
 app.include_router(voice_synth.router)
 app.include_router(audio_mixer.router)
 app.include_router(gen_legends.router)
+app.include_router(paraphraser.router)
 
 # --- ROTAS DE PÁGINAS (FRONT-END) ---
 
