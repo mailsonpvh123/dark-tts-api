@@ -18,7 +18,6 @@ async def process_script(req: ScriptRequest):
     if not req.ideia_base:
         raise HTTPException(status_code=400, detail="A ideia base é obrigatória.")
 
-    # Lógica condicional exata do n8n
     if re.search(r'reddit|porão|medoteca', req.canal, re.IGNORECASE):
         modulo_1_regras = """Regras Específicas para Reddit/Relatos:
 - Faça a tradução/adaptação com o mínimo de cortes. Não resuma a essência.
@@ -44,10 +43,11 @@ O motor Multilingual possui um defeito: sentenças curtas (menos de 6 palavras) 
 - AGLUTINAÇÃO OBRIGATÓRIA: Transforme qualquer exclamação ou diálogo curto em narrativa estendida.
 - PONTUAÇÃO E LIMPEZA: O texto deve ser 100% liso. ZERO markdown (*, #). ZERO emojis. ZERO rubricas.
 
-📏 MÓDULO 3: CONTROLE ESTRITO DE TAMANHO
+📏 MÓDULO 3: CONTROLE ESTRITO DE TAMANHO E PROFUNDIDADE (MUITO IMPORTANTE)
 - O usuário solicitou o tamanho exato de: [{req.tamanho}].
-- ATENÇÃO: Calcule mentalmente a extensão de cada tópico/parágrafo para fechar o roteiro cirurgicamente no tamanho pedido. Não enrole.
-- Inicie com Gancho e CTA rápido. Termine com CTA final.
+- A DOENÇA DA IA: Modelos de linguagem sofrem de "preguiça" e tendem a resumir e entregar textos curtos. VOCÊ ESTÁ PROIBIDO DE RESUMIR.
+- MATEMÁTICA DA LOCUÇÃO: 1 minuto de áudio falado equivale a aproximadamente 150 palavras. Se o usuário pediu 15 minutos, você DEVE gerar pelo menos 2250 palavras. 
+- COMO EXPANDIR: Para atingir o tempo, aprofunde-se absurdamente em cada detalhe. Use histórias paralelas, exemplos concretos, reflexões filosóficas, analogias ricas e transições longas e detalhadas entre os tópicos. Faça o texto render com alta densidade de valor, sem parecer enrolação.
 
 Retorne APENAS o texto final liso."""
 
@@ -64,7 +64,6 @@ TEXTO ORIGINAL / IDEIA BASE:
     try:
         resultado = await call_gemini(system_prompt, user_content)
         
-        # Pós-processamento de segurança (Raspagem Bruta)
         texto_limpo = resultado.strip()
         texto_limpo = texto_limpo.replace('*', '').replace('#', '')
         texto_limpo = texto_limpo.replace('?', '.').replace('!', '.')
