@@ -23,43 +23,29 @@
                 
                 <div class="grid grid-cols-2 gap-4 mb-4 relative z-10">
                     <div>
-                        <label class="block text-sm font-medium text-zinc-400 mb-1.5">Canal Alvo</label>
-                        <select id="script_canal" class="w-full bg-[#09090b] border border-zinc-700/80 rounded-lg px-4 py-2.5 text-zinc-200 focus:outline-none focus:border-orange-500 transition-colors appearance-none shadow-inner cursor-pointer">
-                            <option value="MedoTeca">MedoTeca (Terror)</option>
-                            <option value="Porão do Reddit">Porão do Reddit</option>
-                            <option value="Zoando a História">Zoando a História</option>
-                            <option value="AutoPensar">AutoPensar (Estoicismo)</option>
-                        </select>
+                        <label class="block text-sm font-medium text-zinc-400 mb-1.5">Nome / Tema do Canal <span class="text-orange-500">*</span></label>
+                        <input type="text" id="script_canal" class="w-full bg-[#09090b] border border-zinc-700/80 rounded-lg px-4 py-2.5 text-zinc-200 focus:outline-none focus:border-orange-500 transition-colors shadow-inner" placeholder="Ex: Curiosidades Sombrias...">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-zinc-400 mb-1.5">Formato</label>
+                        <label class="block text-sm font-medium text-zinc-400 mb-1.5">Formato do Vídeo</label>
                         <select id="script_formato" class="w-full bg-[#09090b] border border-zinc-700/80 rounded-lg px-4 py-2.5 text-zinc-200 focus:outline-none focus:border-orange-500 transition-colors appearance-none shadow-inner cursor-pointer">
                             <option value="TikTok/Shorts (Vertical)">TikTok/Shorts (Vertical)</option>
                             <option value="YouTube Longo (Horizontal)">YouTube Longo (Horizontal)</option>
                         </select>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-zinc-400 mb-1.5">Tamanho Esperado</label>
-                        <select id="script_tamanho" class="w-full bg-[#09090b] border border-zinc-700/80 rounded-lg px-4 py-2.5 text-zinc-200 focus:outline-none focus:border-orange-500 transition-colors appearance-none shadow-inner cursor-pointer">
-                            <option value="Vídeo Rápido (Aprox. 200 palavras)">Curto (~200 palavras)</option>
-                            <option value="Vídeo Médio (Aprox. 600 palavras)">Médio (~600 palavras)</option>
-                            <option value="Vídeo Denso (Aprox. 1500 palavras)">Longo (~1500 palavras)</option>
-                        </select>
+                        <label class="block text-sm font-medium text-zinc-400 mb-1.5">Tamanho Esperado <span class="text-orange-500">*</span></label>
+                        <input type="text" id="script_tamanho" class="w-full bg-[#09090b] border border-zinc-700/80 rounded-lg px-4 py-2.5 text-zinc-200 focus:outline-none focus:border-orange-500 transition-colors shadow-inner" placeholder="Ex: 2000 palavras ou 10 minutos">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-zinc-400 mb-1.5">Tom da Narrativa</label>
-                        <select id="script_tom" class="w-full bg-[#09090b] border border-zinc-700/80 rounded-lg px-4 py-2.5 text-zinc-200 focus:outline-none focus:border-orange-500 transition-colors appearance-none shadow-inner cursor-pointer">
-                            <option value="Misterioso e Tenso">Misterioso e Tenso</option>
-                            <option value="Informal e Dinâmico">Informal e Dinâmico</option>
-                            <option value="Sério e Filosófico">Sério e Filosófico</option>
-                            <option value="Humor Ácido">Humor Ácido</option>
-                        </select>
+                        <label class="block text-sm font-medium text-zinc-400 mb-1.5">Tom da Narrativa <span class="text-orange-500">*</span></label>
+                        <input type="text" id="script_tom" class="w-full bg-[#09090b] border border-zinc-700/80 rounded-lg px-4 py-2.5 text-zinc-200 focus:outline-none focus:border-orange-500 transition-colors shadow-inner" placeholder="Ex: Misterioso, Sarcástico, Emocionante...">
                     </div>
                 </div>
 
                 <div class="mb-4 relative z-10">
                     <label class="block text-sm font-medium text-zinc-400 mb-1.5">Instruções Adicionais (Opcional)</label>
-                    <input type="text" id="script_instrucoes" class="w-full bg-[#09090b] border border-zinc-700/80 rounded-lg px-4 py-2.5 text-zinc-200 focus:outline-none focus:border-orange-500 transition-colors shadow-inner" placeholder="Ex: Focar muito no plot twist do final...">
+                    <input type="text" id="script_instrucoes" class="w-full bg-[#09090b] border border-zinc-700/80 rounded-lg px-4 py-2.5 text-zinc-200 focus:outline-none focus:border-orange-500 transition-colors shadow-inner" placeholder="Ex: Crie um plot twist no meio do roteiro...">
                 </div>
 
                 <div class="flex-1 flex flex-col relative z-10">
@@ -110,12 +96,12 @@
         const tom = document.getElementById('script_tom').value;
         const instrucoes = document.getElementById('script_instrucoes').value;
 
-        if(!ideiaBase) return alert("Por favor, preencha a Ideia Base!");
+        if(!ideiaBase || !canal || !tamanho || !tom) return alert("Por favor, preencha todos os parâmetros obrigatórios (*)");
 
         btn.disabled = true;
         btn.classList.add('opacity-70', 'cursor-not-allowed');
         txtBtn.innerHTML = `Forjando... <i class="fa-solid fa-circle-notch fa-spin ml-1"></i>`;
-        document.getElementById('script_final_editavel').value = "O Gemini 2.5 está escrevendo o seu roteiro otimizado para retenção. Isso pode levar alguns segundos...\n\nAguarde o processamento neural...";
+        document.getElementById('script_final_editavel').value = "O Gemini 2.5 está lendo os seus parâmetros e forjando o roteiro otimizado. Isso pode levar alguns segundos...\n\nAguarde o processamento neural...";
 
         try {
             const res = await fetch("/api/v1/script-forge", {
