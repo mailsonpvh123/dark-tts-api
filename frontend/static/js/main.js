@@ -7,10 +7,9 @@ let vozesData = [];
 let vozSelecionada = "pt-BR-AntonioNeural"; 
 let srtGlobal = ""; 
 
-// ==========================================
-// INICIALIZAÇÃO, RECEPTORES E DESTAQUE DO MENU
-// ==========================================
-window.onload = async function() {
+// O uso do DOMContentLoaded garante que o JS cole as informações no exato momento, sem falhas
+document.addEventListener('DOMContentLoaded', async function() {
+    
     // 1. Destaque Automático do Menu Lateral
     const path = window.location.pathname;
     document.querySelectorAll('.menu-btn').forEach(link => {
@@ -26,15 +25,13 @@ window.onload = async function() {
         }
     });
 
-    // 2. RECEPTORES DAS ESTEIRAS DE PRODUÇÃO
-    // Caminho: Qualquer coisa -> Voice Synthesizer
+    // 2. RECEPTORES DAS ESTEIRAS DE PRODUÇÃO (Aqui que o texto é colado automaticamente!)
     const textoVoice = localStorage.getItem('texto_pendente_voice');
     if (textoVoice && document.getElementById('texto_voz')) {
         document.getElementById('texto_voz').value = textoVoice;
         localStorage.removeItem('texto_pendente_voice');
     }
 
-    // Caminho: Gen Insights -> Script Forge
     const textoScript = localStorage.getItem('ideia_pendente_script');
     if (textoScript && document.getElementById('script_ideia_base')) {
         document.getElementById('script_ideia_base').value = textoScript;
@@ -42,7 +39,6 @@ window.onload = async function() {
         if(typeof contarPalavrasLocal === 'function') contarPalavrasLocal('script_ideia_base', 'contador_script_in');
     }
 
-    // Caminho: Miner / Gen Legends -> Paraphraser
     const textoPara = localStorage.getItem('texto_pendente_paraphraser');
     if (textoPara && document.getElementById('paraphraser_conteudo')) {
         document.getElementById('paraphraser_conteudo').value = textoPara;
@@ -50,11 +46,11 @@ window.onload = async function() {
         if(typeof contarPalavrasLocal === 'function') contarPalavrasLocal('paraphraser_conteudo', 'contador_palavras_in');
     }
 
-    // 3. Carregamento de Vozes
+    // 3. Carregamento de Vozes (Com caminhos relativos)
     if(document.getElementById('lista_vozes')) {
         try {
             const resposta = await fetch(URL_API_VOZES);
-            if (!resposta.ok) throw new Error("Falha ao comunicar com o servidor neural.");
+            if (!resposta.ok) throw new Error("Falha ao comunicar com a API.");
             const dados = await resposta.json();
             
             if(dados.status === "erro") throw new Error(dados.mensagem);
@@ -71,10 +67,10 @@ window.onload = async function() {
                 </div>`;
         }
     }
-};
+});
 
 // ==========================================
-// FUNÇÕES DE DISPARO PARA A ESTEIRA (MANDAR PARA OUTRA PÁGINA)
+// FUNÇÕES DE DISPARO PARA A ESTEIRA
 // ==========================================
 function despacharParaVoice(idCampoOrigem) {
     const texto = document.getElementById(idCampoOrigem).value;
@@ -90,12 +86,10 @@ function despacharParaParaphraser(idCampoOrigem) {
     window.location.href = '/paraphraser'; 
 }
 
-// Botões Específicos das Telas
 function enviarScriptParaVoice() { despacharParaVoice('script_final_editavel'); }
 function enviarParaphraserParaVoice() { despacharParaVoice('paraphraser_resultado'); }
 function enviarLegendsParaParaphraser() { despacharParaParaphraser('legends_txt_resultado'); }
 
-// Utilitário simples para contagem de palavras se o arquivo local não tiver
 function contarPalavrasLocal(textAreaId, contadorId) {
     const el = document.getElementById(textAreaId);
     const contador = document.getElementById(contadorId);
