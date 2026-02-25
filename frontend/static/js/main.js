@@ -8,8 +8,6 @@ let vozSelecionada = "pt-BR-AntonioNeural";
 let srtGlobal = ""; 
 
 document.addEventListener('DOMContentLoaded', async function() {
-    
-    // 1. Destaque Automático do Menu Lateral
     const path = window.location.pathname;
     document.querySelectorAll('.menu-btn').forEach(link => {
         if (link.getAttribute('href') === path) {
@@ -24,7 +22,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     });
 
-    // 2. RECEPTORES DAS ESTEIRAS DE PRODUÇÃO
     const textoVoice = localStorage.getItem('texto_pendente_voice');
     if (textoVoice && document.getElementById('texto_voz')) {
         document.getElementById('texto_voz').value = textoVoice;
@@ -45,7 +42,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         if(typeof contarPalavrasLocal === 'function') contarPalavrasLocal('paraphraser_conteudo', 'contador_palavras_in');
     }
 
-    // 3. Carregamento de Vozes Premium
     if(document.getElementById('lista_vozes')) {
         try {
             const resposta = await fetch(URL_API_VOZES);
@@ -68,9 +64,6 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 });
 
-// ==========================================
-// FUNÇÕES DE DISPARO PARA A ESTEIRA
-// ==========================================
 function despacharParaVoice(idCampoOrigem) {
     const texto = document.getElementById(idCampoOrigem).value;
     if(!texto || texto.trim() === "") return alert("Aviso: O texto está vazio!"); 
@@ -100,7 +93,7 @@ function contarPalavrasLocal(textAreaId, contadorId) {
 }
 
 // ==========================================
-// FUNÇÕES DO VOICE SYNTHESIZER (UI PREMIUM)
+// FUNÇÕES DO VOICE SYNTHESIZER (UI PREMIUM ABSOLUTA)
 // ==========================================
 function renderizarListaVozes() {
     const container = document.getElementById('lista_vozes');
@@ -108,25 +101,34 @@ function renderizarListaVozes() {
     
     container.innerHTML = '';
     
-    // Injeta a estrutura HTML com as classes do Tailwind para o card premium
     vozesData.forEach(v => {
-        let cardClass = v.shortName === vozSelecionada 
-            ? "border-emerald-500 bg-emerald-500/5 shadow-[0_0_15px_rgba(16,185,129,0.15)]" 
-            : "border-zinc-800 bg-[#09090b] hover:border-purple-500/50 hover:bg-purple-500/5";
-        
+        // Lógica de cores baseadas na seleção
+        let isSelected = v.shortName === vozSelecionada;
+        let cardClass = isSelected 
+            ? "border-emerald-500 bg-emerald-500/10 shadow-[0_0_20px_rgba(16,185,129,0.15)]" 
+            : "border-zinc-800 bg-[#09090b] hover:border-purple-500/40 hover:bg-purple-500/5";
+            
+        // Lógica de ícones premium por sexo
+        let iconClass = v.gender === 'Female' ? 'fa-face-smile-beam text-pink-400' : 'fa-user-astronaut text-blue-400';
+        let genderTag = v.gender === 'Female' 
+            ? '<span class="text-[10px] font-bold text-pink-400 bg-pink-500/10 px-2 py-0.5 rounded border border-pink-500/20">Feminino</span>'
+            : '<span class="text-[10px] font-bold text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20">Masculino</span>';
+
         container.innerHTML += `
-            <div class="flex items-center justify-between p-3 rounded-xl border ${cardClass} cursor-pointer transition-all group relative z-10" onclick="selecionarVoz('${v.shortName}')">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-400 group-hover:scale-110 transition-transform shadow-inner">
-                        <i class="fa-solid ${v.gender === 'Female' ? 'fa-face-smile-beam' : 'fa-user-astronaut'}"></i>
+            <div class="flex items-center justify-between p-4 rounded-xl border ${cardClass} cursor-pointer transition-all duration-300 group relative z-10" onclick="selecionarVoz('${v.shortName}')">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-full bg-zinc-900 border border-zinc-700/50 flex items-center justify-center group-hover:scale-110 transition-transform shadow-inner">
+                        <i class="fa-solid ${iconClass} text-xl drop-shadow-md"></i>
                     </div>
                     <div>
-                        <p class="text-sm font-bold text-white group-hover:text-purple-300 transition-colors">${v.shortName.replace('Neural', '')}</p>
-                        <p class="text-[10px] text-zinc-500 uppercase tracking-widest">${v.gender}</p>
+                        <p class="text-base font-bold text-white group-hover:text-purple-300 transition-colors">${v.shortName.replace('Neural', '')}</p>
+                        <div class="flex items-center gap-2 mt-1">
+                            ${genderTag}
+                        </div>
                     </div>
                 </div>
-                <button class="w-9 h-9 rounded-full bg-zinc-800 border border-zinc-700/50 flex items-center justify-center text-zinc-400 hover:bg-emerald-500 hover:text-white transition-all shadow-md" onclick="tocarPreview(event, '${v.shortName}')">
-                    <i id="play_icon_${v.shortName}" class="fa-solid fa-play text-xs ml-0.5"></i>
+                <button class="w-10 h-10 rounded-full bg-zinc-800 border border-zinc-700/50 flex items-center justify-center text-zinc-400 hover:bg-emerald-500 hover:text-white hover:border-emerald-400 transition-all shadow-md group-hover:border-purple-500/30" onclick="tocarPreview(event, '${v.shortName}')">
+                    <i id="play_icon_${v.shortName}" class="fa-solid fa-play text-sm ml-0.5"></i>
                 </button>
             </div>`;
     });
@@ -150,7 +152,7 @@ async function tocarPreview(event, shortName) {
         const res = await fetch(URL_API_DIRETA, { 
             method: 'POST', 
             headers: { 'Content-Type': 'application/json' }, 
-            body: JSON.stringify({ texto: "Olá, sou uma voz neural da sua plataforma.", voz: shortName, velocidade: 1.0, pitch: 0, volume: 0 }) 
+            body: JSON.stringify({ texto: "Olá, sou uma voz neural da sua plataforma. Esta é a minha qualidade de narração.", voz: shortName, velocidade: 1.0, pitch: 0, volume: 0 }) 
         });
         
         const dados = await res.json();
@@ -159,10 +161,10 @@ async function tocarPreview(event, shortName) {
         playerPreview.src = "data:audio/mp3;base64," + dados.audio_base64;
         playerPreview.play();
         
-        playerPreview.onended = () => { icon.className = "fa-solid fa-play text-xs ml-0.5"; };
+        playerPreview.onended = () => { icon.className = "fa-solid fa-play text-sm ml-0.5"; };
     } catch(e) {
         alert("Erro no Preview: " + e.message);
-        icon.className = "fa-solid fa-play text-xs ml-0.5"; 
+        icon.className = "fa-solid fa-play text-sm ml-0.5"; 
     } 
 }
 
