@@ -10,7 +10,6 @@ from deep_translator import GoogleTranslator
 
 router = APIRouter(prefix="/api/v1", tags=["Data Miner"])
 
-# Modelos de Requisição
 class MinerRedditRequest(BaseModel):
     sub: str = ""
     query: str
@@ -22,7 +21,6 @@ class MinerGenericRequest(BaseModel):
     query: str
     traduzir: bool = True
 
-# Funções Auxiliares de Tradução
 def traduzir_para_en(texto):
     if not texto: return ""
     try:
@@ -34,7 +32,6 @@ def traduzir_para_pt(texto):
     if not texto: return ""
     try:
         tradutor = GoogleTranslator(source='en', target='pt')
-        # Divide o texto em blocos para não estourar o limite de caracteres do tradutor
         blocos = [texto[i:i+4000] for i in range(0, len(texto), 4000)]
         return " ".join([tradutor.translate(b) for b in blocos])
     except:
@@ -43,15 +40,16 @@ def traduzir_para_pt(texto):
 @router.post("/miner/reddit")
 async def miner_reddit(req: MinerRedditRequest):
     try:
-        # 1. Traduz a busca para o inglês (Acesso ao ouro gringo)
         query_en = traduzir_para_en(req.query)
         headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) DarkCreator/2.0'}
         
         sub = req.sub.strip().replace('r/', '')
+        
+        # CORREÇÃO: Aumentado o limit para 100 (máximo do Reddit) para garantir que ele ache histórias longas no meio do lixo
         if sub:
-            url = f"https://www.reddit.com/r/{sub}/search.json?q={urllib.parse.quote(query_en)}&restrict_sr=1&type=link&limit=20"
+            url = f"https://www.reddit.com/r/{sub}/search.json?q={urllib.parse.quote(query_en)}&restrict_sr=1&type=link&limit=100&sort=relevance"
         else:
-            url = f"https://www.reddit.com/search.json?q={urllib.parse.quote(query_en)}&type=link&limit=20"
+            url = f"https://www.reddit.com/search.json?q={urllib.parse.quote(query_en)}&type=link&limit=100&sort=relevance"
             
         r = requests.get(url, headers=headers, timeout=15)
         if r.status_code != 200:
@@ -64,18 +62,16 @@ async def miner_reddit(req: MinerRedditRequest):
             p = post['data']
             texto_original = p.get('selftext', '')
             
-            # Filtros do usuário
             if len(texto_original.split()) < req.min_words: continue
             if p.get('score', 0) < req.min_score: continue
             if req.sem_atualizacao and ("edit:" in texto_original.lower() or "update:" in texto_original.lower()): continue
             
-            # MANTÉM EM INGLÊS: Prepara o terreno para o Paraphraser brilhar na tradução
             titulo_original = p.get('title', '')
             
             resultados.append({
                 "titulo": titulo_original,
-                "texto": texto_original[:250] + "...", # Prévia para a tela
-                "texto_completo": texto_original,      # Texto integral oculto e pronto para o Paraphraser
+                "texto": texto_original[:250] + "...", 
+                "texto_completo": texto_original,      
                 "url": f"https://reddit.com{p.get('permalink')}",
                 "fonte": f"Reddit (r/{p.get('subreddit')})"
             })
@@ -121,7 +117,6 @@ async def miner_web(req: MinerGenericRequest):
 async def miner_news(req: MinerGenericRequest):
     try:
         query_en = traduzir_para_en(req.query)
-        # Bate no Google News americano para pegar as notícias globais
         url = f"https://news.google.com/rss/search?q={urllib.parse.quote(query_en)}&hl=en-US&gl=US&ceid=US:en"
         r = requests.get(url, timeout=10)
         
@@ -154,7 +149,6 @@ async def miner_news(req: MinerGenericRequest):
 async def miner_wiki(req: MinerGenericRequest):
     try:
         query_en = traduzir_para_en(req.query)
-        # Busca os artigos na Wiki em inglês (muito mais rica)
         url_search = f"https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch={urllib.parse.quote(query_en)}&utf8=&format=json"
         r_search = requests.get(url_search, timeout=10).json()
         
