@@ -114,6 +114,26 @@ function renderizarListaVozes() {
             ? '<span class="text-[10px] font-bold text-pink-400 bg-pink-500/10 px-2 py-0.5 rounded border border-pink-500/20">Feminino</span>'
             : '<span class="text-[10px] font-bold text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20">Masculino</span>';
 
+        // LÓGICA DE LIMPEZA DO NOME (Ex: "William - Inglês - AU")
+        let nomeDisplay = v.shortName.replace('Neural', '').replace('Multilingual', ''); // Fallback de segurança
+        let partes = v.shortName.split('-');
+        
+        if (partes.length >= 3) {
+            let idiomaCodigo = partes[0].toLowerCase();
+            let regiaoCodigo = partes[1].toUpperCase();
+            let nomeAtor = partes[2].replace('Neural', '').replace('Multilingual', '');
+            
+            // Dicionário de tradução das siglas para o nosso idioma
+            let mapaIdiomas = {
+                'pt': 'Português', 'en': 'Inglês', 'es': 'Espanhol', 'fr': 'Francês',
+                'it': 'Italiano', 'de': 'Alemão', 'ja': 'Japonês', 'ko': 'Coreano',
+                'zh': 'Chinês', 'ru': 'Russo', 'nl': 'Holandês', 'tr': 'Turco', 'pl': 'Polonês'
+            };
+            
+            let idiomaDisplay = mapaIdiomas[idiomaCodigo] || idiomaCodigo.toUpperCase();
+            nomeDisplay = `${nomeAtor} - ${idiomaDisplay} - ${regiaoCodigo}`;
+        }
+
         container.innerHTML += `
             <div class="flex items-center justify-between p-4 rounded-xl border ${cardClass} cursor-pointer transition-all duration-300 group relative z-10" onclick="selecionarVoz('${v.shortName}')">
                 <div class="flex items-center gap-4">
@@ -121,7 +141,7 @@ function renderizarListaVozes() {
                         <i class="fa-solid ${iconClass} text-xl drop-shadow-md"></i>
                     </div>
                     <div>
-                        <p class="text-base font-bold text-white group-hover:text-purple-300 transition-colors">${v.shortName.replace('Neural', '')}</p>
+                        <p class="text-base font-bold text-white group-hover:text-purple-300 transition-colors">${nomeDisplay}</p>
                         <div class="flex items-center gap-2 mt-1">
                             ${genderTag}
                         </div>
