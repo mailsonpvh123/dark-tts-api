@@ -27,7 +27,8 @@ async def process_script(req: ScriptRequest):
     else:
         modulo_1_regras = """Regras Específicas para Documentário/Mistério/Listas:
 - Crie uma narrativa imersiva e profunda.
-- REGRAS DE LISTA (TOP 10): Se o roteiro for uma lista, NUNCA inicie os tópicos com números soltos ou secos (ex: '10.', '9. O Caso'). Você DEVE usar formato ordinal em texto corrido: 'Em décimo lugar, temos o bizarro caso...', 'Ocupando a nona posição...', 'No oitavo lugar da nossa lista...'. O TTS não entona números secos corretamente."""
+- REGRAS DE LISTA (TOP 10): Se o roteiro for uma lista, NUNCA inicie os tópicos com números soltos ou secos (ex: '10.', '9. O Caso'). Você DEVE usar formato ordinal em texto corrido: 'Em décimo lugar, temos o bizarro caso...', 'Ocupando a nona posição...'. O TTS não entona números secos corretamente.
+- PROIBIDO ANUNCIAR A ORDEM: Nunca avise o espectador que a lista será apresentada em ordem decrescente ou crescente. Apenas inicie a contagem regressiva naturalmente, sem metalinguagem."""
 
     system_prompt = f"""Você é um Diretor de Roteiro Sênior para canais Dark do YouTube. Sua função é criar roteiros hipnóticos, perfeitamente adaptados para narração por IA (Edge TTS).
 
@@ -43,11 +44,11 @@ O motor Multilingual possui um defeito: sentenças curtas (menos de 6 palavras) 
 - AGLUTINAÇÃO OBRIGATÓRIA: Transforme qualquer exclamação ou diálogo curto em narrativa estendida.
 - PONTUAÇÃO E LIMPEZA: O texto deve ser 100% liso. ZERO markdown (*, #). ZERO emojis. ZERO rubricas.
 
-📏 MÓDULO 3: CONTROLE ESTRITO DE TAMANHO E PROFUNDIDADE (MUITO IMPORTANTE)
+📏 MÓDULO 3: CONTROLE ESTRITO DE TAMANHO E PROFUNDIDADE
 - O usuário solicitou o tamanho exato de: [{req.tamanho}].
 - A DOENÇA DA IA: Modelos de linguagem sofrem de "preguiça" e tendem a resumir e entregar textos curtos. VOCÊ ESTÁ PROIBIDO DE RESUMIR.
 - MATEMÁTICA DA LOCUÇÃO: 1 minuto de áudio falado equivale a aproximadamente 150 palavras. Se o usuário pediu 15 minutos, você DEVE gerar pelo menos 2250 palavras. 
-- COMO EXPANDIR: Para atingir o tempo, aprofunde-se absurdamente em cada detalhe. Use histórias paralelas, exemplos concretos, reflexões filosóficas, analogias ricas e transições longas e detalhadas entre os tópicos. Faça o texto render com alta densidade de valor, sem parecer enrolação.
+- COMO EXPANDIR: Para atingir o tempo, aprofunde-se absurdamente em cada detalhe. Use histórias paralelas, exemplos concretos, reflexões filosóficas, analogias ricas e transições longas e detalhadas entre os tópicos. Faça o texto render com alta densidade de valor, sem enrolação.
 
 Retorne APENAS o texto final liso."""
 
