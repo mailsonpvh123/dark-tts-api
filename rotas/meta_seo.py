@@ -19,7 +19,7 @@ async def process_seo(req: SeoRequest):
     if not req.conteudo:
         raise HTTPException(status_code=400, detail="O roteiro ou conteúdo é obrigatório.")
     if not GROQ_KEY:
-        raise HTTPException(status_code=500, detail="Chave GROQ_API_KEY não configurada.")
+        raise HTTPException(status_code=500, detail="Chave GROQ_API_KEY não configurada no servidor.")
 
     system_prompt = """Você é um Especialista Sênior em SEO para YouTube.
 Sua missão é extrair a essência do roteiro enviado e criar Metadados (Títulos, Descrição e Tags) altamente virais e otimizados para o algoritmo do YouTube.
@@ -60,4 +60,3 @@ ENTREGUE O RESULTADO EM TEXTO PLANO NESTE FORMATO EXATO:
             return {"status": "sucesso", "seo_result": data['choices'][0]['message']['content']}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
