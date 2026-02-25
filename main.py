@@ -7,7 +7,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
 
 # Importa as rotas dos nossos arquivos modulares
-from rotas import minerador, voice_synth, audio_mixer, gen_legends, paraphraser, gen_insights, script_forge
+from rotas import minerador, voice_synth, audio_mixer, gen_legends, paraphraser, gen_insights, script_forge, meta_seo
 
 app = FastAPI(
     title="Dark Creator OS - API",
@@ -36,6 +36,7 @@ app.include_router(gen_legends.router)
 app.include_router(paraphraser.router)
 app.include_router(gen_insights.router)
 app.include_router(script_forge.router)
+app.include_router(meta_seo.router)
 
 # --- ROTAS VISUAIS (NAVEGAÇÃO DO USUÁRIO) ---
 
