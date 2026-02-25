@@ -21,10 +21,17 @@
                     <h2 class="text-base font-semibold text-white flex items-center gap-2">
                         <i class="fa-solid fa-file-lines text-pink-500"></i> Texto Original
                     </h2>
-                    <span id="contador_palavras_in" class="text-xs font-bold text-zinc-500 bg-zinc-800/50 px-3 py-1.5 rounded-lg border border-zinc-700">0 palavras</span>
+                    
+                    <div class="flex items-center gap-3">
+                        <input type="file" id="arquivo_txt_paraphraser" accept=".txt" class="hidden" onchange="lerArquivoTXT(event)">
+                        <button onclick="document.getElementById('arquivo_txt_paraphraser').click()" class="text-xs bg-zinc-800 hover:bg-pink-600 text-zinc-300 hover:text-white px-3 py-1.5 rounded-lg flex items-center gap-2 transition-colors border border-zinc-700 hover:border-pink-500 shadow-inner group">
+                            <i class="fa-solid fa-file-arrow-up group-hover:-translate-y-0.5 transition-transform"></i> Carregar .TXT
+                        </button>
+                        <span id="contador_palavras_in" class="text-xs font-bold text-zinc-500 bg-zinc-800/50 px-3 py-1.5 rounded-lg border border-zinc-700">0 palavras</span>
+                    </div>
                 </div>
                 
-                <textarea id="paraphraser_conteudo" oninput="salvarEstado('paraphraser_conteudo'); contarPalavrasLocal('paraphraser_conteudo', 'contador_palavras_in')" class="w-full flex-1 bg-[#09090b] border border-zinc-700/80 rounded-lg p-5 text-zinc-200 focus:outline-none focus:border-pink-500 transition-colors resize-none shadow-inner leading-relaxed custom-scrollbar relative z-10" placeholder="Cole aqui o roteiro, artigo ou relato que deseja transmutar..."></textarea>
+                <textarea id="paraphraser_conteudo" oninput="salvarEstado('paraphraser_conteudo'); contarPalavrasLocal('paraphraser_conteudo', 'contador_palavras_in')" class="w-full flex-1 bg-[#09090b] border border-zinc-700/80 rounded-lg p-5 text-zinc-200 focus:outline-none focus:border-pink-500 transition-colors resize-none shadow-inner leading-relaxed custom-scrollbar relative z-10" placeholder="Cole aqui o roteiro ou ARRASTE UM ARQUIVO .TXT para esta caixa..."></textarea>
                 
                 <div class="grid grid-cols-2 gap-4 mt-5 relative z-10">
                     <div>
@@ -35,7 +42,7 @@
                         </select>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-zinc-400 mb-1.5">Nome do Canal (Para Adaptação)</label>
+                        <label class="block text-sm font-medium text-zinc-400 mb-1.5">Nome do Canal <span class="text-pink-500">*</span></label>
                         <input type="text" id="paraphraser_canal" oninput="salvarEstado('paraphraser_canal')" class="w-full bg-[#09090b] border border-zinc-700/80 rounded-lg px-4 py-2.5 text-zinc-200 focus:outline-none focus:border-pink-500 transition-colors shadow-inner" placeholder="Ex: Porão do Reddit">
                     </div>
                 </div>
@@ -93,6 +100,8 @@
         });
         contarPalavrasLocal('paraphraser_conteudo', 'contador_palavras_in');
         contarPalavrasLocal('paraphraser_resultado', 'contador_palavras_out');
+        
+        configurarDropzoneTXT();
     });
 
     function salvarEstado(id) {
@@ -109,6 +118,53 @@
         contarPalavrasLocal('paraphraser_resultado', 'contador_palavras_out');
     }
 
+    // Leitor de arquivo TXT via botão
+    function lerArquivoTXT(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('paraphraser_conteudo').value = e.target.result;
+            salvarEstado('paraphraser_conteudo');
+            contarPalavrasLocal('paraphraser_conteudo', 'contador_palavras_in');
+        };
+        reader.readAsText(file);
+    }
+
+    // Configura o arrastar e soltar (Drag and Drop) na caixa de texto
+    function configurarDropzoneTXT() {
+        const dropzoneTxt = document.getElementById('paraphraser_conteudo');
+        if(!dropzoneTxt) return;
+
+        dropzoneTxt.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropzoneTxt.classList.add('border-pink-500', 'bg-pink-500/5');
+        });
+
+        dropzoneTxt.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            dropzoneTxt.classList.remove('border-pink-500', 'bg-pink-500/5');
+        });
+
+        dropzoneTxt.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropzoneTxt.classList.remove('border-pink-500', 'bg-pink-500/5');
+            const file = e.dataTransfer.files[0];
+            
+            if (file && (file.type === "text/plain" || file.name.endsWith('.txt'))) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    dropzoneTxt.value = event.target.result;
+                    salvarEstado('paraphraser_conteudo');
+                    contarPalavrasLocal('paraphraser_conteudo', 'contador_palavras_in');
+                };
+                reader.readAsText(file);
+            } else {
+                alert("Formato inválido! Por favor, arraste apenas arquivos de texto (.TXT).");
+            }
+        });
+    }
+
     async function chamarParaphraser() {
         const btn = document.getElementById('btn_gerar_paraphraser');
         const btnTexto = document.getElementById('txt_btn_paraphraser');
@@ -118,7 +174,7 @@
         const modo = document.getElementById('paraphraser_modo').value;
         const canal = document.getElementById('paraphraser_canal').value;
 
-        if(!conteudo) return alert("Por favor, cole um texto para ser transmutado.");
+        if(!conteudo || !canal) return alert("Por favor, cole um texto e preencha o Nome do Canal.");
 
         btn.disabled = true;
         btn.classList.add('opacity-70', 'cursor-not-allowed');
