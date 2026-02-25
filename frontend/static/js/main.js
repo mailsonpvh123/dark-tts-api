@@ -102,28 +102,28 @@ function renderizarListaVozes() {
     container.innerHTML = '';
     
     vozesData.forEach(v => {
-        // Lógica de cores baseadas na seleção
         let isSelected = v.shortName === vozSelecionada;
         let cardClass = isSelected 
             ? "border-emerald-500 bg-emerald-500/10 shadow-[0_0_20px_rgba(16,185,129,0.15)]" 
             : "border-zinc-800 bg-[#09090b] hover:border-purple-500/40 hover:bg-purple-500/5";
             
-        // Lógica de ícones premium por sexo
         let iconClass = v.gender === 'Female' ? 'fa-face-smile-beam text-pink-400' : 'fa-user-astronaut text-blue-400';
         let genderTag = v.gender === 'Female' 
             ? '<span class="text-[10px] font-bold text-pink-400 bg-pink-500/10 px-2 py-0.5 rounded border border-pink-500/20">Feminino</span>'
             : '<span class="text-[10px] font-bold text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20">Masculino</span>';
 
-        // LÓGICA DE LIMPEZA DO NOME (Ex: "William - Inglês - AU")
-        let nomeDisplay = v.shortName.replace('Neural', '').replace('Multilingual', ''); // Fallback de segurança
+        // O CORTADOR DE NOMES IMPLACÁVEL (Expressão Regular elimina os "lixos" de forma oculta)
         let partes = v.shortName.split('-');
+        let nomeDisplay = v.shortName.replace(/Neural/ig, '').replace(/Multilingual/ig, '').replace(/V2/ig, '').trim(); 
         
         if (partes.length >= 3) {
             let idiomaCodigo = partes[0].toLowerCase();
             let regiaoCodigo = partes[1].toUpperCase();
-            let nomeAtor = partes[2].replace('Neural', '').replace('Multilingual', '');
             
-            // Dicionário de tradução das siglas para o nosso idioma
+            // Pega o nome do ator (tudo depois da região) e arranca palavras indesejadas
+            let nomeAtor = partes.slice(2).join(' ');
+            nomeAtor = nomeAtor.replace(/Neural/ig, '').replace(/Multilingual/ig, '').replace(/V2/ig, '').trim();
+            
             let mapaIdiomas = {
                 'pt': 'Português', 'en': 'Inglês', 'es': 'Espanhol', 'fr': 'Francês',
                 'it': 'Italiano', 'de': 'Alemão', 'ja': 'Japonês', 'ko': 'Coreano',
