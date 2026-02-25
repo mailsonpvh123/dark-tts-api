@@ -18,8 +18,26 @@
                     <div class="bg-[#121214] p-4 rounded-lg border border-zinc-800/80 shadow-inner"><label class="block text-sm font-bold text-pink-400 mb-2">Texto na Arte (Overlay)</label><input type="text" id="thumb_texto_arte" oninput="salvarEstado('thumb_texto_arte')" class="w-full bg-[#09090b] border border-pink-500/30 rounded-lg px-4 py-2 text-white font-black text-center tracking-widest focus:border-pink-500 outline-none" placeholder="Ex: NÃO OLHE!"></div>
                     <div>
                         <label class="block text-sm font-medium text-zinc-400 mb-1.5">Estilo Visual da Capa</label>
-                        <select id="thumb_estilo" onchange="salvarEstado('thumb_estilo')" class="w-full bg-[#09090b] border border-zinc-700/80 rounded-lg px-4 py-2.5 text-zinc-200 focus:outline-none focus:border-pink-500 transition-colors">
-                            <option value="Fotorealismo Extremo (8k, Detalhado)">Fotorealismo Extremo</option><option value="Cinematográfico Dramático">Cinematográfico</option><option value="Clickbait Agressivo (Cores vibrantes)">Clickbait Agressivo</option><option value="Anime Dark (Alta Qualidade)">Anime Dark</option>
+                        <select id="thumb_estilo" onchange="salvarEstado('thumb_estilo')" class="w-full bg-[#09090b] border border-zinc-700/80 rounded-lg px-4 py-2.5 text-zinc-200 focus:outline-none focus:border-pink-500 transition-colors appearance-none shadow-inner cursor-pointer">
+                            <optgroup label="Realismo & Cinema" class="bg-[#121214] text-pink-400">
+                                <option value="Fotorealismo Extremo (8k, Detalhado)" class="text-zinc-300">Fotorealismo Extremo (8k)</option>
+                                <option value="Cinematográfico (Iluminação Dramática, Lente 35mm)" class="text-zinc-300">Cinematográfico Dramático</option>
+                                <option value="Documentário Investigativo (Câmera de Segurança/Raw)" class="text-zinc-300">Estilo Câmera de Segurança/Raw</option>
+                            </optgroup>
+                            <optgroup label="Dark & Horror" class="bg-[#121214] text-pink-400">
+                                <option value="Dark Fantasy (Sombrio, Gótico, Misterioso)" class="text-zinc-300">Dark Fantasy</option>
+                                <option value="Horror Psicológico (Tenso, Desconfortável, Sombras)" class="text-zinc-300">Horror Psicológico</option>
+                                <option value="Macabro e Assustador (Estilo Invocação do Mal)" class="text-zinc-300">Macabro (Filme de Terror)</option>
+                            </optgroup>
+                            <optgroup label="YouTube CTR Focus" class="bg-[#121214] text-pink-400">
+                                <option value="Clickbait Agressivo (Cores vibrantes, Expressões Exageradas)" class="text-zinc-300">Clickbait Agressivo (YouTube)</option>
+                                <option value="Mistério Intrigante (Silhuetas, Elementos Escondidos, Curiosidade)" class="text-zinc-300">Mistério Intrigante</option>
+                            </optgroup>
+                            <optgroup label="Artísticos & Estilizados" class="bg-[#121214] text-pink-400">
+                                <option value="Animação 3D (Estilo Pixar/Disney Sombria)" class="text-zinc-300">Animação 3D (Pixar Sombria)</option>
+                                <option value="Cyberpunk Neon (Futurista, Contrastes fortes)" class="text-zinc-300">Cyberpunk Neon</option>
+                                <option value="Anime Estilo Dark (Alta Qualidade, Mappa Studio)" class="text-zinc-300">Anime Dark (High Quality)</option>
+                            </optgroup>
                         </select>
                     </div>
                 </div>
@@ -89,7 +107,6 @@
         txtBtn.innerHTML = `Criando Arte... <i class="fa-solid fa-circle-notch fa-spin ml-1"></i>`;
         container.innerHTML = `<div class="flex flex-col items-center justify-center h-full text-pink-500"><i class="fa-solid fa-palette fa-fade text-4xl mb-4"></i><p class="font-bold">Analisando a história...</p></div>`;
 
-        // Como essa rota está no seu n8n, vamos mantê-la batendo no webhook
         const WEBHOOK_THUMB = "https://n8n.zappclube.com.br/webhook-test/gerador-thumb";
 
         try {
@@ -101,16 +118,19 @@
             let dados = typeof dadosStr === 'string' ? JSON.parse(dadosStr.replace(/```json/g, '').replace(/```/g, '').trim()) : dadosStr;
 
             let htmlC = '';
-            if(dados.conflito_principal) htmlC += `<div class="mb-5 p-4 bg-[#121214] rounded-lg border border-pink-500/30"><h3 class="text-xs font-bold text-pink-400 mb-2 uppercase">Conflito</h3><p class="text-sm text-zinc-300 italic">"${dados.conflito_principal}"</p></div>`;
+            if(dados.conflito_principal) htmlC += `<div class="mb-5 p-4 bg-[#121214] rounded-lg border border-pink-500/30"><h3 class="text-xs font-bold text-pink-400 mb-2 uppercase">Conflito Principal (Âncora)</h3><p class="text-sm text-zinc-300 italic">"${dados.conflito_principal}"</p></div>`;
             
             if(dados.capas) {
                 dados.capas.forEach((capa, i) => {
                     htmlC += `
-                        <div class="bg-[#121214] border border-zinc-800/80 rounded-xl p-5 mb-4">
-                            <span class="text-pink-400 text-[10px] font-bold uppercase mb-2 block">Ideia ${i + 1}: ${capa.estrategia}</span>
+                        <div class="bg-[#121214] border border-zinc-800/80 rounded-xl p-5 mb-4 shadow-inner">
+                            <span class="text-pink-400 text-[10px] font-bold uppercase mb-2 block bg-pink-500/10 px-2 py-1 inline-block rounded">Ideia ${i + 1}: ${capa.estrategia}</span>
                             <p class="text-xs text-zinc-400 mb-4 border-l-2 border-zinc-700 pl-3 italic">"${capa.psicologia}"</p>
-                            <div class="flex items-center justify-between mb-1"><span class="text-[10px] font-bold text-zinc-500">PROMPT GRINGO:</span></div>
-                            <textarea class="w-full bg-[#09090b] border border-zinc-700/80 rounded px-3 py-2 text-emerald-400 text-xs font-mono resize-none h-20" readonly>${capa.prompt_gringo}</textarea>
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-[10px] font-bold text-zinc-500">PROMPT GRINGO:</span>
+                                <button onclick="copiarTexto('${btoa(unescape(encodeURIComponent(capa.prompt_gringo)))}', this)" class="text-pink-500 hover:text-white transition-colors text-xs flex items-center gap-1"><i class="fa-solid fa-copy"></i> Copiar</button>
+                            </div>
+                            <textarea class="w-full bg-[#09090b] border border-zinc-700/80 rounded px-3 py-2 text-emerald-400 text-xs font-mono resize-none h-20 shadow-inner" readonly>${capa.prompt_gringo}</textarea>
                         </div>`;
                 });
             }
@@ -121,6 +141,19 @@
         } finally {
             btn.disabled = false; btn.classList.remove('opacity-70', 'cursor-not-allowed'); txtBtn.innerHTML = "Gerar Prompts";
         }
+    }
+
+    function copiarTexto(base64Str, btnElement) {
+        const texto = decodeURIComponent(escape(atob(base64Str)));
+        navigator.clipboard.writeText(texto).then(() => {
+            const originalText = btnElement.innerHTML;
+            btnElement.innerHTML = `<i class="fa-solid fa-check"></i> Copiado!`;
+            btnElement.classList.replace('text-pink-500', 'text-emerald-400');
+            setTimeout(() => {
+                btnElement.innerHTML = originalText;
+                btnElement.classList.replace('text-emerald-400', 'text-pink-500');
+            }, 2000);
+        });
     }
 </script>
 {% endblock %}
