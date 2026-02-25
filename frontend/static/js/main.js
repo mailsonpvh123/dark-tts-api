@@ -1,8 +1,9 @@
 // ==========================================
 // CONFIGURAÇÕES GLOBAIS
 // ==========================================
-const URL_API_VOZES = "https://tts.zappclube.com.br/vozes"; 
-const URL_API_DIRETA = "https://tts.zappclube.com.br/gerar_narracao"; 
+// Alterado para rotas relativas. Agora funciona em qualquer domínio/subdomínio automaticamente!
+const URL_API_VOZES = "/vozes"; 
+const URL_API_DIRETA = "/gerar_narracao"; 
 let vozesData = [];
 let vozSelecionada = "pt-BR-AntonioNeural"; 
 let srtGlobal = ""; 
@@ -26,22 +27,33 @@ window.onload = async function() {
         }
     });
 
-    // 2. Receptor de Dados (Texto vindo de outra página)
+    // 2. Receptor de Dados (Texto vindo de outra página via botão "Enviar para Voice")
     const textoVoice = localStorage.getItem('texto_pendente_voice');
     if (textoVoice && document.getElementById('texto_voz')) {
         document.getElementById('texto_voz').value = textoVoice;
         localStorage.removeItem('texto_pendente_voice');
     }
 
-    // 3. Carregamento de Vozes
+    // 3. Carregamento de Vozes com Tratamento de Erro Visual
     if(document.getElementById('lista_vozes')) {
         try {
             const resposta = await fetch(URL_API_VOZES);
+            if (!resposta.ok) throw new Error("Falha ao comunicar com o servidor neural.");
             const dados = await resposta.json();
+            
+            if(dados.status === "erro") throw new Error(dados.mensagem);
+            
             vozesData = dados.vozes || dados;
             renderizarListaVozes();
         } catch (error) { 
-            console.log("Erro TTS:", error); 
+            console.log("Erro TTS:", error);
+            // Quebra o loop infinito e mostra o erro na tela
+            document.getElementById('lista_vozes').innerHTML = `
+                <div class="text-center text-red-500 py-10">
+                    <i class="fa-solid fa-triangle-exclamation text-3xl mb-3 drop-shadow-[0_0_10px_rgba(239,68,68,0.5)]"></i>
+                    <br><span class="text-sm font-bold">Erro de Conexão</span>
+                    <p class="text-xs text-zinc-500 mt-1">Não foi possível carregar as vozes.</p>
+                </div>`;
         }
     }
 };
@@ -66,34 +78,57 @@ function enviarParaphraserParaVoice() { despacharParaVoice('paraphraser_resultad
 function renderizarListaVozes() {
     const container = document.getElementById('lista_vozes');
     if(!container) return;
+    
     container.innerHTML = '';
     vozesData.forEach(v => {
-        let cardClass = v.shortName === vozSelecionada ? "border-emerald-500 bg-emerald-500/5" : "border-zinc-800 bg-[#09090b]";
+        let cardClass = v.shortName === vozSelecionada ? "border-emerald-500 bg-emerald-500/5 shadow-[0_0_15px_rgba(16,185,129,0.15)]" : "border-zinc-800 bg-[#09090b] hover:border-purple-500/50 hover:bg-purple-500/5";
+        
         container.innerHTML += `
-            <div class="flex items-center justify-between p-3 rounded-xl border ${cardClass} cursor-pointer transition-all" onclick="selecionarVoz('${v.shortName}')">
+            <div class="flex items-center justify-between p-3 rounded-xl border ${cardClass} cursor-pointer transition-all group relative z-10" onclick="selecionarVoz('${v.shortName}')">
                 <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-400"><i class="fa-solid fa-robot"></i></div>
-                    <div><p class="text-sm font-bold text-white">${v.shortName}</p></div>
+                    <div class="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-400 group-hover:scale-110 transition-transform"><i class="fa-solid fa-robot"></i></div>
+                    <div><p class="text-sm font-bold text-white group-hover:text-purple-300 transition-colors">${v.shortName}</p></div>
                 </div>
-                <button class="w-8 h-8 rounded-full bg-zinc-800 text-zinc-400" onclick="tocarPreview(event, '${v.shortName}')">
-                    <i id="play_icon_${v.shortName}" class="fa-solid fa-play text-xs"></i>
+                <button class="w-9 h-9 rounded-full bg-zinc-800 border border-zinc-700/50 flex items-center justify-center text-zinc-400 hover:bg-emerald-500 hover:text-white transition-all" onclick="tocarPreview(event, '${v.shortName}')">
+                    <i id="play_icon_${v.shortName}" class="fa-solid fa-play text-xs ml-0.5"></i>
                 </button>
             </div>`;
     });
 }
 
-function selecionarVoz(sn) { vozSelecionada = sn; renderizarListaVozes(); }
+function selecionarVoz(sn) { 
+    vozSelecionada = sn; 
+    renderizarListaVozes(); 
+}
 
 async function tocarPreview(event, shortName) {
     event.stopPropagation();
+    
+    // Se tiver outro áudio tocando, pausa antes de iniciar o novo
+    const playerPreview = document.getElementById('player_preview') || new Audio();
+    playerPreview.pause();
+
     const icon = document.getElementById(`play_icon_${shortName}`);
-    icon.className = "fa-solid fa-circle-notch fa-spin";
+    icon.className = "fa-solid fa-circle-notch fa-spin text-white";
+    
     try {
-        const res = await fetch(URL_API_DIRETA, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ texto: "Olá, sou uma voz neural.", voz: shortName, velocidade: 1.0, pitch: 0, volume: 0 }) });
+        const res = await fetch(URL_API_DIRETA, { 
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' }, 
+            body: JSON.stringify({ texto: "Olá, sou uma voz neural da sua plataforma.", voz: shortName, velocidade: 1.0, pitch: 0, volume: 0 }) 
+        });
+        
         const dados = await res.json();
-        document.getElementById('player_preview').src = "data:audio/mp3;base64," + dados.audio_base64;
-        document.getElementById('player_preview').play();
-    } finally { icon.className = "fa-solid fa-play"; }
+        if(dados.status === "erro") throw new Error(dados.mensagem);
+
+        playerPreview.src = "data:audio/mp3;base64," + dados.audio_base64;
+        playerPreview.play();
+        
+        playerPreview.onended = () => { icon.className = "fa-solid fa-play text-xs ml-0.5"; };
+    } catch(e) {
+        alert("Erro no Preview: " + e.message);
+        icon.className = "fa-solid fa-play text-xs ml-0.5"; 
+    } 
 }
 
 async function gerarAudioCompleto() {
@@ -101,12 +136,14 @@ async function gerarAudioCompleto() {
     const texto = document.getElementById('texto_voz').value;
     const playerContainer = document.getElementById('player_container');
     
-    if(!texto.trim()) return alert("Digite um texto!");
+    if(!texto.trim()) return alert("Digite um texto antes de sintetizar!");
 
     btn.disabled = true;
-    btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Processando...`;
+    btn.classList.add('opacity-70', 'cursor-not-allowed');
+    btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin text-emerald-400"></i> <span>Gravando na Nuvem...</span>`;
+    
     playerContainer.classList.remove('hidden');
-    playerContainer.innerHTML = `<p class="text-purple-400 animate-pulse text-center">A IA está gravando...</p>`;
+    playerContainer.innerHTML = `<p class="text-emerald-400 animate-pulse text-center font-bold text-sm">O estúdio neural está gravando a sua locução...</p>`;
 
     const payload = { 
         texto: texto, 
@@ -117,32 +154,47 @@ async function gerarAudioCompleto() {
     };
 
     try {
-        const res = await fetch(URL_API_DIRETA, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-        const dados = await res.json();
+        const res = await fetch(URL_API_DIRETA, { 
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' }, 
+            body: JSON.stringify(payload) 
+        });
         
+        const dados = await res.json();
         if(dados.status === "erro") throw new Error(dados.mensagem);
 
         playerContainer.innerHTML = `
-            <audio controls class="w-full h-12 bg-zinc-900 rounded-lg">
+            <div class="flex items-center gap-2 mb-3">
+                <i class="fa-solid fa-circle-check text-emerald-400 drop-shadow-[0_0_5px_rgba(16,185,129,0.8)]"></i>
+                <p class="text-xs text-emerald-400 font-bold uppercase tracking-wider">Áudio Finalizado</p>
+            </div>
+            <audio controls class="w-full h-12 bg-zinc-900 rounded-lg outline-none shadow-inner">
                 <source src="data:audio/mp3;base64,${dados.audio_base64}" type="audio/mp3">
             </audio>
         `;
     } catch (e) {
-        playerContainer.innerHTML = `<p class="text-red-400">Erro: ${e.message}</p>`;
+        playerContainer.innerHTML = `<p class="text-red-400 text-sm font-bold"><i class="fa-solid fa-triangle-exclamation"></i> Erro: ${e.message}</p>`;
     } finally {
         btn.disabled = false;
-        btn.innerHTML = `<i class="fa-solid fa-wand-magic-sparkles"></i> Sintetizar Voz`;
+        btn.classList.remove('opacity-70', 'cursor-not-allowed');
+        btn.innerHTML = `<i class="fa-solid fa-wand-magic-sparkles"></i> <span>Sintetizar Voz (380 coins)</span>`;
     }
 }
 
 function ajustarVelocidade(delta) {
     const slider = document.getElementById('velocidade');
-    slider.value = (parseFloat(slider.value) + delta).toFixed(1);
+    let newVal = parseFloat(slider.value) + delta;
+    if(newVal > 2.0) newVal = 2.0;
+    if(newVal < 0.5) newVal = 0.5;
+    slider.value = newVal.toFixed(1);
     document.getElementById('val_v').innerText = slider.value + 'x';
 }
 
 function ajustarPitch(delta) {
     const slider = document.getElementById('pitch');
-    slider.value = parseInt(slider.value) + delta;
+    let newVal = parseInt(slider.value) + delta;
+    if(newVal > 50) newVal = 50;
+    if(newVal < -50) newVal = -50;
+    slider.value = newVal;
     document.getElementById('val_p').innerText = slider.value + 'Hz';
 }
