@@ -22,15 +22,15 @@
                 <div class="space-y-4 relative z-10">
                     <div>
                         <label class="block text-sm font-medium text-zinc-400 mb-1.5">Nicho ou Tema Principal <span class="text-yellow-500">*</span></label>
-                        <input type="text" id="ideia_tema" class="w-full bg-[#09090b] border border-zinc-700/80 rounded-lg px-4 py-2.5 text-zinc-200 focus:outline-none focus:border-yellow-500 transition-colors shadow-inner" placeholder="Ex: Filosofia Estoica, Terror Real...">
+                        <input type="text" id="ideia_tema" oninput="salvarInsight('ideia_tema')" class="w-full bg-[#09090b] border border-zinc-700/80 rounded-lg px-4 py-2.5 text-zinc-200 focus:outline-none focus:border-yellow-500 transition-colors shadow-inner" placeholder="Ex: Filosofia Estoica, Terror Real...">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-zinc-400 mb-1.5">Público-Alvo</label>
-                        <input type="text" id="ideia_publico" class="w-full bg-[#09090b] border border-zinc-700/80 rounded-lg px-4 py-2.5 text-zinc-200 focus:outline-none focus:border-yellow-500 transition-colors shadow-inner" placeholder="Ex: Jovens adultos, Empreendedores...">
+                        <input type="text" id="ideia_publico" oninput="salvarInsight('ideia_publico')" class="w-full bg-[#09090b] border border-zinc-700/80 rounded-lg px-4 py-2.5 text-zinc-200 focus:outline-none focus:border-yellow-500 transition-colors shadow-inner" placeholder="Ex: Jovens adultos, Empreendedores...">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-zinc-400 mb-1.5">Tom do Conteúdo</label>
-                        <select id="ideia_tom" class="w-full bg-[#09090b] border border-zinc-700/80 rounded-lg pl-4 py-2.5 text-zinc-200 focus:outline-none focus:border-yellow-500 transition-colors appearance-none shadow-inner cursor-pointer">
+                        <select id="ideia_tom" onchange="salvarInsight('ideia_tom')" class="w-full bg-[#09090b] border border-zinc-700/80 rounded-lg pl-4 py-2.5 text-zinc-200 focus:outline-none focus:border-yellow-500 transition-colors appearance-none shadow-inner cursor-pointer">
                             <option value="Sombrio e Misterioso">Sombrio e Misterioso</option>
                             <option value="Curiosidade Intrigante">Curiosidade Intrigante</option>
                             <option value="Informativo e Direto">Informativo e Direto</option>
@@ -62,6 +62,25 @@
 <script>
     let ideiasGlobais = [];
 
+    // Carrega a memória ao abrir a aba
+    document.addEventListener('DOMContentLoaded', () => {
+        const campos = ['ideia_tema', 'ideia_publico', 'ideia_tom'];
+        campos.forEach(id => {
+            const el = document.getElementById(id);
+            if(el && sessionStorage.getItem(id)) el.value = sessionStorage.getItem(id);
+        });
+
+        // Restaura os cards gerados se eles existirem na memória
+        if(sessionStorage.getItem('ideiasHTML')) {
+            ideiasGlobais = JSON.parse(sessionStorage.getItem('ideiasGlobaisArray') || '[]');
+            document.getElementById('container_ideias').innerHTML = sessionStorage.getItem('ideiasHTML');
+        }
+    });
+
+    function salvarInsight(id) {
+        sessionStorage.setItem(id, document.getElementById(id).value);
+    }
+
     async function chamarGeradorIdeias() {
         const btn = document.getElementById('btn_gerar_ideias');
         const container = document.getElementById('container_ideias');
@@ -90,11 +109,10 @@
             const dados = await res.json();
             ideiasGlobais = dados.ideias; 
             
-            container.innerHTML = '<div class="w-full text-left space-y-4 relative z-10" id="lista_ideias_geradas"></div>';
-            const listaDiv = document.getElementById('lista_ideias_geradas');
+            let htmlCards = '<div class="w-full text-left space-y-4 relative z-10" id="lista_ideias_geradas">';
 
             ideiasGlobais.forEach((ideia, index) => {
-                listaDiv.innerHTML += `
+                htmlCards += `
                     <div class="bg-[#121214] border border-yellow-500/30 rounded-xl p-5 hover:border-yellow-500/60 transition-colors shadow-inner">
                         <div class="flex items-center justify-between mb-3 border-b border-zinc-800 pb-2">
                             <span class="bg-yellow-500/20 text-yellow-400 text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider">Ideia ${index + 1}</span>
@@ -107,6 +125,14 @@
                         <p class="text-sm text-zinc-400 leading-relaxed"><strong class="text-yellow-500/80">Visão Geral:</strong> ${ideia.resumo}</p>
                     </div>`;
             });
+            
+            htmlCards += '</div>';
+            container.innerHTML = htmlCards;
+
+            // Salva os cards gerados na memória do navegador!
+            sessionStorage.setItem('ideiasHTML', htmlCards);
+            sessionStorage.setItem('ideiasGlobaisArray', JSON.stringify(ideiasGlobais));
+
         } catch (error) { 
             container.innerHTML = `<p class="text-red-400 font-bold p-5 relative z-10"><i class="fa-solid fa-triangle-exclamation"></i> Erro Técnico: ${error.message}</p>`; 
         } finally { 
@@ -115,13 +141,14 @@
         }
     }
 
-    // A mágica da esteira de produção começa aqui:
     function enviarParaScriptForge(index) {
         const ideia = ideiasGlobais[index];
         const textoMontado = `TÍTULO: ${ideia.titulo}\nGANCHO: ${ideia.gancho}\nRESUMO: ${ideia.resumo}`;
         
-        // Salva o texto no navegador e manda o usuário para a página de forja
+        // Além de mandar pra fila, já salva no próprio SessionStorage da Script Forge para ser mais rápido
+        sessionStorage.setItem('script_ideia_base', textoMontado);
         localStorage.setItem('ideia_pendente_script', textoMontado);
+        
         window.location.href = '/script-forge';
     }
 </script>
