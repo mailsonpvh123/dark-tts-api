@@ -1,5 +1,5 @@
 // ==========================================
-// CONFIGURAÇÕES GLOBAIS
+// CONFIGURAÇÕES GLOBAIS E ESTEIRA
 // ==========================================
 const URL_API_VOZES = "/vozes"; 
 const URL_API_DIRETA = "/gerar_narracao"; 
@@ -9,19 +9,26 @@ let srtGlobal = "";
 
 document.addEventListener('DOMContentLoaded', async function() {
     const path = window.location.pathname;
+    
+    // Pinta o botão correto no menu lateral
     document.querySelectorAll('.menu-btn').forEach(link => {
         if (link.getAttribute('href') === path) {
             link.classList.add('text-white', 'bg-zinc-800/80', 'border-zinc-700');
             link.classList.remove('text-zinc-400');
             const icon = link.querySelector('i');
             if (path === '/gen-insights') icon.classList.add('text-yellow-400');
+            if (path === '/miner') icon.classList.add('text-indigo-400');
             if (path === '/paraphraser') icon.classList.add('text-pink-400');
             if (path === '/script-forge') icon.classList.add('text-orange-400');
             if (path === '/voice-synthesizer') icon.classList.add('text-purple-400');
+            if (path === '/audio-mixer') icon.classList.add('text-amber-400');
+            if (path === '/meta-seo') icon.classList.add('text-blue-400');
+            if (path === '/thumb-maker') icon.classList.add('text-pink-400');
             if (path === '/gen-legends') icon.classList.add('text-cyan-400');
         }
     });
 
+    // RECEPTORES DA ESTEIRA (Ouvidos Mágicos)
     const textoVoice = localStorage.getItem('texto_pendente_voice');
     if (textoVoice && document.getElementById('texto_voz')) {
         document.getElementById('texto_voz').value = textoVoice;
@@ -42,6 +49,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         if(typeof contarPalavrasLocal === 'function') contarPalavrasLocal('paraphraser_conteudo', 'contador_palavras_in');
     }
 
+    // CARREGADOR DE VOZES (Só roda na aba do Voice Synth)
     if(document.getElementById('lista_vozes')) {
         try {
             const resposta = await fetch(URL_API_VOZES);
@@ -64,6 +72,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 });
 
+// FUNÇÕES DE DESPACHO PARA A ESTEIRA (Rodam de qualquer página)
 function despacharParaVoice(idCampoOrigem) {
     const texto = document.getElementById(idCampoOrigem).value;
     if(!texto || texto.trim() === "") return alert("Aviso: O texto está vazio!"); 
@@ -112,7 +121,6 @@ function renderizarListaVozes() {
             ? '<span class="text-[10px] font-bold text-pink-400 bg-pink-500/10 px-2 py-0.5 rounded border border-pink-500/20">Feminino</span>'
             : '<span class="text-[10px] font-bold text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20">Masculino</span>';
 
-        // O CORTADOR DE NOMES IMPLACÁVEL
         let partes = v.shortName.split('-');
         let nomeDisplay = v.shortName.replace(/Neural/ig, '').replace(/Multilingual/ig, '').replace(/V2/ig, '').trim(); 
         
