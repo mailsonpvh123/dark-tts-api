@@ -47,9 +47,9 @@ async def miner_reddit(req: MinerRedditRequest):
         
         # CORREÇÃO: Aumentado o limit para 100 (máximo do Reddit) para garantir que ele ache histórias longas no meio do lixo
         if sub:
-            url = f"https://www.reddit.com/r/{sub}/search.json?q={urllib.parse.quote(query_en)}&restrict_sr=1&type=link&limit=100&sort=relevance"
+            url = f"https://www.reddit.com/r/{sub}/search.json?q={urllib.parse.quote(query_en)}&restrict_sr=1&type=link&limit=200&sort=relevance"
         else:
-            url = f"https://www.reddit.com/search.json?q={urllib.parse.quote(query_en)}&type=link&limit=100&sort=relevance"
+            url = f"https://www.reddit.com/search.json?q={urllib.parse.quote(query_en)}&type=link&limit=200&sort=relevance"
             
         r = requests.get(url, headers=headers, timeout=15)
         if r.status_code != 200:
