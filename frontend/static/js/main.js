@@ -7,7 +7,6 @@ let vozesData = [];
 let vozSelecionada = "pt-BR-AntonioNeural"; 
 let srtGlobal = ""; 
 
-// O uso do DOMContentLoaded garante que o JS cole as informações no exato momento, sem falhas
 document.addEventListener('DOMContentLoaded', async function() {
     
     // 1. Destaque Automático do Menu Lateral
@@ -25,7 +24,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     });
 
-    // 2. RECEPTORES DAS ESTEIRAS DE PRODUÇÃO (Aqui que o texto é colado automaticamente!)
+    // 2. RECEPTORES DAS ESTEIRAS DE PRODUÇÃO
     const textoVoice = localStorage.getItem('texto_pendente_voice');
     if (textoVoice && document.getElementById('texto_voz')) {
         document.getElementById('texto_voz').value = textoVoice;
@@ -46,7 +45,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         if(typeof contarPalavrasLocal === 'function') contarPalavrasLocal('paraphraser_conteudo', 'contador_palavras_in');
     }
 
-    // 3. Carregamento de Vozes (Com caminhos relativos)
+    // 3. Carregamento de Vozes Premium
     if(document.getElementById('lista_vozes')) {
         try {
             const resposta = await fetch(URL_API_VOZES);
@@ -101,23 +100,32 @@ function contarPalavrasLocal(textAreaId, contadorId) {
 }
 
 // ==========================================
-// FUNÇÕES DO VOICE SYNTHESIZER
+// FUNÇÕES DO VOICE SYNTHESIZER (UI PREMIUM)
 // ==========================================
 function renderizarListaVozes() {
     const container = document.getElementById('lista_vozes');
     if(!container) return;
     
     container.innerHTML = '';
+    
+    // Injeta a estrutura HTML com as classes do Tailwind para o card premium
     vozesData.forEach(v => {
-        let cardClass = v.shortName === vozSelecionada ? "border-emerald-500 bg-emerald-500/5 shadow-[0_0_15px_rgba(16,185,129,0.15)]" : "border-zinc-800 bg-[#09090b] hover:border-purple-500/50 hover:bg-purple-500/5";
+        let cardClass = v.shortName === vozSelecionada 
+            ? "border-emerald-500 bg-emerald-500/5 shadow-[0_0_15px_rgba(16,185,129,0.15)]" 
+            : "border-zinc-800 bg-[#09090b] hover:border-purple-500/50 hover:bg-purple-500/5";
         
         container.innerHTML += `
             <div class="flex items-center justify-between p-3 rounded-xl border ${cardClass} cursor-pointer transition-all group relative z-10" onclick="selecionarVoz('${v.shortName}')">
                 <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-400 group-hover:scale-110 transition-transform"><i class="fa-solid fa-robot"></i></div>
-                    <div><p class="text-sm font-bold text-white group-hover:text-purple-300 transition-colors">${v.shortName}</p></div>
+                    <div class="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-400 group-hover:scale-110 transition-transform shadow-inner">
+                        <i class="fa-solid ${v.gender === 'Female' ? 'fa-face-smile-beam' : 'fa-user-astronaut'}"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm font-bold text-white group-hover:text-purple-300 transition-colors">${v.shortName.replace('Neural', '')}</p>
+                        <p class="text-[10px] text-zinc-500 uppercase tracking-widest">${v.gender}</p>
+                    </div>
                 </div>
-                <button class="w-9 h-9 rounded-full bg-zinc-800 border border-zinc-700/50 flex items-center justify-center text-zinc-400 hover:bg-emerald-500 hover:text-white transition-all" onclick="tocarPreview(event, '${v.shortName}')">
+                <button class="w-9 h-9 rounded-full bg-zinc-800 border border-zinc-700/50 flex items-center justify-center text-zinc-400 hover:bg-emerald-500 hover:text-white transition-all shadow-md" onclick="tocarPreview(event, '${v.shortName}')">
                     <i id="play_icon_${v.shortName}" class="fa-solid fa-play text-xs ml-0.5"></i>
                 </button>
             </div>`;
@@ -204,7 +212,7 @@ async function gerarAudioCompleto() {
     } finally {
         btn.disabled = false;
         btn.classList.remove('opacity-70', 'cursor-not-allowed');
-        btn.innerHTML = `<i class="fa-solid fa-wand-magic-sparkles"></i> <span>Sintetizar Voz (380 coins)</span>`;
+        btn.innerHTML = `<i class="fa-solid fa-wand-magic-sparkles"></i> <span>Sintetizar Voz Neural</span>`;
     }
 }
 
