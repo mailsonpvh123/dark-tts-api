@@ -4,7 +4,7 @@
 <section id="aba_minerador" class="aba-conteudo block">
     <div class="mb-8 relative z-10">
         <div class="flex items-center gap-3 mb-2"><div class="w-10 h-10 rounded-lg bg-indigo-500/10 flex items-center justify-center border border-indigo-500/20"><i class="fa-solid fa-magnet text-indigo-400 text-lg"></i></div><h1 class="text-2xl md:text-3xl font-bold text-white">Data Miner</h1></div>
-        <p class="text-zinc-400">Arraste dados da internet. Raspe o Reddit, Google News, Wikipédia e a Web em busca de matéria-prima.</p>
+        <p class="text-zinc-400">Arraste dados da internet. A IA traduzirá a sua busca, raspará sites gringos e devolverá histórias perfeitas em português.</p>
     </div>
     <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
         <div class="xl:col-span-1 space-y-6 flex flex-col">
@@ -12,20 +12,23 @@
                 <div class="absolute -top-20 -left-20 w-40 h-40 bg-indigo-500/10 rounded-full blur-[60px] pointer-events-none"></div>
                 <div class="relative z-10">
                     <select id="miner_fonte" onchange="trocarFonteMiner(); salvarEstado('miner_fonte')" class="w-full bg-[#09090b] border border-zinc-700/80 rounded-lg pl-4 py-2.5 text-zinc-200 mb-5 font-bold focus:border-indigo-500 focus:outline-none transition-colors shadow-inner cursor-pointer">
-                        <option value="reddit">👽 Reddit (Histórias Gringas)</option><option value="news">📰 Google News (Notícias)</option><option value="web">🌍 Deep Web Search</option><option value="wiki">📚 Wikipedia Fatos</option>
+                        <option value="reddit">👽 Reddit (Histórias Gringas)</option>
+                        <option value="news">📰 Google News (Notícias do Mundo)</option>
+                        <option value="web">🌍 Deep Web Search</option>
+                        <option value="wiki">📚 Wikipedia Fatos</option>
                     </select>
                     
                     <div id="campos_reddit" class="space-y-4 block">
                         <div>
                             <label class="block text-sm font-medium text-zinc-400 mb-1.5">Tema / Assunto</label>
-                            <input type="text" id="miner_query_reddit" oninput="salvarEstado('miner_query_reddit')" class="w-full bg-[#09090b] border border-zinc-700/80 rounded-lg px-4 py-2.5 text-zinc-200 text-sm focus:border-indigo-500 focus:outline-none transition-colors shadow-inner" placeholder="Ex: Cheating wife">
+                            <input type="text" id="miner_query_reddit" oninput="salvarEstado('miner_query_reddit')" class="w-full bg-[#09090b] border border-zinc-700/80 rounded-lg px-4 py-2.5 text-zinc-200 text-sm focus:border-indigo-500 focus:outline-none transition-colors shadow-inner" placeholder="Ex: Esposa traindo, Glitch na Matrix...">
                         </div>
                         <div class="grid grid-cols-3 gap-2">
-                            <div><label class="block text-[10px] font-medium text-zinc-400 mb-1">Subreddit</label><input type="text" id="miner_sub" oninput="salvarEstado('miner_sub')" class="w-full bg-[#09090b] border border-zinc-700/80 rounded-lg px-3 py-2 text-zinc-200 text-xs focus:border-indigo-500 focus:outline-none transition-colors shadow-inner" placeholder="Ex: AskReddit"></div>
-                            <div><label class="block text-[10px] font-medium text-zinc-400 mb-1">Mín. Palavras</label><input type="number" id="miner_words" oninput="salvarEstado('miner_words')" value="500" class="w-full bg-[#09090b] border border-zinc-700/80 rounded-lg px-3 py-2 text-zinc-200 text-xs focus:border-indigo-500 focus:outline-none transition-colors shadow-inner"></div>
-                            <div><label class="block text-[10px] font-medium text-zinc-400 mb-1">Score Mín.</label><input type="number" id="miner_score" oninput="salvarEstado('miner_score')" value="10" class="w-full bg-[#09090b] border border-zinc-700/80 rounded-lg px-3 py-2 text-zinc-200 text-xs focus:border-indigo-500 focus:outline-none transition-colors shadow-inner"></div>
+                            <div><label class="block text-[10px] font-medium text-zinc-400 mb-1">Subreddit (Opcional)</label><input type="text" id="miner_sub" oninput="salvarEstado('miner_sub')" class="w-full bg-[#09090b] border border-zinc-700/80 rounded-lg px-3 py-2 text-zinc-200 text-xs focus:border-indigo-500 focus:outline-none transition-colors shadow-inner" placeholder="Ex: AskReddit"></div>
+                            <div><label class="block text-[10px] font-medium text-zinc-400 mb-1">Mín. Palavras</label><input type="number" id="miner_words" oninput="salvarEstado('miner_words')" value="200" class="w-full bg-[#09090b] border border-zinc-700/80 rounded-lg px-3 py-2 text-zinc-200 text-xs focus:border-indigo-500 focus:outline-none transition-colors shadow-inner"></div>
+                            <div><label class="block text-[10px] font-medium text-zinc-400 mb-1">Score Mín.</label><input type="number" id="miner_score" oninput="salvarEstado('miner_score')" value="50" class="w-full bg-[#09090b] border border-zinc-700/80 rounded-lg px-3 py-2 text-zinc-200 text-xs focus:border-indigo-500 focus:outline-none transition-colors shadow-inner"></div>
                         </div>
-                        <label class="flex items-center gap-2 cursor-pointer pt-2"><input type="checkbox" id="miner_sem_atualizacao" onchange="salvarCheck('miner_sem_atualizacao')" class="w-4 h-4 text-indigo-500 rounded bg-zinc-800 border-zinc-700"><span class="text-sm text-zinc-400 font-medium">Sem atualização</span></label>
+                        <label class="flex items-center gap-2 cursor-pointer pt-2"><input type="checkbox" id="miner_sem_atualizacao" onchange="salvarCheck('miner_sem_atualizacao')" class="w-4 h-4 text-indigo-500 rounded bg-zinc-800 border-zinc-700"><span class="text-sm text-zinc-400 font-medium">Ignorar posts com "Update"</span></label>
                     </div>
                     
                     <div id="campos_geral" class="space-y-4 hidden">
@@ -33,7 +36,7 @@
                             <label id="lbl_miner_query_geral" class="block text-sm font-medium text-zinc-400 mb-1.5">Termo de Busca</label>
                             <input type="text" id="miner_query_geral" oninput="salvarEstado('miner_query_geral')" class="w-full bg-[#09090b] border border-zinc-700/80 rounded-lg px-4 py-2.5 text-zinc-200 text-sm focus:border-indigo-500 focus:outline-none transition-colors shadow-inner" placeholder="Busca...">
                         </div>
-                        <label class="flex items-center gap-2 cursor-pointer pt-2" id="box_traduzir_web"><input type="checkbox" id="miner_traduzir_web" onchange="salvarCheck('miner_traduzir_web')" checked class="w-4 h-4 text-indigo-500 rounded bg-zinc-800 border-zinc-700"><span class="text-sm text-zinc-400 font-medium">Traduzir para PT-BR</span></label>
+                        <label class="flex items-center gap-2 cursor-pointer pt-2" id="box_traduzir_web"><input type="checkbox" id="miner_traduzir_web" onchange="salvarCheck('miner_traduzir_web')" checked class="w-4 h-4 text-indigo-500 rounded bg-zinc-800 border-zinc-700"><span class="text-sm text-zinc-400 font-medium">Traduzir o resultado para PT-BR</span></label>
                     </div>
                     
                     <div class="flex gap-3 mt-6">
@@ -48,8 +51,13 @@
             </div>
         </div>
         <div class="xl:col-span-2 space-y-6 flex flex-col h-full">
-            <div class="bg-[#18181b] border border-zinc-800/80 rounded-xl p-6 shadow-2xl flex-1 flex flex-col relative overflow-hidden">
+            <div class="bg-[#18181b] border border-zinc-800/80 rounded-xl p-6 shadow-2xl flex-1 flex flex-col relative overflow-hidden min-h-[500px]">
                 <div class="absolute -bottom-20 -right-20 w-40 h-40 bg-indigo-500/5 rounded-full blur-[60px] pointer-events-none"></div>
+                
+                <div class="flex items-center justify-between mb-4 border-b border-zinc-800/80 pb-2 relative z-10">
+                    <h2 class="text-base font-semibold text-white flex items-center gap-2"><i class="fa-solid fa-server text-indigo-500"></i> Dados Encontrados</h2>
+                </div>
+
                 <div id="miner_resultados_container" class="flex-1 overflow-y-auto pr-2 custom-scrollbar relative z-10">
                     <div class="flex flex-col items-center justify-center h-full text-center py-20"><div class="w-16 h-16 rounded-full bg-[#121214] border border-zinc-800 flex items-center justify-center mb-4 shadow-inner"><i class="fa-solid fa-layer-group text-xl text-zinc-600"></i></div><h3 class="text-sm font-bold text-zinc-500">Aguardando mineração...</h3></div>
                 </div>
@@ -90,15 +98,17 @@
     function trocarFonteMiner() {
         const fonte = document.getElementById('miner_fonte').value;
         if (fonte === 'reddit') {
-            document.getElementById('campos_reddit').classList.remove('hidden'); document.getElementById('campos_geral').classList.add('hidden');
+            document.getElementById('campos_reddit').classList.remove('hidden'); 
+            document.getElementById('campos_geral').classList.add('hidden');
         } else {
-            document.getElementById('campos_reddit').classList.add('hidden'); document.getElementById('campos_geral').classList.remove('hidden');
+            document.getElementById('campos_reddit').classList.add('hidden'); 
+            document.getElementById('campos_geral').classList.remove('hidden');
             let p = "Busca...", l = "Termo de Busca";
-            if(fonte === 'wiki') { p = "Ex: Fatos assustadores..."; l = "Tópico (Wikipedia)"; }
-            else if(fonte === 'news') { p = "Ex: Casos criminais..."; l = "Assunto (Google News)"; }
+            if(fonte === 'wiki') { p = "Ex: Mistérios do oceano..."; l = "Tópico (Wikipedia)"; }
+            else if(fonte === 'news') { p = "Ex: Avanços da IA..."; l = "Assunto (Google News)"; }
             document.getElementById('miner_query_geral').placeholder = p;
             document.getElementById('lbl_miner_query_geral').innerText = l;
-            document.getElementById('box_traduzir_web').style.display = (fonte === 'wiki' || fonte === 'news') ? 'none' : 'flex';
+            document.getElementById('box_traduzir_web').style.display = 'flex'; // Aplica para todos fora o reddit
         }
     }
 
@@ -109,51 +119,94 @@
         const fonte = document.getElementById('miner_fonte').value;
 
         btn.disabled = true; btn.classList.add('opacity-70', 'cursor-not-allowed');
-        txtBtn.innerHTML = `Vascunhando... <i class="fa-solid fa-circle-notch fa-spin ml-1"></i>`;
-        container.innerHTML = `<div class="flex flex-col items-center justify-center h-full py-20 text-indigo-500"><i class="fa-solid fa-satellite-dish fa-fade text-4xl mb-4"></i><p class="font-bold">Extraindo da nuvem...</p></div>`;
+        txtBtn.innerHTML = `Vascunhando a Web... <i class="fa-solid fa-circle-notch fa-spin ml-1"></i>`;
+        container.innerHTML = `<div class="flex flex-col items-center justify-center h-full py-20 text-indigo-500"><i class="fa-solid fa-satellite-dish fa-fade text-4xl mb-4"></i><p class="font-bold">Traduzindo e extraindo da nuvem...</p></div>`;
 
-        let url = "https://tts.zappclube.com.br/miner/" + fonte;
+        // URL agora aponta para a nossa própria API Python
+        let url = "/api/v1/miner/" + fonte;
         let payload = fonte === 'reddit' ? {
-            sub: document.getElementById('miner_sub').value, query: document.getElementById('miner_query_reddit').value,
-            min_words: parseInt(document.getElementById('miner_words').value) || 100, min_score: parseInt(document.getElementById('miner_score').value) || 10,
+            sub: document.getElementById('miner_sub').value, 
+            query: document.getElementById('miner_query_reddit').value,
+            min_words: parseInt(document.getElementById('miner_words').value) || 100, 
+            min_score: parseInt(document.getElementById('miner_score').value) || 10,
             sem_atualizacao: document.getElementById('miner_sem_atualizacao').checked
-        } : (fonte === 'web' ? { query: document.getElementById('miner_query_geral').value, traduzir: document.getElementById('miner_traduzir_web').checked } : { query: document.getElementById('miner_query_geral').value });
+        } : { 
+            query: document.getElementById('miner_query_geral').value, 
+            traduzir: document.getElementById('miner_traduzir_web').checked 
+        };
+
+        if(!payload.query.trim()) {
+            alert("Digite um termo para buscar!");
+            btn.disabled = false; btn.classList.remove('opacity-70', 'cursor-not-allowed'); txtBtn.innerHTML = "Iniciar Varredura";
+            return;
+        }
 
         try {
-            const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+            const res = await fetch(url, { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify(payload) 
+            });
+            
+            if(!res.ok) throw new Error("Falha no servidor.");
             const dados = await res.json();
+            
             if (dados.status === "erro") throw new Error(dados.mensagem);
             
+            if (dados.data.length === 0) {
+                container.innerHTML = `<p class="text-zinc-500 text-center py-10 font-bold">Nenhum resultado encontrado. Tente termos diferentes.</p>`;
+                return;
+            }
+
             let htmlRes = '';
             dados.data.forEach((item) => {
+                // Monta o Card Premium
                 htmlRes += `
-                    <div class="miner-card bg-[#121214] border border-zinc-800/80 rounded-xl p-5 hover:border-indigo-500/50 mb-4">
-                        <h4 class="text-white font-bold text-lg mb-2">${item.titulo}</h4>
-                        <p class="miner-texto text-sm text-zinc-400 line-clamp-3 mb-4">${item.texto}</p>
-                        <div class="flex items-center gap-3">
-                            <button onclick="enviarMinerParaParaphraser(this)" class="flex-1 bg-pink-600 hover:bg-pink-500 text-white text-xs font-bold py-2 px-3 rounded-lg"><i class="fa-solid fa-wand-magic-sparkles"></i> Transmutar</button>
-                            <button onclick="baixarTXT(this, '${item.titulo.replace(/'/g, "")}')" class="bg-zinc-800 text-zinc-300 px-4 py-2 rounded-lg text-xs font-bold"><i class="fa-solid fa-download"></i> .TXT</button>
+                    <div class="miner-card bg-[#121214] border border-zinc-800/80 rounded-xl p-5 hover:border-indigo-500/50 transition-colors mb-4 shadow-inner relative group">
+                        <div class="flex justify-between items-start mb-3">
+                            <span class="bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider">${item.fonte}</span>
+                            ${item.url ? `<a href="${item.url}" target="_blank" class="text-zinc-500 hover:text-indigo-400 transition-colors" title="Abrir link original"><i class="fa-solid fa-external-link-alt"></i></a>` : ''}
+                        </div>
+                        <h4 class="text-white font-bold text-lg mb-2 leading-tight">${item.titulo}</h4>
+                        <p class="text-sm text-zinc-400 mb-4 italic">"${item.texto}"</p>
+                        
+                        <textarea class="hidden miner-texto-completo">${item.texto_completo.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</textarea>
+                        
+                        <div class="flex items-center gap-3 border-t border-zinc-800/80 pt-4">
+                            <button onclick="enviarMinerParaParaphraser(this)" class="flex-1 bg-pink-700 hover:bg-pink-600 text-white text-xs font-bold py-2.5 px-3 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-[0_0_10px_rgba(190,24,93,0.3)]">
+                                <i class="fa-solid fa-wand-magic-sparkles"></i> Transmutar
+                            </button>
+                            <button onclick="baixarTXT(this, '${item.titulo.replace(/'/g, "").replace(/"/g, "")}')" class="bg-zinc-800 hover:bg-indigo-600 text-zinc-300 hover:text-white px-4 py-2.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-2">
+                                <i class="fa-solid fa-download"></i> .TXT
+                            </button>
                         </div>
                     </div>`;
             });
             container.innerHTML = htmlRes;
             sessionStorage.setItem('minerHTML', htmlRes);
+            
         } catch (error) {
-            container.innerHTML = `<p class="text-red-500 text-center py-10 font-bold">Erro: ${error.message}</p>`;
+            container.innerHTML = `<p class="text-red-500 text-center py-10 font-bold"><i class="fa-solid fa-triangle-exclamation"></i> Erro: ${error.message}</p>`;
         } finally {
             btn.disabled = false; btn.classList.remove('opacity-70', 'cursor-not-allowed'); txtBtn.innerHTML = "Iniciar Varredura";
         }
     }
 
     function baixarTXT(btn, titulo) {
-        const texto = btn.closest('.miner-card').querySelector('.miner-texto').innerText;
+        // Pega o texto completo oculto
+        const texto = btn.closest('.miner-card').querySelector('.miner-texto-completo').value;
         const blob = new Blob([texto], { type: 'text/plain' });
-        const link = document.createElement('a'); link.href = URL.createObjectURL(blob);
-        link.download = `${titulo.substring(0, 20)}.txt`; link.click();
+        const link = document.createElement('a'); 
+        link.href = URL.createObjectURL(blob);
+        
+        let safeTitle = titulo.replace(/[^a-z0-9]/gi, '_').substring(0, 20);
+        link.download = `Miner_${safeTitle}.txt`; 
+        link.click();
     }
 
     function enviarMinerParaParaphraser(btn) {
-        const texto = btn.closest('.miner-card').querySelector('.miner-texto').innerText;
+        // Pega o texto completo oculto e joga na memória da esteira
+        const texto = btn.closest('.miner-card').querySelector('.miner-texto-completo').value;
         localStorage.setItem('texto_pendente_paraphraser', texto);
         window.location.href = '/paraphraser';
     }
