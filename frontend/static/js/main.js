@@ -1,7 +1,6 @@
 // ==========================================
 // CONFIGURAÇÕES GLOBAIS
 // ==========================================
-// Alterado para rotas relativas. Agora funciona em qualquer domínio/subdomínio automaticamente!
 const URL_API_VOZES = "/vozes"; 
 const URL_API_DIRETA = "/gerar_narracao"; 
 let vozesData = [];
@@ -9,10 +8,10 @@ let vozSelecionada = "pt-BR-AntonioNeural";
 let srtGlobal = ""; 
 
 // ==========================================
-// INICIALIZAÇÃO E DESTAQUE DO MENU
+// INICIALIZAÇÃO, RECEPTORES E DESTAQUE DO MENU
 // ==========================================
 window.onload = async function() {
-    // 1. Destaque Automático do Menu Lateral com base na URL
+    // 1. Destaque Automático do Menu Lateral
     const path = window.location.pathname;
     document.querySelectorAll('.menu-btn').forEach(link => {
         if (link.getAttribute('href') === path) {
@@ -27,14 +26,31 @@ window.onload = async function() {
         }
     });
 
-    // 2. Receptor de Dados (Texto vindo de outra página via botão "Enviar para Voice")
+    // 2. RECEPTORES DAS ESTEIRAS DE PRODUÇÃO
+    // Caminho: Qualquer coisa -> Voice Synthesizer
     const textoVoice = localStorage.getItem('texto_pendente_voice');
     if (textoVoice && document.getElementById('texto_voz')) {
         document.getElementById('texto_voz').value = textoVoice;
         localStorage.removeItem('texto_pendente_voice');
     }
 
-    // 3. Carregamento de Vozes com Tratamento de Erro Visual
+    // Caminho: Gen Insights -> Script Forge
+    const textoScript = localStorage.getItem('ideia_pendente_script');
+    if (textoScript && document.getElementById('script_ideia_base')) {
+        document.getElementById('script_ideia_base').value = textoScript;
+        localStorage.removeItem('ideia_pendente_script');
+        if(typeof contarPalavrasLocal === 'function') contarPalavrasLocal('script_ideia_base', 'contador_script_in');
+    }
+
+    // Caminho: Miner / Gen Legends -> Paraphraser
+    const textoPara = localStorage.getItem('texto_pendente_paraphraser');
+    if (textoPara && document.getElementById('paraphraser_conteudo')) {
+        document.getElementById('paraphraser_conteudo').value = textoPara;
+        localStorage.removeItem('texto_pendente_paraphraser');
+        if(typeof contarPalavrasLocal === 'function') contarPalavrasLocal('paraphraser_conteudo', 'contador_palavras_in');
+    }
+
+    // 3. Carregamento de Vozes
     if(document.getElementById('lista_vozes')) {
         try {
             const resposta = await fetch(URL_API_VOZES);
@@ -47,7 +63,6 @@ window.onload = async function() {
             renderizarListaVozes();
         } catch (error) { 
             console.log("Erro TTS:", error);
-            // Quebra o loop infinito e mostra o erro na tela
             document.getElementById('lista_vozes').innerHTML = `
                 <div class="text-center text-red-500 py-10">
                     <i class="fa-solid fa-triangle-exclamation text-3xl mb-3 drop-shadow-[0_0_10px_rgba(239,68,68,0.5)]"></i>
@@ -59,18 +74,37 @@ window.onload = async function() {
 };
 
 // ==========================================
-// NAVEGAÇÃO ENTRE FERRAMENTAS
+// FUNÇÕES DE DISPARO PARA A ESTEIRA (MANDAR PARA OUTRA PÁGINA)
 // ==========================================
 function despacharParaVoice(idCampoOrigem) {
     const texto = document.getElementById(idCampoOrigem).value;
     if(!texto || texto.trim() === "") return alert("Aviso: O texto está vazio!"); 
-
     localStorage.setItem('texto_pendente_voice', texto);
     window.location.href = '/voice-synthesizer'; 
 }
 
+function despacharParaParaphraser(idCampoOrigem) {
+    const texto = document.getElementById(idCampoOrigem).value;
+    if(!texto || texto.trim() === "") return alert("Aviso: O texto está vazio!"); 
+    localStorage.setItem('texto_pendente_paraphraser', texto);
+    window.location.href = '/paraphraser'; 
+}
+
+// Botões Específicos das Telas
 function enviarScriptParaVoice() { despacharParaVoice('script_final_editavel'); }
 function enviarParaphraserParaVoice() { despacharParaVoice('paraphraser_resultado'); }
+function enviarLegendsParaParaphraser() { despacharParaParaphraser('legends_txt_resultado'); }
+
+// Utilitário simples para contagem de palavras se o arquivo local não tiver
+function contarPalavrasLocal(textAreaId, contadorId) {
+    const el = document.getElementById(textAreaId);
+    const contador = document.getElementById(contadorId);
+    if(el && contador) {
+        const texto = el.value.trim();
+        const palavras = texto === "" ? 0 : texto.split(/\s+/).length;
+        contador.innerText = `${palavras} palavras`;
+    }
+}
 
 // ==========================================
 // FUNÇÕES DO VOICE SYNTHESIZER
@@ -104,7 +138,6 @@ function selecionarVoz(sn) {
 async function tocarPreview(event, shortName) {
     event.stopPropagation();
     
-    // Se tiver outro áudio tocando, pausa antes de iniciar o novo
     const playerPreview = document.getElementById('player_preview') || new Audio();
     playerPreview.pause();
 
