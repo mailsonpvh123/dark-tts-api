@@ -1,1 +1,185 @@
+{% extends "base.html" %}
 
+{% block content %}
+<section id="aba_legends" class="aba-conteudo block">
+    <div class="mb-8 relative z-10">
+        <div class="flex items-center gap-3 mb-2"><div class="w-10 h-10 rounded-lg bg-cyan-500/10 flex items-center justify-center border border-cyan-500/20"><i class="fa-solid fa-closed-captioning text-cyan-400 text-lg"></i></div><h1 class="text-2xl md:text-3xl font-bold text-white">Gen Legends</h1></div>
+        <p class="text-zinc-400">Transcreva áudios e gere legendas perfeitas com Whisper AI da Groq.</p>
+    </div>
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <div class="space-y-6 flex flex-col">
+            <div class="bg-[#18181b] border border-zinc-800/80 rounded-xl p-6 shadow-2xl flex-1 flex flex-col relative overflow-hidden">
+                <div class="absolute -top-20 -left-20 w-40 h-40 bg-cyan-500/5 rounded-full blur-[60px] pointer-events-none"></div>
+
+                <div class="flex-1 flex flex-col space-y-5 relative z-10">
+                    <div>
+                        <label class="block text-sm font-medium text-zinc-400 mb-1.5 flex items-center gap-2"><i class="fa-solid fa-language text-cyan-500"></i> Idioma do Áudio</label>
+                        <select id="legends_idioma" onchange="salvarEstado('legends_idioma')" class="w-full bg-[#09090b] border border-zinc-700/80 rounded-lg px-4 py-3 text-zinc-200 focus:border-cyan-500 focus:outline-none transition-colors shadow-inner cursor-pointer">
+                            <option value="auto">Detectar Automaticamente</option><option value="en">Inglês</option><option value="pt">Português</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-zinc-400 mb-1.5 flex items-center gap-2"><i class="fa-solid fa-microchip text-cyan-500"></i> Modelo Neural (Groq)</label>
+                        <select id="legends_modelo" onchange="salvarEstado('legends_modelo')" class="w-full bg-[#09090b] border border-zinc-700/80 rounded-lg px-4 py-3 text-zinc-200 focus:border-cyan-500 focus:outline-none transition-colors shadow-inner cursor-pointer">
+                            <option value="large">Whisper Large V3 (Ultra Preciso e Rápido)</option>
+                        </select>
+                    </div>
+                    <div class="flex-1 flex flex-col justify-center mt-2">
+                        <input type="file" id="arquivo_audio_legends" accept=".mp3,.wav,.m4a,.mp4" class="hidden" onchange="mostrarNomeAudio(event)">
+                        <div id="dropzone_legends" onclick="document.getElementById('arquivo_audio_legends').click()" class="border-2 border-dashed border-zinc-700 hover:border-cyan-400 hover:bg-cyan-500/5 hover:shadow-[0_0_20px_rgba(34,211,238,0.1)] rounded-xl p-10 text-center cursor-pointer transition-all duration-300 bg-[#09090b] flex flex-col items-center justify-center relative group min-h-[160px] shadow-inner">
+                            <div class="absolute inset-0 bg-gradient-to-b from-transparent to-cyan-500/5 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl pointer-events-none"></div>
+                            <i class="fa-solid fa-cloud-arrow-up text-4xl text-zinc-500 group-hover:text-cyan-400 group-hover:-translate-y-2 transition-all duration-300 mb-3 drop-shadow-md" id="icone_upload_legends"></i>
+                            <p class="text-zinc-300 font-bold mb-1 group-hover:text-white transition-colors" id="nome_arquivo_legends">Clique ou Arraste o Áudio</p>
+                            <p class="text-[10px] text-zinc-500 font-medium mt-1">MP3, WAV, M4A ou MP4</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex gap-3 mt-6 relative z-10">
+                    <button id="btn_gerar_legends" onclick="chamarGenLegends()" class="flex-1 bg-cyan-700 hover:bg-cyan-600 text-white font-bold py-3.5 px-4 rounded-lg shadow-[0_0_15px_rgba(14,116,144,0.4)] transition-all flex items-center justify-center gap-2 group border border-cyan-500/50">
+                        <i class="fa-solid fa-closed-captioning group-hover:scale-110 transition-transform"></i> <span id="txt_btn_legends">Transcrever Áudio</span>
+                    </button>
+                    <button onclick="limparLegends()" class="bg-zinc-800 hover:bg-red-500/20 text-zinc-400 hover:text-red-400 border border-zinc-700 hover:border-red-500/50 font-bold py-3 px-4 rounded-lg transition-all flex items-center justify-center group" title="Limpar Tela">
+                        <i class="fa-solid fa-trash-can group-hover:scale-110 transition-transform"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="space-y-6 flex flex-col">
+            <div class="bg-[#18181b] border border-zinc-800/80 rounded-xl p-6 shadow-2xl flex-1 flex flex-col relative overflow-hidden">
+                <div class="absolute -bottom-20 -right-20 w-40 h-40 bg-pink-500/5 rounded-full blur-[60px] pointer-events-none"></div>
+
+                <div class="flex items-center justify-between mb-3 relative z-10">
+                    <label class="block text-sm font-bold text-cyan-400 flex items-center gap-2"><i class="fa-solid fa-align-left"></i> Transcrição Bruta</label>
+                    <button onclick="baixarTXTLegends()" class="text-xs bg-cyan-900/30 hover:bg-cyan-600 text-cyan-400 hover:text-white px-3 py-1.5 rounded font-bold transition-colors border border-cyan-500/30 flex items-center gap-2"><i class="fa-solid fa-download"></i> .TXT</button>
+                </div>
+                <textarea id="legends_txt_resultado" oninput="salvarEstado('legends_txt_resultado')" class="flex-1 w-full bg-[#09090b] border border-zinc-700/80 rounded-lg px-4 py-3 text-zinc-200 text-sm mb-5 focus:border-cyan-500 focus:outline-none transition-colors shadow-inner relative z-10 custom-scrollbar resize-none" placeholder="O texto extraído do áudio aparecerá aqui..."></textarea>
+                
+                <div class="flex items-center justify-between mb-3 relative z-10">
+                    <label class="block text-sm font-bold text-emerald-400 flex items-center gap-2"><i class="fa-regular fa-clock"></i> Arquivo de Legenda (.SRT)</label>
+                    <button onclick="baixarSRTLegends()" class="text-xs bg-emerald-900/30 hover:bg-emerald-600 text-emerald-400 hover:text-white px-3 py-1.5 rounded font-bold transition-colors border border-emerald-500/30 flex items-center gap-2"><i class="fa-solid fa-download"></i> .SRT</button>
+                </div>
+                <textarea id="legends_srt_resultado" oninput="salvarEstado('legends_srt_resultado')" class="w-full bg-[#09090b] border border-zinc-700/80 rounded-lg px-4 py-3 text-emerald-500/80 text-xs h-32 mb-5 font-mono focus:border-emerald-500 focus:outline-none transition-colors shadow-inner relative z-10 custom-scrollbar resize-none" readonly placeholder="00:00:00,000 --> 00:00:03,000&#10;O tempo e a fala exata aparecerão aqui..."></textarea>
+                
+                <button onclick="enviarLegendsParaParaphraser()" class="w-full bg-pink-700 hover:bg-pink-600 text-white font-bold py-3.5 px-4 rounded-lg shadow-[0_0_15px_rgba(190,24,93,0.4)] transition-all flex items-center justify-center gap-2 group border border-pink-500/50 relative z-10">
+                    <i class="fa-solid fa-wand-magic-sparkles group-hover:scale-110 transition-transform"></i> Enviar para o Paraphraser
+                </button>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        configurarDragAndDropLegends();
+        const campos = ['legends_idioma', 'legends_modelo', 'legends_txt_resultado', 'legends_srt_resultado'];
+        campos.forEach(id => {
+            const el = document.getElementById(id);
+            if(el && sessionStorage.getItem(id)) el.value = sessionStorage.getItem(id);
+        });
+    });
+
+    function salvarEstado(id) { sessionStorage.setItem(id, document.getElementById(id).value); }
+
+    function limparLegends() {
+        const campos = ['legends_txt_resultado', 'legends_srt_resultado'];
+        campos.forEach(id => { const el = document.getElementById(id); if(el){ el.value = ''; sessionStorage.removeItem(id); } });
+        document.getElementById('nome_arquivo_legends').innerText = "Clique ou Arraste o Áudio";
+        document.getElementById('icone_upload_legends').className = "fa-solid fa-cloud-arrow-up text-4xl text-zinc-500 group-hover:text-cyan-400 group-hover:-translate-y-2 transition-all duration-300 mb-3 drop-shadow-md";
+        document.getElementById('arquivo_audio_legends').value = "";
+    }
+
+    function configurarDragAndDropLegends() {
+        const dropzone = document.getElementById('dropzone_legends');
+        const fileInput = document.getElementById('arquivo_audio_legends');
+        if(!dropzone) return;
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(ev => dropzone.addEventListener(ev, e => { e.preventDefault(); e.stopPropagation(); }, false));
+        ['dragenter', 'dragover'].forEach(ev => dropzone.addEventListener(ev, () => {
+            dropzone.classList.add('border-cyan-400', 'bg-cyan-500/10', 'scale-[1.02]');
+            dropzone.querySelector('i').classList.add('text-cyan-400', '-translate-y-2');
+        }, false));
+        ['dragleave', 'drop'].forEach(ev => dropzone.addEventListener(ev, () => {
+            dropzone.classList.remove('border-cyan-400', 'bg-cyan-500/10', 'scale-[1.02]');
+            dropzone.querySelector('i').classList.remove('text-cyan-400', '-translate-y-2');
+        }, false));
+        dropzone.addEventListener('drop', (e) => {
+            let files = e.dataTransfer.files;
+            if(files.length > 0) { fileInput.files = files; mostrarNomeAudio({target: fileInput}); }
+        }, false);
+    }
+
+    function mostrarNomeAudio(event) {
+        const arquivo = event.target.files[0];
+        if(arquivo) {
+            document.getElementById('nome_arquivo_legends').innerText = arquivo.name;
+            document.getElementById('icone_upload_legends').className = "fa-solid fa-file-circle-check text-4xl text-cyan-400 mb-3 drop-shadow-[0_0_8px_rgba(34,211,238,0.6)] animate-pulse";
+        }
+    }
+
+    async function chamarGenLegends() {
+        const btn = document.getElementById('btn_gerar_legends');
+        const txtBtn = document.getElementById('txt_btn_legends');
+        const arquivoInput = document.getElementById('arquivo_audio_legends');
+        const idioma = document.getElementById('legends_idioma').value;
+        const modelo = document.getElementById('legends_modelo').value;
+        const txtOut = document.getElementById('legends_txt_resultado');
+        const srtOut = document.getElementById('legends_srt_resultado');
+
+        if (!arquivoInput.files || arquivoInput.files.length === 0) {
+            return alert("Por favor, selecione ou arraste um arquivo de áudio/vídeo primeiro.");
+        }
+
+        btn.classList.add('opacity-70', 'cursor-not-allowed');
+        txtBtn.innerHTML = `Transcrevendo na Nuvem... <i class="fa-solid fa-circle-notch fa-spin ml-1"></i>`;
+        txtOut.value = "A IA Whisper (Groq) está escutando o seu áudio. Isso levará apenas alguns segundos...";
+        srtOut.value = "Aguardando sincronização de tempo...";
+
+        const formData = new FormData();
+        formData.append("file", arquivoInput.files[0]);
+        formData.append("language", idioma);
+        formData.append("model_size", modelo);
+
+        try {
+            const res = await fetch("/api/v1/gen_legends", { method: 'POST', body: formData });
+            if(!res.ok) {
+                let err = "Erro"; try{ const d = await res.json(); err = d.detail; }catch(e){} throw new Error(err);
+            }
+            const dados = await res.json();
+            
+            txtOut.value = dados.txt;
+            srtOut.value = dados.srt;
+            salvarEstado('legends_txt_resultado');
+            salvarEstado('legends_srt_resultado');
+
+        } catch (error) {
+            txtOut.value = "Erro no servidor: " + error.message;
+            srtOut.value = "Falha no processamento.";
+        } finally {
+            btn.classList.remove('opacity-70', 'cursor-not-allowed');
+            txtBtn.innerHTML = "Transcrever Áudio";
+        }
+    }
+
+    function baixarTXTLegends() {
+        const texto = document.getElementById('legends_txt_resultado').value;
+        if(!texto) return alert("Transcreva um áudio primeiro!");
+        const link = document.createElement('a'); link.href = URL.createObjectURL(new Blob([texto], { type: 'text/plain' }));
+        link.download = `Transcricao_DarkCreator_${new Date().getTime()}.txt`; link.click();
+    }
+
+    function baixarSRTLegends() {
+        const srt = document.getElementById('legends_srt_resultado').value;
+        if(!srt) return alert("Transcreva um áudio primeiro!");
+        const link = document.createElement('a'); link.href = URL.createObjectURL(new Blob([srt], { type: 'text/plain' }));
+        link.download = `Legenda_DarkCreator_${new Date().getTime()}.srt`; link.click();
+    }
+
+    function enviarLegendsParaParaphraser() {
+        const texto = document.getElementById('legends_txt_resultado').value;
+        if(!texto) return alert("Transcreva um áudio primeiro!");
+        localStorage.setItem('texto_pendente_paraphraser', texto);
+        window.location.href = '/paraphraser';
+    }
+</script>
+{% endblock %}
