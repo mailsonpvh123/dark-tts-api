@@ -15,43 +15,58 @@ async def process_paraphraser(req: ParaphraserRequest):
     if not req.texto:
         raise HTTPException(status_code=400, detail="Texto vazio")
 
-    # 1. A Base Imutável (Extraída do seu n8n original)
-    prompt_base = f"""Você é um roteirista de elite, especialista em adaptar e traduzir histórias para canais Dark do YouTube.
-Canal Alvo: '{req.canal}'.
-
-REGRAS ABSOLUTAS DE TRANSMUTAÇÃO:
-1. PROIBIDO RESUMIR: Faça a tradução e adaptação com o MÍNIMO de cortes. Mantenha a mesma riqueza de detalhes, o mesmo tom e a mesma densidade do texto original. Não perca tempo de retenção.
-
-2. O BUG DO SOTAQUE (MUITO IMPORTANTE): O texto será lido por uma voz Neural Multilingual (Edge TTS). Essas vozes têm um defeito grave: elas leem frases muito curtas (menos de 4 palavras) ou com palavras monossilábicas com sotaque estrangeiro (Ex: 'Eu sei!', 'Não fui eu'). VOCÊ DEVE ELIMINAR TODAS AS FRASES CURTAS. Aglutine-as ou expanda-as. Transforme um 'Eu sei!' em 'Eu tinha plena consciência de toda aquela situação'. O texto deve ser focado em sentenças médias a longas.
-
-3. PONTUAÇÃO: PROIBIDO usar ponto de interrogação (?) ou exclamação (!). Eles acionam um tom metálico na IA. Troque todas as perguntas diretas por afirmações de questionamento. PROIBIDO usar Markdown (*, #).
+    # ==========================================
+    # MÓDULO UNIVERSAL TTS (Aplica-se a todos os modos)
+    # ==========================================
+    prompt_tts_universal = """
+REGRAS OBRIGATÓRIAS DE OTIMIZAÇÃO EDGE TTS:
+O texto será lido por uma voz Neural Multilingual. Você DEVE fazer adaptações rigorosas para evitar que a IA leia com sotaque gringo ou tom metálico:
+- PROIBIDO FRASES CURTAS: Sentenças com menos de 4 palavras e palavras de poucas sílabas (Ex: "Eu sei!", "Não sabia!", "Foi um erro!") forçam a IA a ter sotaque. Você DEVE alongar e aglutinar essas frases (Ex: Transforme "Eu sei" em "Eu tinha plena consciência de toda aquela situação").
+- PONTUAÇÃO PLANA: É estritamente PROIBIDO usar ponto de interrogação (?) ou exclamação (!). Troque perguntas por afirmações indiretas e use apenas pontos finais (.).
+- TEXTO 100% LISO: Zero formatação Markdown (*, #, etc). Não use títulos ou subtítulos demarcados na resposta.
 """
 
-    # 2. A Lógica Condicional de Acordo com o Modo Escolhido
+    # ==========================================
+    # MÓDULO DE ESTRUTURA E ESTILO
+    # ==========================================
     if req.modo == "reddit":
-        prompt_especifico = """
-4. ESTRUTURA REDDIT E AVISOS: Mantenha os Comentários e Edits, mas REMOVA os nomes de usuários. Trate as atualizações como 'Atualização 1', 'Atualização 2', etc., sem mencionar datas. OCULTE e remova qualquer parte onde o usuário diz não ser o autor do post original ou avisos fora da história. Foco 100% no relato.
+        prompt_especifico = f"""Você é um roteirista de elite, traduzindo e adaptando relatos gringos para o canal '{req.canal}'.
 
-5. HOOK E CTA: Adicione um gancho no início que já comece com o Título da história acompanhado de um Call to Action (Ex: 'Essa história é bizarra. Já deixa o like e se inscreve no canal...'). Termine o texto com outro CTA final engajando o público.
+DIRETRIZES DO MODO REDDIT:
+1. Faça a tradução desse texto com o mínimo de adaptações na essência da história. NÃO RESUMA NADA.
+2. Oculte a parte do texto onde o usuário se diz não ser o autor original (OP), caso exista. Oculte também qualquer aviso ou pedido de desculpas que tenha antes de a história começar. Vamos focar apenas na história.
+3. Mantenha os Edits e Comentários (Coments), mas REMOVA os nomes de usuários de cada comentário.
+4. Sobre as atualizações, trate-as como 'Atualização 1', 'Atualização 2', e assim por diante. Não mencione datas.
+5. Adicione um gancho com CTA no início. INICIE O GANCHO EXATAMENTE COM O TÍTULO DA HISTÓRIA.
+6. Termine o texto com um CTA forte para o canal.
 """
     else:
-        prompt_especifico = """
-4. FUGA DE PLÁGIO (DEEP REWRITE): Mude a estrutura das frases, substitua palavras por sinônimos ricos, mas mantenha a essência exata da mensagem original. O objetivo é que o texto passe ileso por qualquer detector de plágio do YouTube. Sem formatação de roteiro, apenas narração pura.
+        prompt_especifico = f"""Você é um roteirista de elite, reescrevendo histórias para o canal '{req.canal}'.
+
+DIRETRIZES DO MODO ZERO PLÁGIO:
+1. FUGA DE PLÁGIO (DEEP REWRITE): Mude a estrutura das frases e substitua palavras por sinônimos ricos, mas mantenha a essência exata da mensagem original. O texto DEVE passar ileso por qualquer detector de plágio do YouTube.
+2. NÃO RESUMA NADA: Mantenha a densidade e a riqueza de detalhes do texto original.
+3. GANCHO E CTA: Inicie a história com um gancho misterioso chamativo e um Call to Action (CTA) para o canal.
+4. ENCERRAMENTO: Termine o texto com um CTA final engajando o público.
 """
 
-    # 3. Montagem Final
-    system_instruction = prompt_base + prompt_especifico + "\nRETORNO: Entregue APENAS a narração pura, formatada em parágrafos limpos."
+    # 3. Montagem Final (Junta as regras específicas com a blindagem do TTS)
+    system_instruction = prompt_especifico + "\n" + prompt_tts_universal + "\nRETORNO: Entregue APENAS a narração pura, formatada em parágrafos limpos."
     
-    user_content = f"Conteúdo Original (ALERTA: APLIQUE A CORREÇÃO DE SOTAQUE E AS REGRAS DE RETENÇÃO):\n{req.texto}"
+    user_content = f"Conteúdo Original:\n{req.texto}"
 
     try:
         resultado = await call_gemini(system_instruction, user_content)
         
         # ==========================================
-        # CAMADA 2: PÓS-PROCESSAMENTO DE SEGURANÇA
+        # CAMADA 2: PÓS-PROCESSAMENTO DE SEGURANÇA (Raspagem Bruta)
         # ==========================================
         texto_limpo = resultado.strip()
+        
+        # Garante a eliminação de formatação Markdown
         texto_limpo = texto_limpo.replace('*', '').replace('#', '')
+        
+        # Garante a eliminação de exclamações e interrogações caso a IA desobedeça
         texto_limpo = texto_limpo.replace('?', '.').replace('!', '.')
         texto_limpo = re.sub(r'\.{2,}', '.', texto_limpo)
         
