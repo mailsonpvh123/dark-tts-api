@@ -19,7 +19,6 @@
                 <h2 class="text-base font-semibold text-white mb-5 flex items-center gap-2 relative z-10">
                     <i class="fa-solid fa-sliders text-yellow-500"></i> Parâmetros
                 </h2>
-                
                 <div class="space-y-4 relative z-10">
                     <div>
                         <label class="block text-sm font-medium text-zinc-400 mb-1.5">Nicho ou Tema Principal <span class="text-yellow-500">*</span></label>
@@ -38,20 +37,17 @@
                         </select>
                     </div>
                 </div>
-                
                 <button id="btn_gerar_ideias" onclick="chamarGeradorIdeias()" class="w-full mt-6 bg-yellow-600 hover:bg-yellow-500 text-white font-bold py-3 px-4 rounded-lg shadow-[0_0_15px_rgba(202,138,4,0.3)] transition-all flex items-center justify-center gap-2 group border border-yellow-500/50 relative z-10">
                     <i class="fa-solid fa-map-location-dot group-hover:scale-110 transition-transform"></i> Mapear Ideias
                 </button>
             </div>
         </div>
-
         <div class="lg:col-span-2 space-y-6">
             <div class="bg-[#18181b] border border-zinc-800/80 rounded-xl p-6 shadow-2xl h-full flex flex-col min-h-[400px] relative overflow-hidden">
                 <div class="absolute -bottom-20 -right-20 w-40 h-40 bg-yellow-500/5 rounded-full blur-[60px] pointer-events-none"></div>
                 <h2 class="text-lg font-semibold text-white flex items-center gap-2 border-b border-zinc-800/80 pb-4 mb-4 relative z-10">
                     <i class="fa-solid fa-bolt text-yellow-500"></i> Ideias Mineradas
                 </h2>
-                
                 <div id="container_ideias" class="flex-1 flex flex-col items-center justify-center text-center relative z-10">
                     <div class="w-16 h-16 rounded-full bg-[#121214] border border-zinc-800 flex items-center justify-center mb-4 shadow-inner">
                         <i class="fa-solid fa-brain text-xl text-zinc-600"></i>
@@ -75,13 +71,10 @@
 
         if(!tema) return alert("Por favor, preencha o Nicho ou Tema."); 
 
-        // Estado de Loading
         btn.classList.add('opacity-70', 'cursor-not-allowed');
-        btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Processando...`;
-        container.innerHTML = `<div class="flex flex-col items-center justify-center py-10 w-full h-full relative z-10"><i class="fa-solid fa-brain fa-fade text-4xl text-yellow-500 mb-4"></i><p class="text-zinc-400 text-sm animate-pulse">A IA Groq está analisando tendências e elaborando roteiros magnéticos...</p></div>`;
+        container.innerHTML = `<div class="flex flex-col items-center justify-center py-10 w-full h-full relative z-10"><i class="fa-solid fa-brain fa-fade text-4xl text-yellow-500 mb-4"></i><p class="text-zinc-400 text-sm animate-pulse">A IA está mapeando tendências...</p></div>`;
 
         try {
-            // Chamada nativa para a nossa API construída no FastAPI
             const res = await fetch("/api/v1/gen-insights", { 
                 method: 'POST', 
                 headers: { 'Content-Type': 'application/json' }, 
@@ -89,26 +82,25 @@
             });
             
             if(!res.ok) {
-                let erroReal = "Erro desconhecido do servidor.";
+                let erroReal = "Erro no servidor.";
                 try { const dadosErro = await res.json(); erroReal = dadosErro.detail || erroReal; } catch(e) {}
                 throw new Error(erroReal);
             }
 
-            // Lê o JSON direto do Python
-            const dadosLimpos = await res.json();
-            ideiasGlobais = dadosLimpos.ideias; 
+            const dados = await res.json();
+            ideiasGlobais = dados.ideias; 
             
-            // Limpa o container e prepara a lista
             container.innerHTML = '<div class="w-full text-left space-y-4 relative z-10" id="lista_ideias_geradas"></div>';
             const listaDiv = document.getElementById('lista_ideias_geradas');
 
-            // Renderiza os Cards
             ideiasGlobais.forEach((ideia, index) => {
                 listaDiv.innerHTML += `
                     <div class="bg-[#121214] border border-yellow-500/30 rounded-xl p-5 hover:border-yellow-500/60 transition-colors shadow-inner">
                         <div class="flex items-center justify-between mb-3 border-b border-zinc-800 pb-2">
                             <span class="bg-yellow-500/20 text-yellow-400 text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider">Ideia ${index + 1}</span>
-                            <button onclick="copiarParaScriptForge(${index}, this)" class="text-orange-400 hover:text-white transition-colors text-xs font-bold uppercase tracking-wider flex items-center gap-2 bg-orange-500/10 px-3 py-1.5 rounded-lg border border-orange-500/20 hover:bg-orange-600"><i class="fa-solid fa-copy"></i> Copiar P/ Script</button>
+                            <button onclick="enviarParaScriptForge(${index})" class="text-orange-400 hover:text-white transition-colors text-xs font-bold uppercase tracking-wider flex items-center gap-2 bg-orange-500/10 px-3 py-1.5 rounded-lg border border-orange-500/20 hover:bg-orange-600">
+                                <i class="fa-solid fa-share-nodes"></i> Enviar para Script Forge
+                            </button>
                         </div>
                         <h3 class="text-white font-bold text-lg mb-2 group-hover:text-yellow-300 transition-colors">${ideia.titulo}</h3>
                         <p class="text-sm text-zinc-300 mb-2 border-l-2 border-yellow-500/50 pl-3"><strong class="text-yellow-500/80">Gancho:</strong> ${ideia.gancho}</p>
@@ -123,21 +115,14 @@
         }
     }
 
-    // Função ajustada para arquitetura de Páginas Separadas (MPA)
-    function copiarParaScriptForge(index, btnElement) {
+    // A mágica da esteira de produção começa aqui:
+    function enviarParaScriptForge(index) {
         const ideia = ideiasGlobais[index];
         const textoMontado = `TÍTULO: ${ideia.titulo}\nGANCHO: ${ideia.gancho}\nRESUMO: ${ideia.resumo}`;
         
-        // Copia para a área de transferência
-        navigator.clipboard.writeText(textoMontado).then(() => {
-            const txtOriginal = btnElement.innerHTML;
-            btnElement.innerHTML = `<i class="fa-solid fa-check"></i> Copiado!`;
-            btnElement.classList.replace('text-orange-400', 'text-emerald-400');
-            setTimeout(() => {
-                btnElement.innerHTML = txtOriginal;
-                btnElement.classList.replace('text-emerald-400', 'text-orange-400');
-            }, 2000);
-        });
+        // Salva o texto no navegador e manda o usuário para a página de forja
+        localStorage.setItem('ideia_pendente_script', textoMontado);
+        window.location.href = '/script-forge';
     }
 </script>
 {% endblock %}
