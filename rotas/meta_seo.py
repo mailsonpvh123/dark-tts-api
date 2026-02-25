@@ -1,13 +1,9 @@
-import os
-import httpx
+import re
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from dotenv import load_dotenv
+from services.ai_service import call_gemini
 
-load_dotenv()
 router = APIRouter(prefix="/api/v1", tags=["Meta & SEO"])
-
-GROQ_KEY = os.getenv("GROQ_API_KEY", "").strip()
 
 class SeoRequest(BaseModel):
     conteudo: str
@@ -18,8 +14,6 @@ class SeoRequest(BaseModel):
 async def process_seo(req: SeoRequest):
     if not req.conteudo:
         raise HTTPException(status_code=400, detail="O roteiro ou conteúdo é obrigatório.")
-    if not GROQ_KEY:
-        raise HTTPException(status_code=500, detail="Chave GROQ_API_KEY não configurada no servidor.")
 
     system_prompt = """Você é um Especialista Sênior em SEO para YouTube.
 Sua missão é extrair a essência do roteiro enviado e criar Metadados (Títulos, Descrição e Tags) altamente virais e otimizados para o algoritmo do YouTube.
@@ -39,24 +33,10 @@ ENTREGUE O RESULTADO EM TEXTO PLANO NESTE FORMATO EXATO:
 
     user_content = f"Canal: {req.canal}\nPalavra-chave Foco: {req.keyword}\n\nROTEIRO/CONTEÚDO:\n{req.conteudo}"
 
-    url = "https://api.groq.com/openai/v1/chat/completions"
-    headers = {"Authorization": f"Bearer {GROQ_KEY}", "Content-Type": "application/json"}
-    payload = {
-        "model": "llama-3.3-70b-versatile",
-        "messages": [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_content}
-        ],
-        "temperature": 0.7
-    }
-
     try:
-        async with httpx.AsyncClient(timeout=60.0) as client:
-            response = await client.post(url, headers=headers, json=payload)
-            if response.status_code != 200:
-                raise Exception(f"Erro da API Groq: {response.text}")
-            
-            data = response.json()
-            return {"status": "sucesso", "seo_result": data['choices'][0]['message']['content']}
+        # Usando o Gemini que aguenta os roteiros de 15 minutos tranquilamente
+        resultado = await call_gemini(system_prompt, user_content)
+        
+        return {"status": "sucesso", "seo_result": resultado.strip()}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
