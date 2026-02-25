@@ -15,26 +15,38 @@ async def process_seo(req: SeoRequest):
     if not req.conteudo:
         raise HTTPException(status_code=400, detail="O roteiro ou conteúdo é obrigatório.")
 
-    system_prompt = """Você é um Especialista Sênior em SEO para YouTube.
-Sua missão é extrair a essência do roteiro enviado e criar Metadados (Títulos, Descrição e Tags) altamente virais e otimizados para o algoritmo do YouTube.
+    # O Prompt de Elite focado em gabaritar 50/50 no VidIQ
+    system_prompt = f"""Você é um mestre em SEO para YouTube e copywriter de canais Dark, especialista em gabaritar a pontuação do VidIQ (50/50). Sua missão é ler o roteiro fornecido e criar 5 PACOTES COMPLETOS de SEO otimizados para o canal '{req.canal}'.
 
-ENTREGUE O RESULTADO EM TEXTO PLANO NESTE FORMATO EXATO:
+REGRAS ABSOLUTAS DO VIDIQ:
+1. CONTAGEM DE TAGS: Você deve fornecer exatas 20 tags.
+2. VOLUME DE TAGS (5/5): A maioria das tags deve ter alto volume de busca no YouTube.
+3. PALAVRAS-CHAVE NO TÍTULO (5/5): As principais palavras-chave das tags DEVEM estar no Título.
+4. PALAVRAS-CHAVE NA DESCRIÇÃO (5/5): As palavras-chave do Título e das Tags DEVEM aparecer naturalmente nos primeiros 2 parágrafos da Descrição.
+5. PALAVRAS-CHAVE TRIPLAS (5/5): A palavra-chave principal e as secundárias devem estar presentes, EXATAMENTE IGUAIS, no Título, na Descrição e nas Tags.
 
-🔥 OPÇÕES DE TÍTULOS (ALTO CTR):
-1. [Título magnético 1]
-2. [Título magnético 2]
-3. [Título magnético 3]
+O QUE VOCÊ DEVE ENTREGAR:
+Gere 5 PACOTES distintos. Cada pacote deve conter:
+- TÍTULO: (Clickbait, magnético, usando a palavra-chave principal e respeitando o limite de caracteres).
+- DESCRIÇÃO: (2 a 3 parágrafos envolventes usando as tags naturalmente, sem parecer lista. Inclua um Call to Action forte para likes e inscrição).
+- TAGS: (Exatas 20 tags separadas por vírgula).
 
-📝 DESCRIÇÃO OTIMIZADA:
-[Crie uma descrição persuasiva (2 a 3 parágrafos) usando as palavras-chave naturalmente. Inclua um forte Call to Action (CTA) para inscrição e likes no canal]
+FORMATO DE SAÍDA OBRIGATÓRIO:
+Entregue apenas o texto limpo, separado exatamente por estes blocos:
 
-🏷️ TAGS PARA O ALGORITMO:
-[Gere de 15 a 20 tags separadas por vírgula, das mais abrangentes para as mais específicas de cauda longa]"""
+[PACOTE 1]
+TÍTULO: 
+DESCRIÇÃO: 
+TAGS: 
 
-    user_content = f"Canal: {req.canal}\nPalavra-chave Foco: {req.keyword}\n\nROTEIRO/CONTEÚDO:\n{req.conteudo}"
+[PACOTE 2]
+...
+(Vá até o PACOTE 5)"""
+
+    user_content = f"Palavra-chave Foco Sugerida pelo Usuário: {req.keyword}\n\nROTEIRO/CONTEÚDO PARA ANÁLISE:\n{req.conteudo}"
 
     try:
-        # Usando o Gemini que aguenta os roteiros de 15 minutos tranquilamente
+        # Mantendo o Gemini 2.5 Flash, que aguenta analisar roteiros de 15+ minutos sem falhar
         resultado = await call_gemini(system_prompt, user_content)
         
         return {"status": "sucesso", "seo_result": resultado.strip()}
