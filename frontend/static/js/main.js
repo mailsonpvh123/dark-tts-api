@@ -112,7 +112,7 @@ function renderizarListaVozes() {
             ? '<span class="text-[10px] font-bold text-pink-400 bg-pink-500/10 px-2 py-0.5 rounded border border-pink-500/20">Feminino</span>'
             : '<span class="text-[10px] font-bold text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20">Masculino</span>';
 
-        // O CORTADOR DE NOMES IMPLACÁVEL (Expressão Regular elimina os "lixos" de forma oculta)
+        // O CORTADOR DE NOMES IMPLACÁVEL
         let partes = v.shortName.split('-');
         let nomeDisplay = v.shortName.replace(/Neural/ig, '').replace(/Multilingual/ig, '').replace(/V2/ig, '').trim(); 
         
@@ -120,7 +120,6 @@ function renderizarListaVozes() {
             let idiomaCodigo = partes[0].toLowerCase();
             let regiaoCodigo = partes[1].toUpperCase();
             
-            // Pega o nome do ator (tudo depois da região) e arranca palavras indesejadas
             let nomeAtor = partes.slice(2).join(' ');
             nomeAtor = nomeAtor.replace(/Neural/ig, '').replace(/Multilingual/ig, '').replace(/V2/ig, '').trim();
             
