@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="flex items-center justify-center min-h-[80vh]">
+    <div class="bg-[#121214] p-8 rounded-2xl border border-zinc-800 w-full max-w-md shadow-2xl relative overflow-hidden">
+        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 via-purple-400 to-emerald-400"></div>
+
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-black tracking-tighter text-white mb-2">
+                <i class="fa-solid fa-moon text-purple-500 mr-1"></i>DARK<span class="text-zinc-500 font-normal">CREATOR</span>
+            </h1>
+            <p class="text-zinc-500 text-sm italic">Área de Acesso Restrita</p>
+        </div>
+
+        <form id="formLogin" class="space-y-5">
+            <div>
+                <label class="block text-xs font-bold text-zinc-500 uppercase tracking-widest mb-2">E-mail</label>
+                <div class="relative">
+                    <i class="fa-solid fa-envelope absolute left-3 top-1/2 -translate-y-1/2 text-zinc-600"></i>
+                    <input type="email" id="email" required 
+                        class="w-full pl-10 pr-4 py-3 bg-[#09090b] border border-zinc-800 rounded-lg text-white focus:border-purple-500/50 outline-none transition-all"
+                        placeholder="seu@email.com">
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-zinc-500 uppercase tracking-widest mb-2">Senha</label>
+                <div class="relative">
+                    <i class="fa-solid fa-lock absolute left-3 top-1/2 -translate-y-1/2 text-zinc-600"></i>
+                    <input type="password" id="password" required 
+                        class="w-full pl-10 pr-4 py-3 bg-[#09090b] border border-zinc-800 rounded-lg text-white focus:border-purple-500/50 outline-none transition-all"
+                        placeholder="••••••••">
+                </div>
+            </div>
+
+            <button type="submit" id="btn_entrar"
+                class="w-full bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-white font-bold py-3 rounded-lg transition-all flex items-center justify-center gap-2 group">
+                <span>Entrar no Sistema</span>
+                <i class="fa-solid fa-right-to-bracket group-hover:translate-x-1 transition-transform"></i>
+            </button>
+        </form>
+
+        <div id="login_status" class="mt-4 text-center hidden p-3 rounded-lg text-xs font-bold border"></div>
+    </div>
+</div>
+
+<script>
+    document.getElementById('formLogin').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const status = document.getElementById('login_status');
+        const btn = document.getElementById('btn_entrar');
+
+        status.classList.remove('hidden', 'border-red-500/50', 'text-red-400', 'border-emerald-500/50', 'text-emerald-400');
+        status.classList.add('block', 'border-zinc-800', 'text-zinc-500');
+        status.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin mr-2"></i>Validando credenciais...';
+        btn.disabled = true;
+
+        // Simulação para você testar o visual
+        setTimeout(() => {
+            status.innerHTML = '<i class="fa-solid fa-circle-check mr-2"></i>Acesso autorizado! Redirecionando...';
+            status.classList.replace('text-zinc-500', 'text-emerald-400');
+            status.classList.add('border-emerald-500/50');
+            
+            setTimeout(() => { window.location.href = "/"; }, 1000);
+        }, 1500);
+    });
+</script>
+{% endblock %}
