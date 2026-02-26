@@ -1,6 +1,12 @@
 import re
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
+
+# Nossos imports internos
+import models
+from database import get_db
+from auth import get_usuario_atual
 from services.ai_service import call_gemini
 
 router = APIRouter(prefix="/api/v1", tags=["Script Forge"])
@@ -14,10 +20,25 @@ class ScriptRequest(BaseModel):
     instrucoes: str
 
 @router.post("/script-forge")
-async def process_script(req: ScriptRequest):
+async def process_script(
+    req: ScriptRequest,
+    db: Session = Depends(get_db),
+    usuario: models.Usuario = Depends(get_usuario_atual)
+):
+    # 1. VALIDAÇÃO DE SESSÃO E SALDO
+    if not usuario:
+        raise HTTPException(status_code=401, detail="Sessão expirada. Faça login novamente.")
+
     if not req.ideia_base:
         raise HTTPException(status_code=400, detail="A ideia base é obrigatória.")
 
+    # Custo do Roteiro (O peso pesado do SaaS)
+    custo_operacao = 25
+
+    if usuario.coins < custo_operacao:
+        raise HTTPException(status_code=402, detail=f"Coins insuficientes! Você precisa de {custo_operacao} coins para forjar este roteiro.")
+
+    # 2. LÓGICA DE PROMPT (Mantida intacta)
     if re.search(r'reddit|porão|medoteca', req.canal, re.IGNORECASE):
         modulo_1_regras = """Regras Específicas para Reddit/Relatos:
 - Faça a tradução/adaptação com o mínimo de cortes. Não resuma a essência.
@@ -70,7 +91,22 @@ TEXTO ORIGINAL / IDEIA BASE:
         texto_limpo = texto_limpo.replace('?', '.').replace('!', '.')
         texto_limpo = re.sub(r'\.{2,}', '.', texto_limpo)
         
-        return {"status": "sucesso", "roteiro": texto_limpo}
+        # 3. TRANSAÇÃO FINANCEIRA E HISTÓRICO
+        usuario.coins -= custo_operacao
+        
+        novo_historico = models.Historico(
+            usuario_id=usuario.id,
+            ferramenta="Script Forge",
+            input_usuario=user_content,
+            resultado=texto_limpo, 
+            custo_coins=custo_operacao
+        )
+        
+        db.add(novo_historico)
+        db.commit()
+
+        # Devolvemos o roteiro e o novo saldo do usuário
+        return {"status": "sucesso", "roteiro": texto_limpo, "novo_saldo": usuario.coins}
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
