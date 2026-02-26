@@ -66,7 +66,7 @@
                 
                 <div class="flex gap-3 mt-6 relative z-10">
                     <button id="btn_gerar_thumb" onclick="chamarThumbMaker()" class="flex-1 bg-pink-700 hover:bg-pink-600 text-white font-bold py-3.5 px-4 rounded-lg shadow-[0_0_15px_rgba(190,24,93,0.4)] transition-all flex items-center justify-center gap-2 group border border-pink-500/50">
-                        <i class="fa-solid fa-palette group-hover:scale-110 transition-transform"></i> <span id="txt_btn_thumb">Gerar Prompts</span>
+                        <i class="fa-solid fa-palette group-hover:scale-110 transition-transform"></i> <span id="txt_btn_thumb">Gerar Prompts (15 Coins)</span>
                     </button>
                     <button onclick="limparThumb()" class="bg-zinc-800 hover:bg-red-500/20 text-zinc-400 hover:text-red-400 border border-zinc-700 hover:border-red-500/50 font-bold py-3 px-4 rounded-lg transition-all flex items-center justify-center group" title="Limpar Tela">
                         <i class="fa-solid fa-trash-can group-hover:scale-110 transition-transform"></i>
@@ -110,7 +110,6 @@
         const campos = ['thumb_titulo', 'thumb_roteiro', 'thumb_texto_arte', 'thumb_cor_texto', 'thumb_posicao_texto'];
         campos.forEach(id => { const el = document.getElementById(id); if(el){ el.value = ''; sessionStorage.removeItem(id); } });
         
-        // Reseta apenas o select de posição. A cor agora é digitável e já foi limpa no loop acima!
         document.getElementById('thumb_posicao_texto').selectedIndex = 0;
 
         sessionStorage.removeItem('thumbHTML');
@@ -133,7 +132,7 @@
 
         btn.disabled = true; btn.classList.add('opacity-70', 'cursor-not-allowed');
         txtBtn.innerHTML = `Criando Arte... <i class="fa-solid fa-circle-notch fa-spin ml-1"></i>`;
-        container.innerHTML = `<div class="flex flex-col items-center justify-center h-full text-pink-500"><i class="fa-solid fa-palette fa-fade text-4xl mb-4"></i><p class="font-bold">Analisando a história...</p></div>`;
+        container.innerHTML = `<div class="flex flex-col items-center justify-center h-full text-pink-500"><i class="fa-solid fa-palette fa-fade text-4xl mb-4"></i><p class="font-bold">Analisando a história... (-15 Coins)</p></div>`;
 
         try {
             const res = await fetch("/api/v1/thumb-maker", {
@@ -147,6 +146,25 @@
             }
             
             const dados = await res.json();
+
+            // ==========================================
+            // MAGIA DO FRONT-END: Atualiza o Saldo Dinâmico
+            // ==========================================
+            if(dados.novo_saldo !== undefined) {
+                const paineisDeCoins = document.querySelectorAll('.fa-coins');
+                paineisDeCoins.forEach(icone => {
+                    const elementoPai = icone.closest('p'); 
+                    if(elementoPai) {
+                        const textoSaldo = dados.novo_saldo.toLocaleString('pt-BR');
+                        elementoPai.innerHTML = `<i class="fa-solid fa-coins"></i> ${textoSaldo} coins`;
+                        
+                        // Pisca na cor rosa para combinar com o Thumb Maker
+                        elementoPai.classList.add('text-pink-400', 'scale-110');
+                        setTimeout(() => elementoPai.classList.remove('text-pink-400', 'scale-110'), 500);
+                    }
+                });
+            }
+            // ==========================================
 
             let htmlC = '';
             if(dados.conflito_principal) htmlC += `<div class="mb-5 p-4 bg-[#121214] rounded-lg border border-pink-500/30 shadow-inner"><h3 class="text-xs font-bold text-pink-400 mb-2 uppercase"><i class="fa-solid fa-anchor"></i> Conflito Principal (Âncora)</h3><p class="text-sm text-zinc-300 italic">"${dados.conflito_principal}"</p></div>`;
@@ -168,9 +186,13 @@
             container.innerHTML = htmlC;
             sessionStorage.setItem('thumbHTML', htmlC);
         } catch (error) {
-            container.innerHTML = `<p class="text-red-400 text-center font-bold py-10"><i class="fa-solid fa-triangle-exclamation"></i> Erro: ${error.message}</p>`;
+            if(error.message.includes('Coins insuficientes')) {
+                container.innerHTML = `<div class="flex items-center justify-center h-full"><p class="text-yellow-400 bg-yellow-500/10 border border-yellow-500/20 p-5 rounded-lg text-center font-bold shadow-lg"><i class="fa-solid fa-triangle-exclamation text-2xl mb-2 block"></i><br>${error.message}</p></div>`;
+            } else {
+                container.innerHTML = `<p class="text-red-400 text-center font-bold py-10"><i class="fa-solid fa-triangle-exclamation"></i> Erro: ${error.message}</p>`;
+            }
         } finally {
-            btn.disabled = false; btn.classList.remove('opacity-70', 'cursor-not-allowed'); txtBtn.innerHTML = "Gerar Prompts";
+            btn.disabled = false; btn.classList.remove('opacity-70', 'cursor-not-allowed'); txtBtn.innerHTML = "Gerar Prompts (15 Coins)";
         }
     }
 
