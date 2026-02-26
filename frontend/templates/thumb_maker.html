@@ -23,20 +23,17 @@
                         <div class="grid grid-cols-2 gap-3">
                             <div>
                                 <label class="block text-[10px] font-bold text-zinc-500 mb-1 uppercase">Cor do Texto</label>
-                                <select id="thumb_cor_texto" onchange="salvarEstado('thumb_cor_texto')" class="w-full bg-[#09090b] border border-zinc-700/80 rounded px-2 py-1.5 text-zinc-300 text-xs focus:outline-none focus:border-pink-500 transition-colors">
-                                    <option value="Amarelo com borda Preta (Alerta)">Amarelo + Preto (Alerta)</option>
-                                    <option value="Branco com fundo Vermelho (Urgência)">Branco + Vermelho</option>
-                                    <option value="Verde Neon (Sucesso/Dinheiro)">Verde Neon</option>
-                                    <option value="Branco Puro (Cinemático)">Branco Limpo</option>
-                                </select>
+                                <input type="text" id="thumb_cor_texto" oninput="salvarEstado('thumb_cor_texto')" class="w-full bg-[#09090b] border border-zinc-700/80 rounded px-3 py-1.5 text-zinc-300 text-xs focus:outline-none focus:border-pink-500 transition-colors shadow-inner" placeholder="Ex: Amarelo Neon, Branco... ">
                             </div>
                             <div>
                                 <label class="block text-[10px] font-bold text-zinc-500 mb-1 uppercase">Posição</label>
                                 <select id="thumb_posicao_texto" onchange="salvarEstado('thumb_posicao_texto')" class="w-full bg-[#09090b] border border-zinc-700/80 rounded px-2 py-1.5 text-zinc-300 text-xs focus:outline-none focus:border-pink-500 transition-colors">
-                                    <option value="Topo Centralizado">Topo (Center)</option>
-                                    <option value="Canto Superior Esquerdo">Topo (Left)</option>
-                                    <option value="Centro Absoluto (Gigante)">Centro (Gigante)</option>
-                                    <option value="Rodapé Centralizado">Rodapé (Bottom)</option>
+                                    <option value="Topo Centralizado">Topo Centralizado</option>
+                                    <option value="Canto Superior Esquerdo">Canto Superior Esquerdo</option>
+                                    <option value="Esquerda Centralizado">Esquerda Centralizado</option>
+                                    <option value="Centro Absoluto (Gigante)">Centro Absoluto (Gigante)</option>
+                                    <option value="Direita Centralizado">Direita Centralizado</option>
+                                    <option value="Rodapé Centralizado">Rodapé Centralizado</option>
                                 </select>
                             </div>
                         </div>
@@ -113,8 +110,7 @@
         const campos = ['thumb_titulo', 'thumb_roteiro', 'thumb_texto_arte', 'thumb_cor_texto', 'thumb_posicao_texto'];
         campos.forEach(id => { const el = document.getElementById(id); if(el){ el.value = ''; sessionStorage.removeItem(id); } });
         
-        // Reseta os selects para a primeira opção ao limpar
-        document.getElementById('thumb_cor_texto').selectedIndex = 0;
+        // Reseta apenas o select de posição. A cor agora é digitável e já foi limpa no loop acima!
         document.getElementById('thumb_posicao_texto').selectedIndex = 0;
 
         sessionStorage.removeItem('thumbHTML');
@@ -130,7 +126,7 @@
         const roteiro = document.getElementById('thumb_roteiro').value;
         const estilo = document.getElementById('thumb_estilo').value;
         const texto_arte = document.getElementById('thumb_texto_arte').value || "SEM TEXTO";
-        const cor_texto = document.getElementById('thumb_cor_texto').value;
+        const cor_texto = document.getElementById('thumb_cor_texto').value || "Não especificado";
         const posicao_texto = document.getElementById('thumb_posicao_texto').value;
 
         if(!titulo || !roteiro) return alert("Preencha o Título e o Roteiro.");
