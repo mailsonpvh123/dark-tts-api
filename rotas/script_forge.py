@@ -38,7 +38,7 @@ async def process_script(
     if usuario.coins < custo_operacao:
         raise HTTPException(status_code=402, detail=f"Coins insuficientes! Você precisa de {custo_operacao} coins para forjar este roteiro.")
 
-    # 2. LÓGICA DE PROMPT (Mantida intacta)
+    # 2. LÓGICA DE PROMPT (Com o BUG do exagero corrigido)
     if re.search(r'reddit|porão|medoteca', req.canal, re.IGNORECASE):
         modulo_1_regras = """Regras Específicas para Reddit/Relatos:
 - Faça a tradução/adaptação com o mínimo de cortes. Não resuma a essência.
@@ -65,11 +65,11 @@ O motor Multilingual possui um defeito: sentenças curtas (menos de 6 palavras) 
 - AGLUTINAÇÃO OBRIGATÓRIA: Transforme qualquer exclamação ou diálogo curto em narrativa estendida.
 - PONTUAÇÃO E LIMPEZA: O texto deve ser 100% liso. ZERO markdown (*, #). ZERO emojis. ZERO rubricas.
 
-📏 MÓDULO 3: CONTROLE ESTRITO DE TAMANHO E PROFUNDIDADE
-- O usuário solicitou o tamanho exato de: [{req.tamanho}].
-- A DOENÇA DA IA: Modelos de linguagem sofrem de "preguiça" e tendem a resumir e entregar textos curtos. VOCÊ ESTÁ PROIBIDO DE RESUMIR.
-- MATEMÁTICA DA LOCUÇÃO: 1 minuto de áudio falado equivale a aproximadamente 150 palavras. Se o usuário pediu 15 minutos, você DEVE gerar pelo menos 2250 palavras. 
-- COMO EXPANDIR: Para atingir o tempo, aprofunde-se absurdamente em cada detalhe. Use histórias paralelas, exemplos concretos, reflexões filosóficas, analogias ricas e transições longas e detalhadas entre os tópicos. Faça o texto render com alta densidade de valor, sem enrolação.
+📏 MÓDULO 3: CONTROLE DE TAMANHO (PRECISÃO CIRÚRGICA)
+- O usuário solicitou o tamanho alvo de: [{req.tamanho}].
+- CÁLCULO BASE: Considere que 1 minuto de áudio falado = 150 palavras. (Ex: 10 minutos = 1500 palavras).
+- REGRA DO LIMITE SUPERIOR: IAs tendem a exagerar e encher linguiça quando pedimos vídeos longos. Você está PROIBIDO de ultrapassar o limite pedido. Se o alvo é 3000 palavras, entregue no máximo entre 3000 e 3200 palavras. Se for 15 minutos (2250 palavras), não passe de 2400 palavras. 
+- REGRA DO LIMITE INFERIOR: Não seja preguiçoso. Entregue o volume solicitado aprofundando os detalhes, mas conclua a narrativa assim que o alvo numérico for atingido. Sem enrolação infinita.
 
 Retorne APENAS o texto final liso."""
 
