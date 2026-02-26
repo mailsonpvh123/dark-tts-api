@@ -194,8 +194,12 @@ async function tocarPreview(event, shortName) {
     } 
 }
 
+// -----------------------------------------------------
+// NOVA FUNÇÃO BLINDADA COM COBRANÇA E ATUALIZAÇÃO DE SALDO
+// -----------------------------------------------------
 async function gerarAudioCompleto() {
     const btn = document.getElementById('btn_gerar_voz');
+    const txtBtn = document.getElementById('txt_btn_voz') || btn.querySelector('span'); // Pega o span correto
     const texto = document.getElementById('texto_voz').value;
     const playerContainer = document.getElementById('player_container');
     
@@ -203,10 +207,10 @@ async function gerarAudioCompleto() {
 
     btn.disabled = true;
     btn.classList.add('opacity-70', 'cursor-not-allowed');
-    btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin text-emerald-400"></i> <span>Gravando na Nuvem...</span>`;
+    if (txtBtn) txtBtn.innerHTML = `Gravando na Nuvem... <i class="fa-solid fa-circle-notch fa-spin ml-2"></i>`;
     
     playerContainer.classList.remove('hidden');
-    playerContainer.innerHTML = `<p class="text-emerald-400 animate-pulse text-center font-bold text-sm">O estúdio neural está gravando a sua locução...</p>`;
+    playerContainer.innerHTML = `<p class="text-purple-400 animate-pulse text-center font-bold text-sm"><i class="fa-solid fa-microphone-lines fa-fade mr-2"></i> O estúdio neural está gravando a sua locução... (-30 Coins)</p>`;
 
     const payload = { 
         texto: texto, 
@@ -223,8 +227,32 @@ async function gerarAudioCompleto() {
             body: JSON.stringify(payload) 
         });
         
+        if(!res.ok) {
+            let erroReal = "Erro no servidor.";
+            try { const dadosErro = await res.json(); erroReal = dadosErro.detail || erroReal; } catch(e) {}
+            throw new Error(erroReal);
+        }
+        
         const dados = await res.json();
-        if(dados.status === "erro") throw new Error(dados.mensagem);
+
+        // ==========================================
+        // MAGIA DO FRONT-END: Atualiza o Saldo Dinâmico
+        // ==========================================
+        if(dados.novo_saldo !== undefined) {
+            const paineisDeCoins = document.querySelectorAll('.fa-coins');
+            paineisDeCoins.forEach(icone => {
+                const elementoPai = icone.closest('p'); 
+                if(elementoPai) {
+                    const textoSaldo = dados.novo_saldo.toLocaleString('pt-BR');
+                    elementoPai.innerHTML = `<i class="fa-solid fa-coins"></i> ${textoSaldo} coins`;
+                    
+                    // Pisca em roxo para indicar a ação do Voice Synth
+                    elementoPai.classList.add('text-purple-400', 'scale-110');
+                    setTimeout(() => elementoPai.classList.remove('text-purple-400', 'scale-110'), 500);
+                }
+            });
+        }
+        // ==========================================
 
         playerContainer.innerHTML = `
             <div class="flex items-center gap-2 mb-3">
@@ -236,11 +264,14 @@ async function gerarAudioCompleto() {
             </audio>
         `;
     } catch (e) {
-        playerContainer.innerHTML = `<p class="text-red-400 text-sm font-bold"><i class="fa-solid fa-triangle-exclamation"></i> Erro: ${e.message}</p>`;
+        // Tratamento especial para saldo insuficiente
+        const isCoinError = e.message.includes('Coins insuficientes');
+        const erroClass = isCoinError ? 'text-yellow-400 bg-yellow-500/10 border-yellow-500/20' : 'text-red-400 bg-red-500/10 border-red-500/20';
+        playerContainer.innerHTML = `<div class="${erroClass} border p-4 rounded-lg text-center font-bold text-sm"><i class="fa-solid fa-triangle-exclamation mb-2 text-2xl block"></i> ${e.message}</div>`;
     } finally {
         btn.disabled = false;
         btn.classList.remove('opacity-70', 'cursor-not-allowed');
-        btn.innerHTML = `<i class="fa-solid fa-wand-magic-sparkles"></i> <span>Sintetizar Voz Neural</span>`;
+        if (txtBtn) txtBtn.innerText = "Sintetizar Voz Neural (30 Coins)";
     }
 }
 
