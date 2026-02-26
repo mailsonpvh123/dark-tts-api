@@ -25,7 +25,6 @@ async def process_script(
     db: Session = Depends(get_db),
     usuario: models.Usuario = Depends(get_usuario_atual)
 ):
-    # 1. VALIDAÇÃO DE SESSÃO E SALDO
     if not usuario:
         raise HTTPException(status_code=401, detail="Sessão expirada. Faça login novamente.")
 
@@ -38,7 +37,6 @@ async def process_script(
     if usuario.coins < custo_operacao:
         raise HTTPException(status_code=402, detail=f"Coins insuficientes! Você precisa de {custo_operacao} coins para forjar este roteiro.")
 
-    # 2. LÓGICA DE PROMPT (Com Tolerância Zero para Metalinguagem e Ant-Preguiça)
     if re.search(r'reddit|porão|medoteca', req.canal, re.IGNORECASE):
         modulo_1_regras = """Regras Específicas para Reddit/Relatos:
 - Faça a tradução/adaptação com o mínimo de cortes. Não resuma a essência.
@@ -64,13 +62,14 @@ Você está ESTRITAMENTE PROIBIDO de inventar temas. O seu roteiro DEVE ser cons
 - AGLUTINAÇÃO OBRIGATÓRIA: Transforme qualquer exclamação ou diálogo curto em narrativa estendida.
 - PONTUAÇÃO E LIMPEZA: O texto deve ser 100% liso. ZERO markdown (*, #). ZERO emojis. ZERO rubricas.
 
-📏 MÓDULO 3: ENGENHARIA DE EXTENSÃO E PROFUNDIDADE (ANTI-PREGUIÇA)
-- Meta de tamanho solicitada pelo usuário: [{req.tamanho}]. (Lembrete: 1 minuto de áudio = 150 palavras. 15 minutos = 2250 palavras).
-- IAs costumam sofrer de "encurtamento crônico". Para combater isso e atingir a meta exigida, aplique a regra da DENSIDADE EXTREMA:
-  1. Nunca resolva um ponto ou tópico em um único parágrafo. 
-  2. Descreva o "Antes", o "Durante" e o "Depois" de cada evento com riqueza de detalhes (clima, sons, sensações).
-  3. Se for uma lista de 10 itens para 15 minutos, CADA ITEM precisa ser longo o suficiente para durar quase 1 minuto e meio.
-- Use transições elaboradas. Cumpra a extensão total exigida pelo usuário sem parecer que está enrolando. Mergulhe fundo na narrativa.
+📏 MÓDULO 3: ENGENHARIA DE EXTENSÃO E PROFUNDIDADE (A TÉCNICA DO ZOOM)
+- O usuário pediu o seguinte tamanho: [{req.tamanho}].
+- 🚨 MATEMÁTICA OBRIGATÓRIA: Para narradores de IA, a leitura natural e com boa retenção (velocidade 1.0x a 1.1x) exige cerca de 160 a 170 palavras por minuto.
+- Se o usuário pedir "15 minutos", seu texto DEVE ter RIGOROSAMENTE entre 2400 e 2600 palavras. Menos que 2300 palavras é considerado uma falha crítica.
+- COMO ATINGIR ESSA META SEM ENROLAR:
+  1. Não faça resumos. Faça "Zoom In". Expanda cada cenário, cada contexto histórico e cada consequência.
+  2. Se for uma lista (ex: Top 10), ESCREVA NO MÍNIMO 3 PARÁGRAFOS LONGOS E DENSOS PARA CADA ITEM. O primeiro apresenta o contexto, o segundo desenvolve o conflito/detalhe bizarro, e o terceiro traz a consequência ou reflexão filosófica daquele item.
+  3. Descreva cenários como se estivesse pintando um quadro, usando múltiplos adjetivos e analogias comparativas ricas.
 
 Retorne APENAS o texto final liso."""
 
@@ -92,7 +91,6 @@ TEXTO ORIGINAL / IDEIA BASE:
         texto_limpo = texto_limpo.replace('?', '.').replace('!', '.')
         texto_limpo = re.sub(r'\.{2,}', '.', texto_limpo)
         
-        # 3. TRANSAÇÃO FINANCEIRA E HISTÓRICO
         usuario.coins -= custo_operacao
         
         novo_historico = models.Historico(
@@ -106,7 +104,6 @@ TEXTO ORIGINAL / IDEIA BASE:
         db.add(novo_historico)
         db.commit()
 
-        # Devolvemos o roteiro e o novo saldo do usuário
         return {"status": "sucesso", "roteiro": texto_limpo, "novo_saldo": usuario.coins}
         
     except Exception as e:
