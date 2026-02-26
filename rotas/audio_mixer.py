@@ -1,9 +1,15 @@
 import os
 import base64
 import tempfile
-from fastapi import APIRouter, HTTPException, File, UploadFile, Form
+from fastapi import APIRouter, HTTPException, File, UploadFile, Form, Depends
+from sqlalchemy.orm import Session
 from pydub import AudioSegment
 from pydub.effects import compress_dynamic_range, normalize
+
+# Nossos imports internos
+import models
+from database import get_db
+from auth import get_usuario_atual
 
 router = APIRouter(prefix="/api/v1", tags=["Audio Mixer"])
 
@@ -36,8 +42,20 @@ async def processar_mixer(
     limiter: str = Form("true"),
     limiter_ceil: float = Form(-1.0),
     eq_bass: float = Form(0.0),
-    eq_treble: float = Form(0.0)
+    eq_treble: float = Form(0.0),
+    db: Session = Depends(get_db),
+    usuario: models.Usuario = Depends(get_usuario_atual)
 ):
+    # 1. VALIDAÇÃO DE USUÁRIO E SALDO
+    if not usuario:
+        raise HTTPException(status_code=401, detail="Sessão expirada. Faça login novamente.")
+
+    # Custo da mixagem e masterização
+    custo_operacao = 10
+
+    if usuario.coins < custo_operacao:
+        raise HTTPException(status_code=402, detail=f"Coins insuficientes! Você precisa de {custo_operacao} coins para masterizar o áudio.")
+
     try:
         # Salva os arquivos recebidos do Front-end temporariamente
         with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as temp_voice:
@@ -112,8 +130,24 @@ async def processar_mixer(
             audio_base64 = base64.b64encode(f.read()).decode('utf-8')
             
         os.remove(out_path)
+
+        # ==========================================
+        # 8. TRANSAÇÃO FINANCEIRA E HISTÓRICO
+        # ==========================================
+        usuario.coins -= custo_operacao
         
-        return {"status": "sucesso", "audio_base64": audio_base64}
+        novo_historico = models.Historico(
+            usuario_id=usuario.id,
+            ferramenta="Audio Mixer",
+            input_usuario=f"Voz: {voice_file.filename} | Fundo: {bg_file.filename} | Ducking: {ducking} | EQ Bass: {eq_bass}",
+            resultado="Masterização (.WAV) gerada com sucesso.", 
+            custo_coins=custo_operacao
+        )
+        
+        db.add(novo_historico)
+        db.commit()
+        
+        return {"status": "sucesso", "audio_base64": audio_base64, "novo_saldo": usuario.coins}
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
