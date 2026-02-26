@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section id="aba_historico" class="aba-conteudo block">
+    <div class="mb-8 relative z-10">
+        <div class="flex items-center gap-3 mb-2">
+            <div class="w-10 h-10 rounded-lg bg-zinc-800/80 flex items-center justify-center border border-zinc-700">
+                <i class="fa-solid fa-clock-rotate-left text-zinc-300 text-lg"></i>
+            </div>
+            <h1 class="text-2xl md:text-3xl font-bold text-white">Histórico de Produção</h1>
+        </div>
+        <p class="text-zinc-400">Consulte as suas criações anteriores e acompanhe o uso dos seus Coins.</p>
+    </div>
+
+    <div class="bg-[#18181b] border border-zinc-800/80 rounded-xl shadow-2xl relative overflow-hidden flex flex-col h-[70vh]">
+        <div class="absolute -top-20 -right-20 w-40 h-40 bg-zinc-500/5 rounded-full blur-[60px] pointer-events-none"></div>
+        
+        <div class="p-4 border-b border-zinc-800/80 bg-[#121214] flex justify-between items-center relative z-10">
+            <h2 class="text-base font-semibold text-white flex items-center gap-2"><i class="fa-solid fa-list-check text-zinc-500"></i> Últimas 100 Operações</h2>
+            <button onclick="carregarHistorico()" class="text-xs bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-3 py-1.5 rounded transition-colors border border-zinc-700 flex items-center gap-2">
+                <i class="fa-solid fa-rotate-right"></i> Atualizar
+            </button>
+        </div>
+
+        <div class="flex-1 overflow-auto custom-scrollbar relative z-10">
+            <table class="w-full text-left text-sm text-zinc-400">
+                <thead class="text-xs text-zinc-500 uppercase bg-[#09090b] sticky top-0 border-b border-zinc-800">
+                    <tr>
+                        <th scope="col" class="px-6 py-4 font-bold">Data & Hora</th>
+                        <th scope="col" class="px-6 py-4 font-bold">Ferramenta</th>
+                        <th scope="col" class="px-6 py-4 font-bold">Resumo / Input</th>
+                        <th scope="col" class="px-6 py-4 font-bold text-center">Custo</th>
+                        <th scope="col" class="px-6 py-4 font-bold text-right">Ação</th>
+                    </tr>
+                </thead>
+                <tbody id="tabela_historico" class="divide-y divide-zinc-800/50">
+                    <tr>
+                        <td colspan="5" class="px-6 py-10 text-center">
+                            <i class="fa-solid fa-circle-notch fa-spin text-2xl text-zinc-600 mb-3 block"></i>
+                            A carregar os registos neurais...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
+<div id="modal_resultado" class="fixed inset-0 bg-[#09090b]/90 backdrop-blur-sm z-[100] hidden flex items-center justify-center p-4 transition-opacity">
+    <div class="bg-[#18181b] border border-zinc-700 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col relative transform scale-95 transition-transform" id="modal_conteudo_interno">
+        
+        <div class="flex justify-between items-center p-5 border-b border-zinc-800 bg-[#121214] rounded-t-2xl">
+            <h3 class="text-lg font-bold text-white flex items-center gap-2" id="modal_titulo"><i class="fa-solid fa-eye text-emerald-500"></i> Visualizar Registo</h3>
+            <button onclick="fecharModal()" class="text-zinc-500 hover:text-red-400 transition-colors w-8 h-8 flex items-center justify-center rounded-lg hover:bg-zinc-800">
+                <i class="fa-solid fa-xmark text-xl"></i>
+            </button>
+        </div>
+        
+        <div class="p-6 flex-1 overflow-y-auto custom-scrollbar space-y-6">
+            <div>
+                <h4 class="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2 border-b border-zinc-800 pb-1">Input do Utilizador</h4>
+                <pre id="modal_input" class="bg-[#09090b] p-4 rounded-lg border border-zinc-800 text-zinc-300 text-sm whitespace-pre-wrap font-sans"></pre>
+            </div>
+            
+            <div>
+                <h4 class="text-xs font-bold text-emerald-500 uppercase tracking-wider mb-2 border-b border-emerald-900/30 pb-1">Resultado Forjado</h4>
+                <pre id="modal_output" class="bg-[#121214] p-4 rounded-lg border border-emerald-500/20 text-emerald-400 text-sm whitespace-pre-wrap font-mono shadow-inner custom-scrollbar overflow-x-auto"></pre>
+            </div>
+        </div>
+        
+        <div class="p-4 border-t border-zinc-800 bg-[#121214] rounded-b-2xl flex justify-end gap-3">
+            <button onclick="fecharModal()" class="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-5 py-2 rounded-lg font-bold transition-colors">Fechar</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let historicoDados = [];
+
+    document.addEventListener('DOMContentLoaded', () => {
+        carregarHistorico();
+    });
+
+    // Mapeamento visual das ferramentas
+    const configFerramentas = {
+        "Gen Insights": { icone: "fa-lightbulb", cor: "text-yellow-400", bg: "bg-yellow-500/10", border: "border-yellow-500/20" },
+        "Script Forge": { icone: "fa-pen-nib", cor: "text-orange-400", bg: "bg-orange-500/10", border: "border-orange-500/20" },
+        "Voice Synth": { icone: "fa-microphone-lines", cor: "text-purple-400", bg: "bg-purple-500/10", border: "border-purple-500/20" },
+        "Data Miner": { icone: "fa-magnet", cor: "text-indigo-400", bg: "bg-indigo-500/10", border: "border-indigo-500/20" },
+        "Paraphraser": { icone: "fa-rotate", cor: "text-pink-400", bg: "bg-pink-500/10", border: "border-pink-500/20" },
+        "Audio Mixer": { icone: "fa-sliders", cor: "text-amber-400", bg: "bg-amber-500/10", border: "border-amber-500/20" },
+        "Meta & SEO": { icone: "fa-magnifying-glass-chart", cor: "text-blue-400", bg: "bg-blue-500/10", border: "border-blue-500/20" },
+        "Thumb Maker": { icone: "fa-image", cor: "text-pink-400", bg: "bg-pink-500/10", border: "border-pink-500/20" }
+    };
+
+    async function carregarHistorico() {
+        const tabela = document.getElementById('tabela_historico');
+        tabela.innerHTML = `<tr><td colspan="5" class="px-6 py-10 text-center"><i class="fa-solid fa-circle-notch fa-spin text-2xl text-zinc-600 mb-3 block"></i>A atualizar registos...</td></tr>`;
+        
+        try {
+            const res = await fetch("/api/v1/historico");
+            if (!res.ok) throw new Error("Erro ao carregar histórico");
+            
+            const json = await res.json();
+            historicoDados = json.data;
+            
+            if (historicoDados.length === 0) {
+                tabela.innerHTML = `<tr><td colspan="5" class="px-6 py-10 text-center text-zinc-500 font-bold"><i class="fa-solid fa-ghost text-3xl mb-3 block opacity-50"></i>Ainda não há registos no seu histórico.</td></tr>`;
+                return;
+            }
+
+            let html = '';
+            historicoDados.forEach((item, index) => {
+                const conf = configFerramentas[item.ferramenta] || { icone: "fa-cube", cor: "text-zinc-400", bg: "bg-zinc-800", border: "border-zinc-700" };
+                
+                // Truncar o input para não quebrar a tabela
+                let previewInput = item.input_usuario.replace(/\n/g, ' ').substring(0, 60);
+                if (item.input_usuario.length > 60) previewInput += '...';
+
+                html += `
+                    <tr class="hover:bg-zinc-800/30 transition-colors group">
+                        <td class="px-6 py-4 whitespace-nowrap text-zinc-300 font-medium">${item.data_geracao}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="inline-flex items-center gap-2 px-2.5 py-1 rounded-md text-xs font-bold ${conf.cor} ${conf.bg} ${conf.border} border">
+                                <i class="fa-solid ${conf.icone}"></i> ${item.ferramenta}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 text-zinc-500 italic text-xs max-w-xs truncate" title="${item.input_usuario.replace(/"/g, '&quot;')}">
+                            "${previewInput}"
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-center">
+                            <span class="text-xs font-bold text-emerald-400"><i class="fa-solid fa-coins mr-1"></i>${item.custo_coins}</span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right">
+                            <button onclick="abrirModal(${index})" class="text-zinc-400 hover:text-white bg-zinc-800 hover:bg-zinc-700 p-2 rounded-lg border border-zinc-700 transition-colors shadow-sm">
+                                <i class="fa-solid fa-eye"></i> Ver Detalhes
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            tabela.innerHTML = html;
+        } catch (error) {
+            tabela.innerHTML = `<tr><td colspan="5" class="px-6 py-10 text-center text-red-400 font-bold"><i class="fa-solid fa-triangle-exclamation mb-2 block"></i> ${error.message}</td></tr>`;
+        }
+    }
+
+    function abrirModal(index) {
+        const item = historicoDados[index];
+        const conf = configFerramentas[item.ferramenta] || { icone: "fa-cube", cor: "text-white" };
+        
+        document.getElementById('modal_titulo').innerHTML = `<i class="fa-solid ${conf.icone} ${conf.cor}"></i> ${item.ferramenta} <span class="text-xs font-normal text-zinc-500 ml-2">(${item.data_geracao})</span>`;
+        document.getElementById('modal_input').innerText = item.input_usuario;
+        
+        // Se for JSON (ex: Gen Insights), formatar bonito. Se for texto, mostrar normal.
+        try {
+            const jsonObj = JSON.parse(item.resultado);
+            document.getElementById('modal_output').innerText = JSON.stringify(jsonObj, null, 4);
+        } catch (e) {
+            document.getElementById('modal_output').innerText = item.resultado;
+        }
+
+        const modal = document.getElementById('modal_resultado');
+        const conteudo = document.getElementById('modal_conteudo_interno');
+        
+        modal.classList.remove('hidden');
+        setTimeout(() => {
+            conteudo.classList.remove('scale-95');
+            conteudo.classList.add('scale-100');
+        }, 10);
+    }
+
+    function fecharModal() {
+        const modal = document.getElementById('modal_resultado');
+        const conteudo = document.getElementById('modal_conteudo_interno');
+        
+        conteudo.classList.remove('scale-100');
+        conteudo.classList.add('scale-95');
+        
+        setTimeout(() => {
+            modal.classList.add('hidden');
+        }, 200);
+    }
+</script>
+{% endblock %}
