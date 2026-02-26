@@ -4,9 +4,15 @@ import html
 import urllib.parse
 import xml.etree.ElementTree as ET
 from bs4 import BeautifulSoup
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from deep_translator import GoogleTranslator
+from sqlalchemy.orm import Session
+
+# Nossos imports internos
+import models
+from database import get_db
+from auth import get_usuario_atual
 
 router = APIRouter(prefix="/api/v1", tags=["Data Miner"])
 
@@ -37,15 +43,19 @@ def traduzir_para_pt(texto):
     except:
         return texto
 
+# Custo Global do Minerador
+CUSTO_MINER = 5
+
 @router.post("/miner/reddit")
-async def miner_reddit(req: MinerRedditRequest):
+async def miner_reddit(req: MinerRedditRequest, db: Session = Depends(get_db), usuario: models.Usuario = Depends(get_usuario_atual)):
+    if not usuario: raise HTTPException(status_code=401, detail="Sessão expirada.")
+    if usuario.coins < CUSTO_MINER: raise HTTPException(status_code=402, detail=f"Coins insuficientes! Você precisa de {CUSTO_MINER} coins para minerar.")
+    
     try:
         query_en = traduzir_para_en(req.query)
         headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) DarkCreator/2.0'}
-        
         sub = req.sub.strip().replace('r/', '')
         
-        # CORREÇÃO: Aumentado o limit para 100 (máximo do Reddit) para garantir que ele ache histórias longas no meio do lixo
         if sub:
             url = f"https://www.reddit.com/r/{sub}/search.json?q={urllib.parse.quote(query_en)}&restrict_sr=1&type=link&limit=200&sort=relevance"
         else:
@@ -78,12 +88,21 @@ async def miner_reddit(req: MinerRedditRequest):
             
             if len(resultados) >= 10: break
             
-        return {"status": "sucesso", "data": resultados}
+        # DÉBITO E HISTÓRICO
+        usuario.coins -= CUSTO_MINER
+        novo_historico = models.Historico(usuario_id=usuario.id, ferramenta="Data Miner", input_usuario=f"Fonte: Reddit | Query: {req.query}", resultado=f"{len(resultados)} posts encontrados.", custo_coins=CUSTO_MINER)
+        db.add(novo_historico)
+        db.commit()
+            
+        return {"status": "sucesso", "data": resultados, "novo_saldo": usuario.coins}
     except Exception as e:
-        return {"status": "erro", "mensagem": str(e)}
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/miner/web")
-async def miner_web(req: MinerGenericRequest):
+async def miner_web(req: MinerGenericRequest, db: Session = Depends(get_db), usuario: models.Usuario = Depends(get_usuario_atual)):
+    if not usuario: raise HTTPException(status_code=401, detail="Sessão expirada.")
+    if usuario.coins < CUSTO_MINER: raise HTTPException(status_code=402, detail=f"Coins insuficientes! Você precisa de {CUSTO_MINER} coins para minerar.")
+
     try:
         query_en = traduzir_para_en(req.query)
         headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
@@ -109,12 +128,21 @@ async def miner_web(req: MinerGenericRequest):
                 "url": href,
                 "fonte": "Deep Web Search"
             })
-        return {"status": "sucesso", "data": resultados}
+
+        usuario.coins -= CUSTO_MINER
+        novo_historico = models.Historico(usuario_id=usuario.id, ferramenta="Data Miner", input_usuario=f"Fonte: Web | Query: {req.query}", resultado=f"{len(resultados)} sites encontrados.", custo_coins=CUSTO_MINER)
+        db.add(novo_historico)
+        db.commit()
+
+        return {"status": "sucesso", "data": resultados, "novo_saldo": usuario.coins}
     except Exception as e:
-        return {"status": "erro", "mensagem": str(e)}
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/miner/news")
-async def miner_news(req: MinerGenericRequest):
+async def miner_news(req: MinerGenericRequest, db: Session = Depends(get_db), usuario: models.Usuario = Depends(get_usuario_atual)):
+    if not usuario: raise HTTPException(status_code=401, detail="Sessão expirada.")
+    if usuario.coins < CUSTO_MINER: raise HTTPException(status_code=402, detail=f"Coins insuficientes! Você precisa de {CUSTO_MINER} coins para minerar.")
+
     try:
         query_en = traduzir_para_en(req.query)
         url = f"https://news.google.com/rss/search?q={urllib.parse.quote(query_en)}&hl=en-US&gl=US&ceid=US:en"
@@ -141,12 +169,21 @@ async def miner_news(req: MinerGenericRequest):
                 "url": link,
                 "fonte": "Google News Global"
             })
-        return {"status": "sucesso", "data": resultados}
+
+        usuario.coins -= CUSTO_MINER
+        novo_historico = models.Historico(usuario_id=usuario.id, ferramenta="Data Miner", input_usuario=f"Fonte: News | Query: {req.query}", resultado=f"{len(resultados)} notícias encontradas.", custo_coins=CUSTO_MINER)
+        db.add(novo_historico)
+        db.commit()
+
+        return {"status": "sucesso", "data": resultados, "novo_saldo": usuario.coins}
     except Exception as e:
-        return {"status": "erro", "mensagem": str(e)}
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/miner/wiki")
-async def miner_wiki(req: MinerGenericRequest):
+async def miner_wiki(req: MinerGenericRequest, db: Session = Depends(get_db), usuario: models.Usuario = Depends(get_usuario_atual)):
+    if not usuario: raise HTTPException(status_code=401, detail="Sessão expirada.")
+    if usuario.coins < CUSTO_MINER: raise HTTPException(status_code=402, detail=f"Coins insuficientes! Você precisa de {CUSTO_MINER} coins para minerar.")
+
     try:
         query_en = traduzir_para_en(req.query)
         url_search = f"https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch={urllib.parse.quote(query_en)}&utf8=&format=json"
@@ -174,6 +211,12 @@ async def miner_wiki(req: MinerGenericRequest):
                     "url": f"https://en.wikipedia.org/?curid={page_id}",
                     "fonte": "Wikipedia Org."
                 })
-        return {"status": "sucesso", "data": resultados}
+
+        usuario.coins -= CUSTO_MINER
+        novo_historico = models.Historico(usuario_id=usuario.id, ferramenta="Data Miner", input_usuario=f"Fonte: Wiki | Query: {req.query}", resultado=f"{len(resultados)} fatos encontrados.", custo_coins=CUSTO_MINER)
+        db.add(novo_historico)
+        db.commit()
+
+        return {"status": "sucesso", "data": resultados, "novo_saldo": usuario.coins}
     except Exception as e:
-        return {"status": "erro", "mensagem": str(e)}
+        raise HTTPException(status_code=500, detail=str(e))
