@@ -8,14 +8,29 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
-<body class="bg-[#09090b] text-zinc-300 font-sans antialiased flex h-screen overflow-hidden">
+<body class="bg-[#09090b] text-zinc-300 font-sans antialiased flex flex-col md:flex-row h-screen overflow-hidden">
 
-    <aside class="w-64 bg-[#09090b] border-r border-zinc-800 flex flex-col hidden md:flex relative overflow-hidden shrink-0">
+    <header class="md:hidden flex items-center justify-between p-4 bg-[#09090b] border-b border-zinc-800 z-30 relative shrink-0">
+        <span class="text-xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-purple-500 via-purple-400 to-emerald-400 drop-shadow-sm">
+            <i class="fa-solid fa-moon text-purple-500 mr-1"></i>DARK<span class="text-zinc-500 font-normal">CREATOR</span>
+        </span>
+        <button onclick="toggleMenuMobile()" class="text-zinc-400 hover:text-white focus:outline-none w-10 h-10 flex items-center justify-center rounded-lg bg-zinc-800/50 border border-zinc-700 transition-colors">
+            <i class="fa-solid fa-bars text-lg"></i>
+        </button>
+    </header>
+
+    <div id="overlay_menu" onclick="toggleMenuMobile()" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 hidden md:hidden transition-opacity"></div>
+
+    <aside id="sidebar_menu" class="fixed md:relative inset-y-0 left-0 z-50 w-64 bg-[#09090b] border-r border-zinc-800 flex flex-col transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out shrink-0">
         <div class="absolute top-0 left-0 w-full h-32 bg-purple-600/5 blur-[50px] pointer-events-none"></div>
-        <div class="h-16 flex items-center px-6 border-b border-zinc-800/80 relative z-10">
+        
+        <div class="h-16 flex items-center justify-between px-6 border-b border-zinc-800/80 relative z-10">
             <span class="text-xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-purple-500 via-purple-400 to-emerald-400 drop-shadow-sm">
                 <i class="fa-solid fa-moon text-purple-500 mr-1"></i>DARK<span class="text-zinc-500 font-normal">CREATOR</span>
             </span>
+            <button onclick="toggleMenuMobile()" class="md:hidden text-zinc-400 hover:text-red-400 transition-colors w-8 h-8 flex items-center justify-center rounded-lg hover:bg-zinc-800">
+                <i class="fa-solid fa-xmark text-xl"></i>
+            </button>
         </div>
         
         <nav class="flex-1 px-3 py-6 space-y-6 overflow-y-auto relative z-10 custom-scrollbar" id="menu_lateral">
@@ -46,7 +61,7 @@
                     <a href="/thumb-maker" class="menu-btn w-full flex items-center gap-3 px-3 py-2.5 text-zinc-400 hover:text-white hover:bg-zinc-800/50 rounded-lg transition-all text-left text-sm border border-transparent">
                         <i class="fa-solid fa-image w-5 text-center transition-colors"></i> Thumb Maker
                     </a>
-                    </div>
+                </div>
 
                 <div class="my-6 border-t border-zinc-800/80"></div>
                 
@@ -69,12 +84,25 @@
         </div>
     </aside>
 
-    <main class="flex-1 flex flex-col h-screen overflow-y-auto bg-[#0c0c0e] relative custom-scrollbar">
+    <main class="flex-1 flex flex-col overflow-y-auto bg-[#0c0c0e] relative custom-scrollbar">
         <div class="p-6 md:p-10 max-w-7xl mx-auto w-full relative z-10">
             {% block content %}{% endblock %}
         </div>
     </main>
 
+    <script>
+        function toggleMenuMobile() {
+            const sidebar = document.getElementById('sidebar_menu');
+            const overlay = document.getElementById('overlay_menu');
+            
+            // Alterna a classe que esconde/mostra o menu lateral
+            sidebar.classList.toggle('-translate-x-full');
+            
+            // Alterna a camada de desfoque escura
+            overlay.classList.toggle('hidden');
+        }
+    </script>
+    
     <script src="/static/js/main.js?v=6"></script>
 </body>
 </html>
