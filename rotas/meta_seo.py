@@ -1,6 +1,12 @@
 import re
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
+
+# Nossos imports internos
+import models
+from database import get_db
+from auth import get_usuario_atual
 from services.ai_service import call_gemini
 
 router = APIRouter(prefix="/api/v1", tags=["Meta & SEO"])
@@ -11,9 +17,23 @@ class SeoRequest(BaseModel):
     canal: str
 
 @router.post("/meta-seo")
-async def process_seo(req: SeoRequest):
+async def process_seo(
+    req: SeoRequest,
+    db: Session = Depends(get_db),
+    usuario: models.Usuario = Depends(get_usuario_atual)
+):
+    # 1. VALIDAÇÃO DE SESSÃO E SALDO
+    if not usuario:
+        raise HTTPException(status_code=401, detail="Sessão expirada. Faça login novamente.")
+
     if not req.conteudo:
         raise HTTPException(status_code=400, detail="O roteiro ou conteúdo é obrigatório.")
+
+    # Custo da ferramenta de SEO
+    custo_operacao = 15
+
+    if usuario.coins < custo_operacao:
+        raise HTTPException(status_code=402, detail=f"Coins insuficientes! Você precisa de {custo_operacao} coins para gerar a arquitetura de SEO.")
 
     # O Prompt de Elite focado em gabaritar 50/50 no VidIQ
     system_prompt = f"""Você é um mestre em SEO para YouTube e copywriter de canais Dark, especialista em gabaritar a pontuação do VidIQ (50/50). Sua missão é ler o roteiro fornecido e criar 5 PACOTES COMPLETOS de SEO otimizados para o canal '{req.canal}'.
@@ -46,9 +66,26 @@ TAGS:
     user_content = f"Palavra-chave Foco Sugerida pelo Usuário: {req.keyword}\n\nROTEIRO/CONTEÚDO PARA ANÁLISE:\n{req.conteudo}"
 
     try:
-        # Mantendo o Gemini 2.5 Flash, que aguenta analisar roteiros de 15+ minutos sem falhar
         resultado = await call_gemini(system_prompt, user_content)
+        texto_limpo = resultado.strip()
         
-        return {"status": "sucesso", "seo_result": resultado.strip()}
+        # ==========================================
+        # 2. TRANSAÇÃO FINANCEIRA E HISTÓRICO
+        # ==========================================
+        usuario.coins -= custo_operacao
+        
+        novo_historico = models.Historico(
+            usuario_id=usuario.id,
+            ferramenta="Meta & SEO",
+            input_usuario=f"Canal: {req.canal} | Keyword: {req.keyword}\nRoteiro: {req.conteudo[:150]}...",
+            resultado=texto_limpo, 
+            custo_coins=custo_operacao
+        )
+        
+        db.add(novo_historico)
+        db.commit()
+        
+        # Devolvemos o texto e o novo saldo
+        return {"status": "sucesso", "seo_result": texto_limpo, "novo_saldo": usuario.coins}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
