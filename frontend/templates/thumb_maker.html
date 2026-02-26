@@ -14,8 +14,33 @@
                 <h2 class="text-base font-semibold text-white mb-5 flex items-center gap-2 relative z-10 border-b border-zinc-800/80 pb-2"><i class="fa-solid fa-clapperboard text-pink-500"></i> Sobre o Vídeo</h2>
                 <div class="space-y-4 relative z-10">
                     <div><label class="block text-sm font-medium text-zinc-400 mb-1.5">Título da História <span class="text-pink-500">*</span></label><input type="text" id="thumb_titulo" oninput="salvarEstado('thumb_titulo')" class="w-full bg-[#09090b] border border-zinc-700/80 rounded-lg px-4 py-2.5 text-zinc-200 focus:outline-none focus:border-pink-500 transition-colors shadow-inner" placeholder="Ex: O Mistério da Casa..."></div>
-                    <div><label class="block text-sm font-medium text-zinc-400 mb-1.5">Roteiro Completo <span class="text-pink-500">*</span></label><textarea id="thumb_roteiro" oninput="salvarEstado('thumb_roteiro')" class="w-full bg-[#09090b] border border-zinc-700/80 rounded-lg px-4 py-3 text-zinc-200 focus:outline-none focus:border-pink-500 transition-colors shadow-inner resize-none min-h-[160px] text-xs custom-scrollbar" placeholder="Cole o roteiro aqui..."></textarea></div>
-                    <div class="bg-[#121214] p-4 rounded-lg border border-zinc-800/80 shadow-inner"><label class="block text-sm font-bold text-pink-400 mb-2">Texto na Arte (Overlay)</label><input type="text" id="thumb_texto_arte" oninput="salvarEstado('thumb_texto_arte')" class="w-full bg-[#09090b] border border-pink-500/30 rounded-lg px-4 py-2 text-white font-black text-center tracking-widest focus:border-pink-500 outline-none" placeholder="Ex: NÃO OLHE!"></div>
+                    <div><label class="block text-sm font-medium text-zinc-400 mb-1.5">Roteiro Completo <span class="text-pink-500">*</span></label><textarea id="thumb_roteiro" oninput="salvarEstado('thumb_roteiro')" class="w-full bg-[#09090b] border border-zinc-700/80 rounded-lg px-4 py-3 text-zinc-200 focus:outline-none focus:border-pink-500 transition-colors shadow-inner resize-none min-h-[140px] text-xs custom-scrollbar" placeholder="Cole o roteiro aqui..."></textarea></div>
+                    
+                    <div class="bg-[#121214] p-4 rounded-lg border border-zinc-800/80 shadow-inner">
+                        <label class="block text-sm font-bold text-pink-400 mb-2">Texto na Arte (Overlay)</label>
+                        <input type="text" id="thumb_texto_arte" oninput="salvarEstado('thumb_texto_arte')" class="w-full bg-[#09090b] border border-pink-500/30 rounded-lg px-4 py-2 text-white font-black text-center tracking-widest focus:border-pink-500 outline-none mb-3" placeholder="Ex: NÃO OLHE!">
+                        
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-[10px] font-bold text-zinc-500 mb-1 uppercase">Cor do Texto</label>
+                                <select id="thumb_cor_texto" onchange="salvarEstado('thumb_cor_texto')" class="w-full bg-[#09090b] border border-zinc-700/80 rounded px-2 py-1.5 text-zinc-300 text-xs focus:outline-none focus:border-pink-500 transition-colors">
+                                    <option value="Amarelo com borda Preta (Alerta)">Amarelo + Preto (Alerta)</option>
+                                    <option value="Branco com fundo Vermelho (Urgência)">Branco + Vermelho</option>
+                                    <option value="Verde Neon (Sucesso/Dinheiro)">Verde Neon</option>
+                                    <option value="Branco Puro (Cinemático)">Branco Limpo</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-zinc-500 mb-1 uppercase">Posição</label>
+                                <select id="thumb_posicao_texto" onchange="salvarEstado('thumb_posicao_texto')" class="w-full bg-[#09090b] border border-zinc-700/80 rounded px-2 py-1.5 text-zinc-300 text-xs focus:outline-none focus:border-pink-500 transition-colors">
+                                    <option value="Topo Centralizado">Topo (Center)</option>
+                                    <option value="Canto Superior Esquerdo">Topo (Left)</option>
+                                    <option value="Centro Absoluto (Gigante)">Centro (Gigante)</option>
+                                    <option value="Rodapé Centralizado">Rodapé (Bottom)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
                     <div>
                         <label class="block text-sm font-medium text-zinc-400 mb-1.5">Estilo Visual da Capa</label>
                         <select id="thumb_estilo" onchange="salvarEstado('thumb_estilo')" class="w-full bg-[#09090b] border border-zinc-700/80 rounded-lg px-4 py-2.5 text-zinc-200 focus:outline-none focus:border-pink-500 transition-colors appearance-none shadow-inner cursor-pointer">
@@ -71,7 +96,7 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', () => {
-        const campos = ['thumb_titulo', 'thumb_roteiro', 'thumb_texto_arte', 'thumb_estilo'];
+        const campos = ['thumb_titulo', 'thumb_roteiro', 'thumb_texto_arte', 'thumb_estilo', 'thumb_cor_texto', 'thumb_posicao_texto'];
         campos.forEach(id => {
             const el = document.getElementById(id);
             if(el && sessionStorage.getItem(id)) el.value = sessionStorage.getItem(id);
@@ -85,8 +110,13 @@
     function salvarEstado(id) { sessionStorage.setItem(id, document.getElementById(id).value); }
 
     function limparThumb() {
-        const campos = ['thumb_titulo', 'thumb_roteiro', 'thumb_texto_arte'];
+        const campos = ['thumb_titulo', 'thumb_roteiro', 'thumb_texto_arte', 'thumb_cor_texto', 'thumb_posicao_texto'];
         campos.forEach(id => { const el = document.getElementById(id); if(el){ el.value = ''; sessionStorage.removeItem(id); } });
+        
+        // Reseta os selects para a primeira opção ao limpar
+        document.getElementById('thumb_cor_texto').selectedIndex = 0;
+        document.getElementById('thumb_posicao_texto').selectedIndex = 0;
+
         sessionStorage.removeItem('thumbHTML');
         document.getElementById('container_thumbs').innerHTML = `<div class="flex flex-col items-center justify-center h-full text-center py-20"><div class="w-16 h-16 rounded-full bg-[#121214] border border-zinc-800 flex items-center justify-center mb-4 shadow-inner"><i class="fa-solid fa-layer-group text-xl text-zinc-600"></i></div><h3 class="text-sm font-bold text-zinc-500">O Diretor de Arte aguarda o roteiro</h3></div>`;
     }
@@ -100,6 +130,8 @@
         const roteiro = document.getElementById('thumb_roteiro').value;
         const estilo = document.getElementById('thumb_estilo').value;
         const texto_arte = document.getElementById('thumb_texto_arte').value || "SEM TEXTO";
+        const cor_texto = document.getElementById('thumb_cor_texto').value;
+        const posicao_texto = document.getElementById('thumb_posicao_texto').value;
 
         if(!titulo || !roteiro) return alert("Preencha o Título e o Roteiro.");
 
@@ -108,10 +140,9 @@
         container.innerHTML = `<div class="flex flex-col items-center justify-center h-full text-pink-500"><i class="fa-solid fa-palette fa-fade text-4xl mb-4"></i><p class="font-bold">Analisando a história...</p></div>`;
 
         try {
-            // Agora apontando para o seu próprio servidor
             const res = await fetch("/api/v1/thumb-maker", {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ titulo, roteiro, estilo, texto_arte })
+                body: JSON.stringify({ titulo, roteiro, estilo, texto_arte, cor_texto, posicao_texto })
             });
             
             if(!res.ok) {
@@ -119,7 +150,6 @@
                 throw new Error(err);
             }
             
-            // O Python já devolve o JSON perfeitamente formatado
             const dados = await res.json();
 
             let htmlC = '';
@@ -135,7 +165,7 @@
                                 <span class="text-[10px] font-bold text-zinc-500"><i class="fa-solid fa-terminal text-emerald-500"></i> PROMPT GRINGO:</span>
                                 <button onclick="copiarTexto('${btoa(unescape(encodeURIComponent(capa.prompt_gringo)))}', this)" class="text-pink-500 hover:text-white transition-colors text-xs flex items-center gap-1"><i class="fa-solid fa-copy"></i> Copiar</button>
                             </div>
-                            <textarea class="w-full bg-[#09090b] border border-zinc-700/80 rounded px-3 py-2 text-emerald-400 text-xs font-mono resize-none h-20 shadow-inner focus:outline-none focus:border-pink-500" readonly>${capa.prompt_gringo}</textarea>
+                            <textarea class="w-full bg-[#09090b] border border-zinc-700/80 rounded px-3 py-2 text-emerald-400 text-xs font-mono resize-none h-24 shadow-inner focus:outline-none focus:border-pink-500" readonly>${capa.prompt_gringo}</textarea>
                         </div>`;
                 });
             }
