@@ -1,96 +1,25 @@
 {% extends "base.html" %}
-
 {% block content %}
 <div class="flex items-center justify-center min-h-[80vh]">
-    <div class="bg-[#121214] p-8 rounded-2xl border border-zinc-800 w-full max-w-md shadow-2xl relative overflow-hidden">
-        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 via-purple-400 to-emerald-400"></div>
-
+    <div class="bg-[#121214] p-8 rounded-2xl border border-zinc-800 w-full max-w-md shadow-2xl relative">
         <div class="text-center mb-8">
-            <h1 class="text-3xl font-black tracking-tighter text-white mb-2">
-                <i class="fa-solid fa-moon text-purple-500 mr-1"></i>DARK<span class="text-zinc-500 font-normal">CREATOR</span>
-            </h1>
-            <p class="text-zinc-500 text-sm italic uppercase tracking-widest font-bold">Acesso Restrito</p>
+            <h1 class="text-3xl font-black text-white italic">DARK<span class="text-zinc-500 font-normal">CREATOR</span></h1>
+            <p class="text-zinc-500 text-xs mt-2">ÁREA DE ACESSO</p>
         </div>
 
         <form id="formLogin" class="space-y-5">
-            <div>
-                <label class="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2">E-mail</label>
-                <div class="relative">
-                    <i class="fa-solid fa-envelope absolute left-3 top-1/2 -translate-y-1/2 text-zinc-600"></i>
-                    <input type="email" id="email" required 
-                        class="w-full pl-10 pr-4 py-3 bg-[#09090b] border border-zinc-800 rounded-lg text-white focus:border-purple-500/50 outline-none transition-all placeholder:text-zinc-700"
-                        placeholder="seu@email.com">
-                </div>
-            </div>
-
-            <div>
-                <label class="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2">Senha</label>
-                <div class="relative">
-                    <i class="fa-solid fa-lock absolute left-3 top-1/2 -translate-y-1/2 text-zinc-600"></i>
-                    <input type="password" id="password" required 
-                        class="w-full pl-10 pr-4 py-3 bg-[#09090b] border border-zinc-800 rounded-lg text-white focus:border-purple-500/50 outline-none transition-all placeholder:text-zinc-700"
-                        placeholder="••••••••">
-                </div>
-            </div>
-
-            <button type="submit" id="btn_entrar"
-                class="w-full bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-white font-bold py-3 rounded-lg transition-all flex items-center justify-center gap-2 group">
-                <span>Acessar Painel</span>
-                <i class="fa-solid fa-right-to-bracket group-hover:translate-x-1 transition-transform text-purple-400"></i>
-            </button>
+            <input type="email" id="email" required class="w-full p-3 bg-[#09090b] border border-zinc-800 rounded-lg text-white" placeholder="E-mail">
+            <input type="password" id="password" required class="w-full p-3 bg-[#09090b] border border-zinc-800 rounded-lg text-white" placeholder="Senha">
+            <button type="submit" id="btn_entrar" class="w-full bg-zinc-800 hover:bg-zinc-700 text-white font-bold py-3 rounded-lg transition-all">Entrar</button>
         </form>
 
-        <div id="login_status" class="mt-4 text-center hidden p-3 rounded-lg text-xs font-bold border border-transparent"></div>
+        <div id="login_status" class="mt-4 text-center hidden p-3 rounded-lg text-xs font-bold border"></div>
+
+        <div class="mt-6 text-center">
+            <p class="text-zinc-500 text-sm">Novo por aqui? 
+                <a href="/registrar" class="text-purple-400 hover:text-purple-300 font-bold transition-colors">Crie sua conta e ganhe 30 coins</a>
+            </p>
+        </div>
     </div>
 </div>
-
-<script>
-    document.getElementById('formLogin').addEventListener('submit', async function(e) {
-        e.preventDefault();
-        
-        const status = document.getElementById('login_status');
-        const btn = document.getElementById('btn_entrar');
-        const email = document.getElementById('email').value;
-        const password = document.getElementById('password').value;
-
-        // Resetar status e mostrar carregamento
-        status.classList.remove('hidden', 'border-red-500/20', 'text-red-400', 'bg-red-500/5', 'border-emerald-500/20', 'text-emerald-400', 'bg-emerald-500/5');
-        status.classList.add('block', 'text-zinc-500', 'border-zinc-800');
-        status.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin mr-2"></i>Conectando aos motores neurais...';
-        btn.disabled = true;
-
-        try {
-            // Chamada real para a API que configuramos no seu main.py
-            const response = await fetch('/api/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: email, password: password })
-            });
-
-            const result = await response.json();
-
-            if (response.ok) {
-                // Sucesso Total
-                status.innerHTML = '<i class="fa-solid fa-circle-check mr-2"></i>Acesso autorizado! Carregando dashboard...';
-                status.classList.replace('text-zinc-500', 'text-emerald-400');
-                status.classList.replace('border-zinc-800', 'border-emerald-500/20');
-                status.classList.add('bg-emerald-500/5');
-                
-                // Redireciona para a home em 1 segundo
-                setTimeout(() => { window.location.href = "/"; }, 1000);
-            } else {
-                // Erro retornado pela API (Senha errada, etc)
-                throw new Error(result.message || "Credenciais inválidas");
-            }
-
-        } catch (error) {
-            // Erro de Conexão ou Credenciais
-            status.innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-2"></i> ${error.message}`;
-            status.classList.replace('text-zinc-500', 'text-red-400');
-            status.classList.replace('border-zinc-800', 'border-red-500/20');
-            status.classList.add('bg-red-500/5');
-            btn.disabled = false;
-        }
-    });
-</script>
 {% endblock %}
