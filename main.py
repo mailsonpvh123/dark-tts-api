@@ -179,22 +179,38 @@ async def thumb_page(request: Request, db: Session = Depends(get_db)):
     if not user: return RedirectResponse(url="/login")
     return templates.TemplateResponse("thumb_maker.html", {"request": request, "title": "Thumb Maker", "user": user})
 
-# --- SETUP INICIAL ADMIN ---
+# --- SETUP INICIAL ADMIN (MODO PRO: ATUALIZA SE JÁ EXISTIR) ---
 @app.get("/setup-admin")
 def setup_admin(db: Session = Depends(get_db)):
-    meu_email = "redbull1782.mab@gmail.com"
-    user = db.query(models.Usuario).filter(models.Usuario.email == meu_email).first()
-    if not user:
-        admin = models.Usuario(
-            email=meu_email, 
-            senha=pwd_context.hash("sua_senha_segura"), 
-            coins=10000, 
-            tipo_plano="PLUS"
-        )
-        db.add(admin)
-        db.commit()
-        return {"msg": "Admin master de Porto Velho criado!"}
-    return {"msg": "Admin já existe."}
+    try:
+        meu_email = "redbull1782.mab@gmail.com"
+        
+        # IMPORTANTE: TROQUE O TEXTO ABAIXO PELA SUA SENHA REAL ANTES DE SUBIR
+        minha_senha = "18022006Lipe#" 
+
+        user = db.query(models.Usuario).filter(models.Usuario.email == meu_email).first()
+        
+        if not user:
+            # Cria se não existir
+            admin = models.Usuario(
+                email=meu_email, 
+                senha=pwd_context.hash(minha_senha), 
+                coins=10000, 
+                tipo_plano="PLUS"
+            )
+            db.add(admin)
+            db.commit()
+            return {"msg": "Admin master criado com sucesso!"}
+        else:
+            # Atualiza a senha e as coins se já existir (Resolve seu problema de login)
+            user.senha = pwd_context.hash(minha_senha)
+            user.coins = 10000
+            user.tipo_plano = "PLUS"
+            db.commit()
+            return {"msg": "Credenciais do Admin atualizadas com sucesso! Tente logar agora."}
+            
+    except Exception as e:
+        return {"error": str(e)}
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
