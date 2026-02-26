@@ -77,8 +77,8 @@ async def login(request: Request, db: Session = Depends(get_db)):
 @app.get("/setup-admin")
 def setup_admin(db: Session = Depends(get_db)):
     # AJUSTE SEU EMAIL E SENHA AQUI ANTES DE SUBIR
-    meu_email = "seu@email.com" 
-    minha_senha = "sua_senha_secreta"
+    meu_email = "redbull782.mab@gmail.com" 
+    minha_senha = "18022006Lipe#"
 
     user_exists = db.query(models.Usuario).filter(models.Usuario.email == meu_email).first()
     if not user_exists:
