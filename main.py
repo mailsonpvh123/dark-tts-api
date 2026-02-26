@@ -109,15 +109,16 @@ def verificar_sessao(request: Request):
 
 # --- ROTAS VISUAIS ---
 
+@app.get("/registrar", response_class=HTMLResponse)
+async def registrar_page(request: Request):
+    # Se já estiver logado, não precisa registrar de novo
+    if verificar_sessao(request): return RedirectResponse(url="/")
+    return templates.TemplateResponse("registro.html", {"request": request, "title": "Criar Conta"})
+
 @app.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):
     if verificar_sessao(request): return RedirectResponse(url="/")
     return templates.TemplateResponse("login.html", {"request": request, "title": "Login"})
-
-@app.get("/registrar", response_class=HTMLResponse)
-async def registrar_page(request: Request):
-    if verificar_sessao(request): return RedirectResponse(url="/")
-    return templates.TemplateResponse("registro.html", {"request": request, "title": "Criar Conta"})
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
