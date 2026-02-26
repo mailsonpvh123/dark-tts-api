@@ -3,7 +3,6 @@ from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-# Nossos imports internos
 import models
 from database import get_db
 from auth import get_usuario_atual
@@ -22,20 +21,18 @@ async def process_insights(
     db: Session = Depends(get_db),
     usuario: models.Usuario = Depends(get_usuario_atual)
 ):
-    # 1. VALIDAÇÃO DE USUÁRIO E SALDO
     if not usuario:
         raise HTTPException(status_code=401, detail="Sessão expirada. Faça login novamente.")
 
     if not req.tema:
         raise HTTPException(status_code=400, detail="O campo Nicho ou Tema é obrigatório.")
 
-    # Definimos o custo dessa ferramenta (1 coin = 1 Ideação Completa)
-    custo_operacao = 1
+    # NOVO CUSTO (Parte dos 100 coins totais do vídeo)
+    custo_operacao = 5
 
     if usuario.coins < custo_operacao:
-        raise HTTPException(status_code=402, detail=f"Coins insuficientes! Você precisa de {custo_operacao} coin para mapear ideias.")
+        raise HTTPException(status_code=402, detail=f"Coins insuficientes! Você precisa de {custo_operacao} coins para mapear ideias.")
 
-    # 2. PREPARANDO A INTELIGÊNCIA ARTIFICIAL
     system_prompt = """Você é um roteirista viral especialista em canais Dark do YouTube e TikTok. O usuário te dará um Nicho, Público e Tom. Gere 3 ideias brilhantes e virais de vídeos.
 
 REGRAS DE SAÍDA:
@@ -53,25 +50,22 @@ Você DEVE retornar APENAS um objeto JSON válido, sem nenhum texto antes ou dep
     user_content = f"Nicho/Tema: {req.tema}\nPúblico: {req.publico}\nTom: {req.tom}"
 
     try:
-        # 3. EXECUTANDO A IA
         resultado_str = await call_groq_json(system_prompt, user_content)
         resultado_json = json.loads(resultado_str)
         
-        # 4. TRANSAÇÃO FINANCEIRA E HISTÓRICO (O CORAÇÃO DO SAAS)
         usuario.coins -= custo_operacao
         
         novo_historico = models.Historico(
             usuario_id=usuario.id,
             ferramenta="Gen Insights",
             input_usuario=user_content,
-            resultado=resultado_str, # Salvamos o JSON cru para não perder nada
+            resultado=resultado_str, 
             custo_coins=custo_operacao
         )
         
         db.add(novo_historico)
         db.commit()
         
-        # Injetamos o novo saldo na resposta para o Front-end atualizar a tela!
         resultado_json["novo_saldo"] = usuario.coins
         
         return resultado_json
