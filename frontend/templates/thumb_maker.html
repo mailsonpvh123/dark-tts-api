@@ -107,37 +107,42 @@
         txtBtn.innerHTML = `Criando Arte... <i class="fa-solid fa-circle-notch fa-spin ml-1"></i>`;
         container.innerHTML = `<div class="flex flex-col items-center justify-center h-full text-pink-500"><i class="fa-solid fa-palette fa-fade text-4xl mb-4"></i><p class="font-bold">Analisando a história...</p></div>`;
 
-        const WEBHOOK_THUMB = "https://n8n.zappclube.com.br/webhook-test/gerador-thumb";
-
         try {
-            const res = await fetch(WEBHOOK_THUMB, {
+            // Agora apontando para o seu próprio servidor
+            const res = await fetch("/api/v1/thumb-maker", {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ titulo, roteiro, estilo, texto_arte })
             });
-            const dadosStr = await res.json();
-            let dados = typeof dadosStr === 'string' ? JSON.parse(dadosStr.replace(/```json/g, '').replace(/```/g, '').trim()) : dadosStr;
+            
+            if(!res.ok) {
+                let err = "Erro desconhecido."; try { const d = await res.json(); err = d.detail; } catch(e){}
+                throw new Error(err);
+            }
+            
+            // O Python já devolve o JSON perfeitamente formatado
+            const dados = await res.json();
 
             let htmlC = '';
-            if(dados.conflito_principal) htmlC += `<div class="mb-5 p-4 bg-[#121214] rounded-lg border border-pink-500/30"><h3 class="text-xs font-bold text-pink-400 mb-2 uppercase">Conflito Principal (Âncora)</h3><p class="text-sm text-zinc-300 italic">"${dados.conflito_principal}"</p></div>`;
+            if(dados.conflito_principal) htmlC += `<div class="mb-5 p-4 bg-[#121214] rounded-lg border border-pink-500/30 shadow-inner"><h3 class="text-xs font-bold text-pink-400 mb-2 uppercase"><i class="fa-solid fa-anchor"></i> Conflito Principal (Âncora)</h3><p class="text-sm text-zinc-300 italic">"${dados.conflito_principal}"</p></div>`;
             
             if(dados.capas) {
                 dados.capas.forEach((capa, i) => {
                     htmlC += `
-                        <div class="bg-[#121214] border border-zinc-800/80 rounded-xl p-5 mb-4 shadow-inner">
-                            <span class="text-pink-400 text-[10px] font-bold uppercase mb-2 block bg-pink-500/10 px-2 py-1 inline-block rounded">Ideia ${i + 1}: ${capa.estrategia}</span>
+                        <div class="bg-[#121214] border border-zinc-800/80 rounded-xl p-5 mb-4 shadow-inner hover:border-pink-500/30 transition-colors">
+                            <span class="text-pink-400 text-[10px] font-bold uppercase mb-2 bg-pink-500/10 px-2 py-1 inline-block rounded border border-pink-500/20">Ideia ${i + 1}: ${capa.estrategia}</span>
                             <p class="text-xs text-zinc-400 mb-4 border-l-2 border-zinc-700 pl-3 italic">"${capa.psicologia}"</p>
                             <div class="flex items-center justify-between mb-1">
-                                <span class="text-[10px] font-bold text-zinc-500">PROMPT GRINGO:</span>
+                                <span class="text-[10px] font-bold text-zinc-500"><i class="fa-solid fa-terminal text-emerald-500"></i> PROMPT GRINGO:</span>
                                 <button onclick="copiarTexto('${btoa(unescape(encodeURIComponent(capa.prompt_gringo)))}', this)" class="text-pink-500 hover:text-white transition-colors text-xs flex items-center gap-1"><i class="fa-solid fa-copy"></i> Copiar</button>
                             </div>
-                            <textarea class="w-full bg-[#09090b] border border-zinc-700/80 rounded px-3 py-2 text-emerald-400 text-xs font-mono resize-none h-20 shadow-inner" readonly>${capa.prompt_gringo}</textarea>
+                            <textarea class="w-full bg-[#09090b] border border-zinc-700/80 rounded px-3 py-2 text-emerald-400 text-xs font-mono resize-none h-20 shadow-inner focus:outline-none focus:border-pink-500" readonly>${capa.prompt_gringo}</textarea>
                         </div>`;
                 });
             }
             container.innerHTML = htmlC;
             sessionStorage.setItem('thumbHTML', htmlC);
         } catch (error) {
-            container.innerHTML = `<p class="text-red-400 text-center font-bold py-10">Erro: ${error.message}</p>`;
+            container.innerHTML = `<p class="text-red-400 text-center font-bold py-10"><i class="fa-solid fa-triangle-exclamation"></i> Erro: ${error.message}</p>`;
         } finally {
             btn.disabled = false; btn.classList.remove('opacity-70', 'cursor-not-allowed'); txtBtn.innerHTML = "Gerar Prompts";
         }
