@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="animate-fade-in block relative z-10">
+    <div class="mb-8 relative">
+        <h1 class="text-3xl font-bold text-white mb-2">Central de Comando</h1>
+        <p class="text-zinc-400">Bem-vindo(a) de volta, <span class="text-emerald-400 font-bold">{{ user.email }}</span>. O que vamos criar hoje?</p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+        <div class="bg-[#18181b] border border-zinc-800/80 rounded-xl p-6 shadow-lg relative overflow-hidden group">
+            <div class="absolute -top-10 -right-10 w-32 h-32 bg-yellow-500/10 rounded-full blur-[40px] pointer-events-none group-hover:bg-yellow-500/20 transition-colors"></div>
+            <div class="flex justify-between items-center relative z-10">
+                <div>
+                    <p class="text-sm font-bold text-zinc-500 uppercase tracking-wider mb-1">Saldo Neural</p>
+                    <h2 class="text-4xl font-black text-white"><i class="fa-solid fa-coins text-yellow-500 mr-2"></i>{{ user.coins }}</h2>
+                </div>
+                <div class="w-12 h-12 rounded-full bg-zinc-900 border border-zinc-700 flex items-center justify-center shadow-inner">
+                    <i class="fa-solid fa-wallet text-xl text-zinc-400"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-[#18181b] border border-zinc-800/80 rounded-xl p-6 shadow-lg relative overflow-hidden group">
+            <div class="absolute -top-10 -right-10 w-32 h-32 bg-emerald-500/10 rounded-full blur-[40px] pointer-events-none group-hover:bg-emerald-500/20 transition-colors"></div>
+            <div class="flex justify-between items-center relative z-10">
+                <div>
+                    <p class="text-sm font-bold text-zinc-500 uppercase tracking-wider mb-1">Licença Ativa</p>
+                    <h2 class="text-4xl font-black text-white"><i class="fa-solid fa-id-card-clip text-emerald-500 mr-2"></i>{{ user.tipo_plano }}</h2>
+                </div>
+                <div class="w-12 h-12 rounded-full bg-zinc-900 border border-zinc-700 flex items-center justify-center shadow-inner">
+                    <i class="fa-solid fa-gem text-xl text-zinc-400"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="text-xl font-bold text-white mb-5 flex items-center gap-2 border-b border-zinc-800/80 pb-2">
+        <i class="fa-solid fa-rocket text-zinc-500"></i> A Sua Esteira de Produção
+    </h2>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        
+        <a href="/miner" class="bg-[#121214] border border-zinc-800/80 rounded-xl p-5 hover:border-indigo-500/50 hover:bg-indigo-500/5 transition-all group shadow-inner block">
+            <div class="w-10 h-10 rounded-lg bg-indigo-500/10 flex items-center justify-center border border-indigo-500/20 mb-3 group-hover:scale-110 transition-transform">
+                <i class="fa-solid fa-magnet text-indigo-400"></i>
+            </div>
+            <h3 class="font-bold text-white mb-1">Data Miner</h3>
+            <p class="text-xs text-zinc-500 mb-3">Pesquisa avançada de temas e traduções automáticas.</p>
+            <span class="text-[10px] font-bold text-indigo-400 bg-indigo-500/10 px-2 py-1 rounded border border-indigo-500/20">5 Coins</span>
+        </a>
+
+        <a href="/gen-insights" class="bg-[#121214] border border-zinc-800/80 rounded-xl p-5 hover:border-yellow-500/50 hover:bg-yellow-500/5 transition-all group shadow-inner block">
+            <div class="w-10 h-10 rounded-lg bg-yellow-500/10 flex items-center justify-center border border-yellow-500/20 mb-3 group-hover:scale-110 transition-transform">
+                <i class="fa-solid fa-lightbulb text-yellow-400"></i>
+            </div>
+            <h3 class="font-bold text-white mb-1">Gen Insights</h3>
+            <p class="text-xs text-zinc-500 mb-3">Mapeamento de ideias virais e ganchos de retenção.</p>
+            <span class="text-[10px] font-bold text-yellow-400 bg-yellow-500/10 px-2 py-1 rounded border border-yellow-500/20">5 Coins</span>
+        </a>
+
+        <a href="/script-forge" class="bg-[#121214] border border-zinc-800/80 rounded-xl p-5 hover:border-orange-500/50 hover:bg-orange-500/5 transition-all group shadow-inner block">
+            <div class="w-10 h-10 rounded-lg bg-orange-500/10 flex items-center justify-center border border-orange-500/20 mb-3 group-hover:scale-110 transition-transform">
+                <i class="fa-solid fa-pen-nib text-orange-400"></i>
+            </div>
+            <h3 class="font-bold text-white mb-1">Script Forge</h3>
+            <p class="text-xs text-zinc-500 mb-3">Forja de roteiros longos e magnéticos em modelo Dark.</p>
+            <span class="text-[10px] font-bold text-orange-400 bg-orange-500/10 px-2 py-1 rounded border border-orange-500/20">25 Coins</span>
+        </a>
+
+        <a href="/paraphraser" class="bg-[#121214] border border-zinc-800/80 rounded-xl p-5 hover:border-pink-500/50 hover:bg-pink-500/5 transition-all group shadow-inner block">
+            <div class="w-10 h-10 rounded-lg bg-pink-500/10 flex items-center justify-center border border-pink-500/20 mb-3 group-hover:scale-110 transition-transform">
+                <i class="fa-solid fa-rotate text-pink-400"></i>
+            </div>
+            <h3 class="font-bold text-white mb-1">Text Transmuter</h3>
+            <p class="text-xs text-zinc-500 mb-3">Reescrita profunda anti-plágio otimizada para TTS.</p>
+            <span class="text-[10px] font-bold text-pink-400 bg-pink-500/10 px-2 py-1 rounded border border-pink-500/20">25 Coins</span>
+        </a>
+
+        <a href="/voice-synthesizer" class="bg-[#121214] border border-zinc-800/80 rounded-xl p-5 hover:border-purple-500/50 hover:bg-purple-500/5 transition-all group shadow-inner block">
+            <div class="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center border border-purple-500/20 mb-3 group-hover:scale-110 transition-transform">
+                <i class="fa-solid fa-microphone-lines text-purple-400"></i>
+            </div>
+            <h3 class="font-bold text-white mb-1">Voice Synth</h3>
+            <p class="text-xs text-zinc-500 mb-3">Sintetizador de locução neural e criação de ficheiro SRT.</p>
+            <span class="text-[10px] font-bold text-purple-400 bg-purple-500/10 px-2 py-1 rounded border border-purple-500/20">30 Coins</span>
+        </a>
+
+        <a href="/audio-mixer" class="bg-[#121214] border border-zinc-800/80 rounded-xl p-5 hover:border-amber-500/50 hover:bg-amber-500/5 transition-all group shadow-inner block">
+            <div class="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center border border-amber-500/20 mb-3 group-hover:scale-110 transition-transform">
+                <i class="fa-solid fa-sliders text-amber-400"></i>
+            </div>
+            <h3 class="font-bold text-white mb-1">Audio Mixer Pro</h3>
+            <p class="text-xs text-zinc-500 mb-3">Auto-Ducking e Masterização de voz com música de fundo.</p>
+            <span class="text-[10px] font-bold text-amber-400 bg-amber-500/10 px-2 py-1 rounded border border-amber-500/20">10 Coins</span>
+        </a>
+
+        <a href="/meta-seo" class="bg-[#121214] border border-zinc-800/80 rounded-xl p-5 hover:border-blue-500/50 hover:bg-blue-500/5 transition-all group shadow-inner block">
+            <div class="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center border border-blue-500/20 mb-3 group-hover:scale-110 transition-transform">
+                <i class="fa-solid fa-magnifying-glass-chart text-blue-400"></i>
+            </div>
+            <h3 class="font-bold text-white mb-1">Meta & SEO</h3>
+            <p class="text-xs text-zinc-500 mb-3">Títulos magnéticos, Descrições e Tags focadas no VidIQ.</p>
+            <span class="text-[10px] font-bold text-blue-400 bg-blue-500/10 px-2 py-1 rounded border border-blue-500/20">15 Coins</span>
+        </a>
+
+        <a href="/thumb-maker" class="bg-[#121214] border border-zinc-800/80 rounded-xl p-5 hover:border-pink-500/50 hover:bg-pink-500/5 transition-all group shadow-inner block">
+            <div class="w-10 h-10 rounded-lg bg-pink-500/10 flex items-center justify-center border border-pink-500/20 mb-3 group-hover:scale-110 transition-transform">
+                <i class="fa-solid fa-image text-pink-400"></i>
+            </div>
+            <h3 class="font-bold text-white mb-1">Thumb Maker Pro</h3>
+            <p class="text-xs text-zinc-500 mb-3">Direção de arte e geração de prompts focados em CTR Alto.</p>
+            <span class="text-[10px] font-bold text-pink-400 bg-pink-500/10 px-2 py-1 rounded border border-pink-500/20">15 Coins</span>
+        </a>
+        
+    </div>
+</section>
+{% endblock %}
