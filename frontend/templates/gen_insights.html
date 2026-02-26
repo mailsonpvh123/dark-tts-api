@@ -113,7 +113,8 @@
         if(!tema) return alert("Por favor, preencha o Nicho ou Tema."); 
 
         btn.classList.add('opacity-70', 'cursor-not-allowed');
-        container.innerHTML = `<div class="flex flex-col items-center justify-center py-10 w-full h-full relative z-10"><i class="fa-solid fa-brain fa-fade text-4xl text-yellow-500 mb-4"></i><p class="text-zinc-400 text-sm animate-pulse">A IA está mapeando tendências...</p></div>`;
+        // Nova animação de carregamento informando o custo!
+        container.innerHTML = `<div class="flex flex-col items-center justify-center py-10 w-full h-full relative z-10"><i class="fa-solid fa-brain fa-fade text-4xl text-yellow-500 mb-4"></i><p class="text-zinc-400 text-sm font-bold uppercase tracking-wider animate-pulse">A IA está mapeando tendências... (-1 Coin)</p></div>`;
 
         try {
             const res = await fetch("/api/v1/gen-insights", { 
@@ -130,6 +131,22 @@
 
             const dados = await res.json();
             ideiasGlobais = dados.ideias; 
+
+            // ==========================================
+            // MAGIA DO FRONT-END: Atualiza o Saldo em Tempo Real
+            // ==========================================
+            if(dados.novo_saldo !== undefined) {
+                const iconesCoins = document.querySelectorAll('.fa-coins');
+                iconesCoins.forEach(icone => {
+                    const textoSaldo = dados.novo_saldo.toLocaleString('pt-BR');
+                    icone.parentElement.innerHTML = `<i class="fa-solid fa-coins"></i> ${textoSaldo} coins`;
+                    
+                    // Efeito de pulso para o usuário "sentir" que gastou
+                    icone.parentElement.classList.add('text-yellow-400', 'scale-110');
+                    setTimeout(() => icone.parentElement.classList.remove('text-yellow-400', 'scale-110'), 500);
+                });
+            }
+            // ==========================================
             
             let htmlCards = '<div class="w-full text-left space-y-4 relative z-10" id="lista_ideias_geradas">';
 
@@ -155,7 +172,16 @@
             sessionStorage.setItem('ideiasGlobaisArray', JSON.stringify(ideiasGlobais));
 
         } catch (error) { 
-            container.innerHTML = `<p class="text-red-400 font-bold p-5 relative z-10"><i class="fa-solid fa-triangle-exclamation"></i> Erro Técnico: ${error.message}</p>`; 
+            // Se o erro for de saldo (402), destacamos em amarelo
+            const erroClass = error.message.includes('Coins insuficientes') ? 'text-yellow-400 border-yellow-500/30 bg-yellow-500/5' : 'text-red-400 border-red-500/30 bg-red-500/5';
+            
+            container.innerHTML = `
+            <div class="flex items-center justify-center h-full">
+                <p class="${erroClass} border font-bold p-5 rounded-lg relative z-10 text-center shadow-lg">
+                    <i class="fa-solid fa-triangle-exclamation text-2xl mb-2 block"></i> 
+                    ${error.message}
+                </p>
+            </div>`; 
         } finally { 
             btn.classList.remove('opacity-70', 'cursor-not-allowed'); 
             btn.innerHTML = `<i class="fa-solid fa-map-location-dot group-hover:scale-110 transition-transform"></i> Mapear Ideias`;
