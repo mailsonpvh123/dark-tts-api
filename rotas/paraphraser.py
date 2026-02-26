@@ -1,6 +1,12 @@
 import re
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
+
+# Nossos imports internos
+import models
+from database import get_db
+from auth import get_usuario_atual
 from services.ai_service import call_gemini
 
 router = APIRouter(prefix="/api/v1", tags=["Paraphraser"])
@@ -11,9 +17,24 @@ class ParaphraserRequest(BaseModel):
     canal: str
 
 @router.post("/paraphraser")
-async def process_paraphraser(req: ParaphraserRequest):
+async def process_paraphraser(
+    req: ParaphraserRequest,
+    db: Session = Depends(get_db),
+    usuario: models.Usuario = Depends(get_usuario_atual)
+):
+    # 1. VALIDAÇÃO DE SESSÃO E SALDO
+    if not usuario:
+        raise HTTPException(status_code=401, detail="Sessão expirada. Faça login novamente.")
+
     if not req.texto:
         raise HTTPException(status_code=400, detail="Texto vazio")
+
+    # Custo da ferramenta de reescrita profunda
+    custo_operacao = 25
+
+    if usuario.coins < custo_operacao:
+        raise HTTPException(status_code=402, detail=f"Coins insuficientes! Você precisa de {custo_operacao} coins para transmutar este texto.")
+
 
     # ==========================================
     # MÓDULO UNIVERSAL TTS (Aplica-se a todos os modos)
@@ -70,7 +91,24 @@ DIRETRIZES DO MODO ZERO PLÁGIO:
         texto_limpo = texto_limpo.replace('?', '.').replace('!', '.')
         texto_limpo = re.sub(r'\.{2,}', '.', texto_limpo)
         
-        return {"status": "sucesso", "texto_transmutado": texto_limpo}
+        # ==========================================
+        # 4. TRANSAÇÃO FINANCEIRA E HISTÓRICO
+        # ==========================================
+        usuario.coins -= custo_operacao
+        
+        novo_historico = models.Historico(
+            usuario_id=usuario.id,
+            ferramenta="Paraphraser",
+            input_usuario=f"Modo: {req.modo} | Canal: {req.canal}\nTexto: {req.texto[:150]}...",
+            resultado=texto_limpo, 
+            custo_coins=custo_operacao
+        )
+        
+        db.add(novo_historico)
+        db.commit()
+
+        # Devolve o novo saldo junto com o texto reescrito
+        return {"status": "sucesso", "texto_transmutado": texto_limpo, "novo_saldo": usuario.coins}
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
