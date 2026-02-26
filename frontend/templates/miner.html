@@ -41,7 +41,7 @@
                     
                     <div class="flex gap-3 mt-6">
                         <button id="btn_iniciar_miner" onclick="iniciarMineracao()" class="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3.5 rounded-lg shadow-[0_0_15px_rgba(99,102,241,0.4)] transition-all flex items-center justify-center gap-2 group border border-indigo-500/50">
-                            <i class="fa-solid fa-satellite-dish group-hover:scale-110 transition-transform"></i> <span id="txt_btn_miner">Iniciar Varredura</span>
+                            <i class="fa-solid fa-satellite-dish group-hover:scale-110 transition-transform"></i> <span id="txt_btn_miner">Iniciar Varredura (5 Coins)</span>
                         </button>
                         <button onclick="limparMiner()" class="bg-zinc-800 hover:bg-red-500/20 text-zinc-400 hover:text-red-400 border border-zinc-700 hover:border-red-500/50 font-bold py-3 px-4 rounded-lg transition-all flex items-center justify-center group" title="Limpar Tela">
                             <i class="fa-solid fa-trash-can group-hover:scale-110 transition-transform"></i>
@@ -108,7 +108,7 @@
             else if(fonte === 'news') { p = "Ex: Avanços da IA..."; l = "Assunto (Google News)"; }
             document.getElementById('miner_query_geral').placeholder = p;
             document.getElementById('lbl_miner_query_geral').innerText = l;
-            document.getElementById('box_traduzir_web').style.display = 'flex'; // Aplica para todos fora o reddit
+            document.getElementById('box_traduzir_web').style.display = 'flex'; 
         }
     }
 
@@ -119,10 +119,10 @@
         const fonte = document.getElementById('miner_fonte').value;
 
         btn.disabled = true; btn.classList.add('opacity-70', 'cursor-not-allowed');
+        // Adicionando o aviso visual do custo!
         txtBtn.innerHTML = `Vascunhando a Web... <i class="fa-solid fa-circle-notch fa-spin ml-1"></i>`;
-        container.innerHTML = `<div class="flex flex-col items-center justify-center h-full py-20 text-indigo-500"><i class="fa-solid fa-satellite-dish fa-fade text-4xl mb-4"></i><p class="font-bold">Traduzindo e extraindo da nuvem...</p></div>`;
+        container.innerHTML = `<div class="flex flex-col items-center justify-center h-full py-20 text-indigo-500"><i class="fa-solid fa-satellite-dish fa-fade text-4xl mb-4"></i><p class="font-bold">Traduzindo e extraindo da nuvem... (-5 Coins)</p></div>`;
 
-        // URL agora aponta para a nossa própria API Python
         let url = "/api/v1/miner/" + fonte;
         let payload = fonte === 'reddit' ? {
             sub: document.getElementById('miner_sub').value, 
@@ -137,7 +137,7 @@
 
         if(!payload.query.trim()) {
             alert("Digite um termo para buscar!");
-            btn.disabled = false; btn.classList.remove('opacity-70', 'cursor-not-allowed'); txtBtn.innerHTML = "Iniciar Varredura";
+            btn.disabled = false; btn.classList.remove('opacity-70', 'cursor-not-allowed'); txtBtn.innerHTML = "Iniciar Varredura (5 Coins)";
             return;
         }
 
@@ -148,10 +148,33 @@
                 body: JSON.stringify(payload) 
             });
             
-            if(!res.ok) throw new Error("Falha no servidor.");
+            if(!res.ok) {
+                let erroReal = "Falha no servidor.";
+                try { const dadosErro = await res.json(); erroReal = dadosErro.detail || erroReal; } catch(e) {}
+                throw new Error(erroReal);
+            }
             const dados = await res.json();
             
             if (dados.status === "erro") throw new Error(dados.mensagem);
+
+            // ==========================================
+            // MAGIA DO FRONT-END: Atualiza o Saldo
+            // ==========================================
+            if(dados.novo_saldo !== undefined) {
+                const paineisDeCoins = document.querySelectorAll('.fa-coins');
+                paineisDeCoins.forEach(icone => {
+                    const elementoPai = icone.closest('p'); 
+                    if(elementoPai) {
+                        const textoSaldo = dados.novo_saldo.toLocaleString('pt-BR');
+                        elementoPai.innerHTML = `<i class="fa-solid fa-coins"></i> ${textoSaldo} coins`;
+                        
+                        // Pisca na cor Indigo (Roxo Azulado) para combinar com a tela
+                        elementoPai.classList.add('text-indigo-400', 'scale-110');
+                        setTimeout(() => elementoPai.classList.remove('text-indigo-400', 'scale-110'), 500);
+                    }
+                });
+            }
+            // ==========================================
             
             if (dados.data.length === 0) {
                 container.innerHTML = `<p class="text-zinc-500 text-center py-10 font-bold">Nenhum resultado encontrado. Tente termos diferentes.</p>`;
@@ -160,7 +183,6 @@
 
             let htmlRes = '';
             dados.data.forEach((item) => {
-                // Monta o Card Premium
                 htmlRes += `
                     <div class="miner-card bg-[#121214] border border-zinc-800/80 rounded-xl p-5 hover:border-indigo-500/50 transition-colors mb-4 shadow-inner relative group">
                         <div class="flex justify-between items-start mb-3">
@@ -186,14 +208,17 @@
             sessionStorage.setItem('minerHTML', htmlRes);
             
         } catch (error) {
-            container.innerHTML = `<p class="text-red-500 text-center py-10 font-bold"><i class="fa-solid fa-triangle-exclamation"></i> Erro: ${error.message}</p>`;
+            if(error.message.includes('Coins insuficientes')) {
+                container.innerHTML = `<p class="text-yellow-400 bg-yellow-500/10 border border-yellow-500/20 rounded-lg text-center py-10 font-bold"><i class="fa-solid fa-triangle-exclamation text-2xl mb-2 block"></i><br> ${error.message}</p>`;
+            } else {
+                container.innerHTML = `<p class="text-red-500 text-center py-10 font-bold"><i class="fa-solid fa-triangle-exclamation"></i> Erro: ${error.message}</p>`;
+            }
         } finally {
-            btn.disabled = false; btn.classList.remove('opacity-70', 'cursor-not-allowed'); txtBtn.innerHTML = "Iniciar Varredura";
+            btn.disabled = false; btn.classList.remove('opacity-70', 'cursor-not-allowed'); txtBtn.innerHTML = "Iniciar Varredura (5 Coins)";
         }
     }
 
     function baixarTXT(btn, titulo) {
-        // Pega o texto completo oculto
         const texto = btn.closest('.miner-card').querySelector('.miner-texto-completo').value;
         const blob = new Blob([texto], { type: 'text/plain' });
         const link = document.createElement('a'); 
@@ -205,7 +230,6 @@
     }
 
     function enviarMinerParaParaphraser(btn) {
-        // Pega o texto completo oculto e joga na memória da esteira
         const texto = btn.closest('.miner-card').querySelector('.miner-texto-completo').value;
         localStorage.setItem('texto_pendente_paraphraser', texto);
         window.location.href = '/paraphraser';
