@@ -24,7 +24,6 @@ document.addEventListener('DOMContentLoaded', async function() {
             if (path === '/audio-mixer') icon.classList.add('text-amber-400');
             if (path === '/meta-seo') icon.classList.add('text-blue-400');
             if (path === '/thumb-maker') icon.classList.add('text-pink-400');
-            if (path === '/gen-legends') icon.classList.add('text-cyan-400');
         }
     });
 
