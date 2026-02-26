@@ -49,7 +49,7 @@
                 
                 <div class="flex gap-3 mt-6 relative z-10">
                     <button id="btn_gerar_paraphraser" onclick="chamarParaphraser()" class="flex-1 bg-pink-700 hover:bg-pink-600 text-white font-bold py-3.5 px-4 rounded-lg shadow-[0_0_15px_rgba(190,24,93,0.4)] transition-all flex items-center justify-center gap-2 group border border-pink-500/50">
-                        <i class="fa-solid fa-wand-magic-sparkles group-hover:scale-110 transition-transform"></i> <span id="txt_btn_paraphraser">Transmutar Texto</span>
+                        <i class="fa-solid fa-wand-magic-sparkles group-hover:scale-110 transition-transform"></i> <span id="txt_btn_paraphraser">Transmutar Texto (25 Coins)</span>
                     </button>
                     <button onclick="limparParaphraser()" class="bg-zinc-800 hover:bg-red-500/20 text-zinc-400 hover:text-red-400 border border-zinc-700 hover:border-red-500/50 font-bold py-3 px-4 rounded-lg transition-all flex items-center justify-center group" title="Limpar Tela">
                         <i class="fa-solid fa-trash-can group-hover:scale-110 transition-transform"></i>
@@ -78,7 +78,7 @@
                 <div class="relative flex-1 flex flex-col z-10">
                     <div id="loading_paraphraser" class="hidden absolute inset-0 bg-[#121214]/90 backdrop-blur-sm rounded-lg flex flex-col items-center justify-center z-20 border border-pink-500/20">
                         <i class="fa-solid fa-brain fa-fade text-4xl text-pink-500 mb-4 drop-shadow-[0_0_10px_rgba(190,24,93,0.6)]"></i>
-                        <p class="text-zinc-300 text-sm font-bold animate-pulse">Transmutando palavras...</p>
+                        <p class="text-zinc-300 text-sm font-bold animate-pulse">Transmutando palavras... (-25 Coins)</p>
                         <p class="text-zinc-500 text-xs mt-2">Adaptando cadência para a voz neural.</p>
                     </div>
                     
@@ -118,7 +118,6 @@
         contarPalavrasLocal('paraphraser_resultado', 'contador_palavras_out');
     }
 
-    // Leitor de arquivo TXT via botão
     function lerArquivoTXT(event) {
         const file = event.target.files[0];
         if (!file) return;
@@ -131,7 +130,6 @@
         reader.readAsText(file);
     }
 
-    // Configura o arrastar e soltar (Drag and Drop) na caixa de texto
     function configurarDropzoneTXT() {
         const dropzoneTxt = document.getElementById('paraphraser_conteudo');
         if(!dropzoneTxt) return;
@@ -169,6 +167,7 @@
         const btn = document.getElementById('btn_gerar_paraphraser');
         const btnTexto = document.getElementById('txt_btn_paraphraser');
         const overlay = document.getElementById('loading_paraphraser');
+        const textAreaResultado = document.getElementById('paraphraser_resultado');
         
         const conteudo = document.getElementById('paraphraser_conteudo').value;
         const modo = document.getElementById('paraphraser_modo').value;
@@ -198,18 +197,41 @@
             }
             
             const dados = await res.json();
-            document.getElementById('paraphraser_resultado').value = dados.texto_transmutado;
+            textAreaResultado.value = dados.texto_transmutado;
+
+            // ==========================================
+            // ATUALIZADOR DE SALDO EM TEMPO REAL
+            // ==========================================
+            if(dados.novo_saldo !== undefined) {
+                const paineisDeCoins = document.querySelectorAll('.fa-coins');
+                paineisDeCoins.forEach(icone => {
+                    const elementoPai = icone.closest('p'); 
+                    if(elementoPai) {
+                        const textoSaldo = dados.novo_saldo.toLocaleString('pt-BR');
+                        elementoPai.innerHTML = `<i class="fa-solid fa-coins"></i> ${textoSaldo} coins`;
+                        
+                        // Pisca em rosa para combinar com o Paraphraser
+                        elementoPai.classList.add('text-pink-400', 'scale-110');
+                        setTimeout(() => elementoPai.classList.remove('text-pink-400', 'scale-110'), 500);
+                    }
+                });
+            }
+            // ==========================================
             
             salvarEstado('paraphraser_resultado');
             contarPalavrasLocal('paraphraser_resultado', 'contador_palavras_out');
 
         } catch (error) {
-            document.getElementById('paraphraser_resultado').value = "Erro Técnico: " + error.message;
+            if(error.message.includes('Coins insuficientes')) {
+                textAreaResultado.value = "⚠️ " + error.message;
+            } else {
+                textAreaResultado.value = "Erro Técnico: " + error.message;
+            }
         } finally {
             overlay.classList.add('hidden');
             btn.disabled = false;
             btn.classList.remove('opacity-70', 'cursor-not-allowed');
-            btnTexto.innerText = "Transmutar Texto";
+            btnTexto.innerText = "Transmutar Texto (25 Coins)";
         }
     }
 </script>
