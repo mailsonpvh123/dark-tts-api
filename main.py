@@ -183,7 +183,7 @@ async def thumb_page(request: Request, db: Session = Depends(get_db)):
 @app.get("/setup-admin")
 def setup_admin(db: Session = Depends(get_db)):
     try:
-        meu_email = "redbull1782.mab@gmail.com"
+        meu_email = "redbull782.mab@gmail.com"
         
         # IMPORTANTE: TROQUE O TEXTO ABAIXO PELA SUA SENHA REAL ANTES DE SUBIR
         minha_senha = "18022006Lipe#" 
