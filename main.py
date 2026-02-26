@@ -7,7 +7,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
 
 # Importa as rotas dos nossos arquivos modulares
-from rotas import minerador, voice_synth, audio_mixer, paraphraser, gen_insights, script_forge, meta_seo
+from rotas import minerador, voice_synth, audio_mixer, paraphraser, gen_insights, script_forge, meta_seo, thumb_maker
 #from rotas import gen_legends
 
 app = FastAPI(
@@ -38,6 +38,7 @@ app.include_router(paraphraser.router)
 app.include_router(gen_insights.router)
 app.include_router(script_forge.router)
 app.include_router(meta_seo.router)
+app.include_router(thumb_maker.router)
 
 # --- ROTAS VISUAIS (NAVEGAÇÃO DO USUÁRIO) ---
 
