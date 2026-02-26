@@ -1,23 +1,38 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="flex items-center justify-center min-h-[80vh]">
-    <div class="bg-[#121214] p-8 rounded-2xl border border-zinc-800 w-full max-w-md shadow-2xl relative">
-        <div class="text-center mb-8">
-            <h1 class="text-3xl font-black text-white italic">DARK<span class="text-zinc-500 font-normal">CREATOR</span></h1>
-            <p class="text-zinc-500 text-xs mt-2">ÁREA DE ACESSO</p>
-        </div>
+    <div class="relative group">
+        <div class="absolute -inset-0.5 bg-gradient-to-r from-purple-600 to-emerald-500 rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-1000"></div>
+        
+        <div class="relative bg-[#121214] p-8 rounded-2xl border border-zinc-800 w-full max-w-md shadow-2xl overflow-hidden">
+            <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 via-purple-400 to-emerald-400"></div>
 
-        <form id="formLogin" class="space-y-5">
-            <input type="email" id="email" required class="w-full p-3 bg-[#09090b] border border-zinc-800 rounded-lg text-white" placeholder="E-mail">
-            <input type="password" id="password" required class="w-full p-3 bg-[#09090b] border border-zinc-800 rounded-lg text-white" placeholder="Senha">
-            <button type="submit" id="btn_entrar" class="w-full bg-zinc-800 hover:bg-zinc-700 text-white font-bold py-3 rounded-lg transition-all">Entrar</button>
-        </form>
+            <div class="text-center mb-8">
+                <h1 class="text-3xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-purple-500 via-purple-400 to-emerald-400 italic">
+                    <i class="fa-solid fa-moon text-purple-500 mr-1"></i>DARK<span class="text-zinc-500 font-normal">CREATOR</span>
+                </h1>
+                <p class="text-emerald-400 text-[10px] font-black tracking-[0.2em] mt-2 uppercase">Bem-vindo de volta</p>
+            </div>
 
-        <div id="login_status" class="mt-4 text-center hidden p-3 rounded-lg text-xs font-bold border"></div>
+            <form id="formLogin" class="space-y-5">
+                <input type="email" id="email" required 
+                    class="w-full p-4 bg-[#09090b] border border-zinc-800 rounded-lg text-white focus:border-purple-500/50 outline-none transition-all placeholder:text-zinc-700" 
+                    placeholder="Seu e-mail">
+                
+                <input type="password" id="password" required 
+                    class="w-full p-4 bg-[#09090b] border border-zinc-800 rounded-lg text-white focus:border-emerald-500/50 outline-none transition-all placeholder:text-zinc-700" 
+                    placeholder="Sua senha">
+                
+                <button type="submit" id="btn_entrar" 
+                    class="w-full bg-gradient-to-r from-purple-600 to-emerald-600 hover:from-purple-500 hover:to-emerald-500 text-white font-black py-4 rounded-lg transition-all shadow-lg shadow-purple-500/10 active:scale-[0.98]">
+                    ACESSAR PAINEL 🚀
+                </button>
+            </form>
 
-        <div class="mt-6 text-center">
-            <p class="text-zinc-500 text-sm">Novo por aqui? 
-                <a href="/registrar" class="text-purple-400 hover:text-purple-300 font-bold transition-colors">Crie sua conta e ganhe 30 coins</a>
+            <div id="login_status" class="mt-4 text-center hidden p-3 rounded-lg text-xs font-bold border"></div>
+            
+            <p class="mt-8 text-center text-xs text-zinc-500 font-medium">Ainda não tem acesso? 
+                <a href="/registrar" class="text-zinc-400 hover:text-white underline decoration-zinc-700 transition-colors">Crie sua conta aqui</a>
             </p>
         </div>
     </div>
