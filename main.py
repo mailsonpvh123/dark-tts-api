@@ -74,24 +74,30 @@ async def login(request: Request, db: Session = Depends(get_db)):
 
 # --- ROTA DE EMERGÊNCIA: SETUP ADMIN ---
 # ACESSE: https://seu-dominio.com.br/setup-admin para criar seu usuario
+# Atualize apenas esta parte do contexto de senha no main.py
+pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
+
 @app.get("/setup-admin")
 def setup_admin(db: Session = Depends(get_db)):
-    # AJUSTE SEU EMAIL E SENHA AQUI ANTES DE SUBIR
-    meu_email = "redbull782.mab@gmail.com" 
-    minha_senha = "18022006Lipe#"
+    try:
+        meu_email = "redbull782.mab@gmail.com" 
+        minha_senha = "18022006Lipe#"
 
-    user_exists = db.query(models.Usuario).filter(models.Usuario.email == meu_email).first()
-    if not user_exists:
-        novo_admin = models.Usuario(
-            email=meu_email, 
-            senha=pwd_context.hash(minha_senha), 
-            coins=9999, 
-            plano="master"
-        )
-        db.add(novo_admin)
-        db.commit()
-        return {"status": "Sucesso", "msg": f"Admin {meu_email} criado com sucesso!"}
-    return {"status": "Erro", "msg": "Este admin já existe no banco."}
+        user_exists = db.query(models.Usuario).filter(models.Usuario.email == meu_email).first()
+        if not user_exists:
+            # Agora ele vai usar o PBKDF2, sem limite de tamanho e sem erros de sistema
+            novo_admin = models.Usuario(
+                email=meu_email, 
+                senha=pwd_context.hash(minha_senha), 
+                coins=9999, 
+                plano="master"
+            )
+            db.add(novo_admin)
+            db.commit()
+            return {"status": "Sucesso", "msg": f"Admin {meu_email} criado com sucesso!"}
+        return {"status": "Aviso", "msg": "Este admin já existe no banco."}
+    except Exception as e:
+        return {"status": "Erro de Sistema", "detalhes": str(e)}
 
 # --- ROTAS VISUAIS (NAVEGAÇÃO) ---
 
