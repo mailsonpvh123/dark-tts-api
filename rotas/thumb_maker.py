@@ -1,7 +1,13 @@
 import json
 import re
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
+
+# Nossos imports internos
+import models
+from database import get_db
+from auth import get_usuario_atual
 from services.ai_service import call_gemini
 
 router = APIRouter(prefix="/api/v1", tags=["Thumb Maker"])
@@ -15,9 +21,23 @@ class ThumbRequest(BaseModel):
     posicao_texto: str
 
 @router.post("/thumb-maker")
-async def process_thumb(req: ThumbRequest):
+async def process_thumb(
+    req: ThumbRequest,
+    db: Session = Depends(get_db),
+    usuario: models.Usuario = Depends(get_usuario_atual)
+):
+    # 1. VALIDAÇÃO DE SESSÃO E SALDO
+    if not usuario:
+        raise HTTPException(status_code=401, detail="Sessão expirada. Faça login novamente.")
+
     if not req.roteiro or not req.titulo:
         raise HTTPException(status_code=400, detail="Título e roteiro são obrigatórios.")
+
+    # Custo da geração de Prompts de Capa
+    custo_operacao = 15
+
+    if usuario.coins < custo_operacao:
+        raise HTTPException(status_code=402, detail=f"Coins insuficientes! Você precisa de {custo_operacao} coins para gerar ideias de Thumbnail.")
 
     system_prompt = """You are a world-class YouTube Art Director specializing in high-CTR, emotionally charged thumbnails. 
 The user will provide inputs in PORTUGUESE (Title, Script, Visual Style, Exact Text Overlay, Text Color, and Text Position). 
@@ -53,7 +73,7 @@ Cor do Texto: {req.cor_texto}
 Posição na Imagem: {req.posicao_texto}
 
 Roteiro Completo:
-{req.roteiro}"""
+{req.roteiro[:2000]}""" # Limitamos o roteiro lido só por segurança de tokens
 
     try:
         resultado = await call_gemini(system_prompt, user_content)
@@ -65,6 +85,25 @@ Roteiro Completo:
         texto_limpo = texto_limpo.strip()
         
         dados_json = json.loads(texto_limpo)
+        
+        # ==========================================
+        # 2. TRANSAÇÃO FINANCEIRA E HISTÓRICO
+        # ==========================================
+        usuario.coins -= custo_operacao
+        
+        novo_historico = models.Historico(
+            usuario_id=usuario.id,
+            ferramenta="Thumb Maker",
+            input_usuario=f"Título: {req.titulo} | Estilo: {req.estilo}",
+            resultado=texto_limpo, 
+            custo_coins=custo_operacao
+        )
+        
+        db.add(novo_historico)
+        db.commit()
+        
+        # Injeta o novo saldo no JSON de resposta
+        dados_json["novo_saldo"] = usuario.coins
         
         return dados_json
         
