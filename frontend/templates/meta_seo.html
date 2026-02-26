@@ -19,7 +19,7 @@
                 
                 <div class="flex gap-3 mt-6 relative z-10">
                     <button id="btn_gerar_seo" onclick="chamarMetaSEO()" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-bold py-3.5 rounded-lg shadow-[0_0_15px_rgba(59,130,246,0.4)] transition-all flex items-center justify-center gap-2 group border border-blue-500/50">
-                        <i class="fa-solid fa-chart-line group-hover:scale-110 transition-transform"></i> <span id="txt_btn_seo">Gerar Meta & SEO</span>
+                        <i class="fa-solid fa-chart-line group-hover:scale-110 transition-transform"></i> <span id="txt_btn_seo">Gerar Meta & SEO (15 Coins)</span>
                     </button>
                     <button onclick="limparSEO()" class="bg-zinc-800 hover:bg-red-500/20 text-zinc-400 hover:text-red-400 border border-zinc-700 hover:border-red-500/50 font-bold py-3 px-4 rounded-lg transition-all flex items-center justify-center group" title="Limpar Tela">
                         <i class="fa-solid fa-trash-can group-hover:scale-110 transition-transform"></i>
@@ -35,7 +35,7 @@
                 <div class="relative flex-1 flex flex-col z-10">
                     <div id="loading_seo" class="hidden absolute inset-0 bg-[#121214]/90 backdrop-blur-sm rounded-lg flex flex-col items-center justify-center z-20 border border-blue-500/20">
                         <i class="fa-solid fa-bolt fa-fade text-4xl text-blue-500 mb-4 drop-shadow-[0_0_10px_rgba(59,130,246,0.6)]"></i>
-                        <p class="text-zinc-300 text-sm font-bold animate-pulse">Groq está gerando as Tags...</p>
+                        <p class="text-zinc-300 text-sm font-bold animate-pulse">A IA está gerando a arquitetura... (-15 Coins)</p>
                     </div>
                     <textarea id="seo_resultado" oninput="salvarEstado('seo_resultado')" class="flex-1 w-full bg-[#09090b] border border-zinc-700/80 rounded-lg px-5 py-4 text-blue-400/90 font-mono text-sm leading-relaxed mb-5 focus:border-blue-500 focus:outline-none transition-colors shadow-inner custom-scrollbar resize-none" placeholder="O resultado aparecerá aqui..."></textarea>
                 </div>
@@ -71,6 +71,7 @@
         const btn = document.getElementById('btn_gerar_seo');
         const txtBtn = document.getElementById('txt_btn_seo');
         const overlay = document.getElementById('loading_seo');
+        const textAreaResultado = document.getElementById('seo_resultado');
         
         const conteudo = document.getElementById('seo_conteudo').value;
         const keyword = document.getElementById('seo_keyword').value || "Geral";
@@ -91,19 +92,46 @@
             });
             
             if(!res.ok) {
-                let err = "Erro"; try{ const d = await res.json(); err = d.detail; }catch(e){} throw new Error(err);
+                let erroReal = "Erro desconhecido.";
+                try { const d = await res.json(); erroReal = d.detail || erroReal; } catch(e){}
+                throw new Error(erroReal);
             }
             
             const dados = await res.json();
-            document.getElementById('seo_resultado').value = dados.seo_result;
+            
+            // ==========================================
+            // MAGIA DO FRONT-END: Atualiza o Saldo
+            // ==========================================
+            if(dados.novo_saldo !== undefined) {
+                const paineisDeCoins = document.querySelectorAll('.fa-coins');
+                paineisDeCoins.forEach(icone => {
+                    const elementoPai = icone.closest('p'); 
+                    if(elementoPai) {
+                        const textoSaldo = dados.novo_saldo.toLocaleString('pt-BR');
+                        elementoPai.innerHTML = `<i class="fa-solid fa-coins"></i> ${textoSaldo} coins`;
+                        
+                        // Pisca em Azul (Tema do SEO)
+                        elementoPai.classList.add('text-blue-400', 'scale-110');
+                        setTimeout(() => elementoPai.classList.remove('text-blue-400', 'scale-110'), 500);
+                    }
+                });
+            }
+            // ==========================================
+
+            textAreaResultado.value = dados.seo_result;
             salvarEstado('seo_resultado');
+            
         } catch (error) { 
-            document.getElementById('seo_resultado').value = "Erro Técnico: " + error.message; 
+            if(error.message.includes('Coins insuficientes')) {
+                textAreaResultado.value = "⚠️ " + error.message;
+            } else {
+                textAreaResultado.value = "Erro Técnico: " + error.message; 
+            }
         } finally { 
             overlay.classList.add('hidden');
             btn.disabled = false;
             btn.classList.remove('opacity-70', 'cursor-not-allowed'); 
-            txtBtn.innerText = "Gerar Meta & SEO";
+            txtBtn.innerText = "Gerar Meta & SEO (15 Coins)";
         }
     }
 
