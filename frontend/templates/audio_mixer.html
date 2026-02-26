@@ -166,7 +166,7 @@
                 </div>
                 
                 <button id="btn_gerar_mixer" onclick="chamarAudioMixer()" class="w-full mt-5 bg-amber-600 hover:bg-amber-500 text-white font-bold py-3.5 rounded-lg shadow-[0_0_15px_rgba(245,158,11,0.4)] transition-all flex items-center justify-center gap-2 group border border-amber-500/50">
-                    <i class="fa-solid fa-sliders group-hover:scale-110 transition-transform"></i> <span id="txt_btn_mixer">Iniciar Masterização</span>
+                    <i class="fa-solid fa-sliders group-hover:scale-110 transition-transform"></i> <span id="txt_btn_mixer">Iniciar Masterização (10 Coins)</span>
                 </button>
                 
                 <div id="mixer_resultados_container" class="mt-4 bg-[#09090b] border border-amber-500/30 p-4 rounded-lg hidden shadow-inner relative z-10"></div>
@@ -183,7 +183,6 @@
         configurarDragAndDropMixer('dropzone_mixer_voz', 'arquivo_mixer_voz', 'nome_mixer_voz', 'icone_mixer_voz');
         configurarDragAndDropMixer('dropzone_mixer_bg', 'arquivo_mixer_bg', 'nome_mixer_bg', 'icone_mixer_bg');
         
-        // Recuperar sliders
         const sliders = ['mixer_vol_voz', 'mixer_vol_bg', 'mixer_duck_amount', 'mixer_eq_bass', 'mixer_eq_treble', 'mixer_comp_th', 'mixer_comp_ratio', 'mixer_comp_makeup', 'mixer_limiter_ceil', 'mixer_fade_in', 'mixer_fade_out'];
         sliders.forEach(id => {
             const el = document.getElementById(id);
@@ -197,7 +196,6 @@
             }
         });
 
-        // Recuperar checks e selects
         const checks = ['mixer_ducking', 'mixer_compressor', 'mixer_trim'];
         checks.forEach(id => {
             if(sessionStorage.getItem(id) !== null) document.getElementById(id).checked = sessionStorage.getItem(id) === 'true';
@@ -318,7 +316,8 @@
         txtBtn.innerHTML = `Mixando... <i class="fa-solid fa-circle-notch fa-spin ml-1"></i>`;
         
         container.classList.remove('hidden');
-        container.innerHTML = `<div class="flex flex-col items-center justify-center py-5"><p class="text-sm font-bold text-amber-500 animate-pulse">O estúdio neural está processando a masterização...</p></div>`;
+        // Aviso visual da cobrança
+        container.innerHTML = `<div class="flex flex-col items-center justify-center py-5"><p class="text-sm font-bold text-amber-500 animate-pulse">O estúdio neural está processando a masterização... (-10 Coins)</p></div>`;
 
         const formData = new FormData();
         formData.append("voice_file", arquivoVozMixer);
@@ -345,6 +344,25 @@
             if(!res.ok) { let err = "Erro"; try{ const d = await res.json(); err = d.detail; }catch(e){} throw new Error(err); }
             const dados = await res.json();
             
+            // ==========================================
+            // MAGIA DO FRONT-END: Atualiza o Saldo
+            // ==========================================
+            if(dados.novo_saldo !== undefined) {
+                const paineisDeCoins = document.querySelectorAll('.fa-coins');
+                paineisDeCoins.forEach(icone => {
+                    const elementoPai = icone.closest('p'); 
+                    if(elementoPai) {
+                        const textoSaldo = dados.novo_saldo.toLocaleString('pt-BR');
+                        elementoPai.innerHTML = `<i class="fa-solid fa-coins"></i> ${textoSaldo} coins`;
+                        
+                        // Pisca na cor âmbar
+                        elementoPai.classList.add('text-amber-400', 'scale-110');
+                        setTimeout(() => elementoPai.classList.remove('text-amber-400', 'scale-110'), 500);
+                    }
+                });
+            }
+            // ==========================================
+
             container.innerHTML = `
                 <div class="flex flex-col items-center w-full">
                     <div class="flex items-center gap-2 mb-4"><i class="fa-solid fa-circle-check text-xl text-amber-500 drop-shadow-[0_0_8px_rgba(245,158,11,0.8)]"></i><p class="text-sm font-bold text-amber-500">Masterização Concluída!</p></div>
@@ -357,10 +375,15 @@
             document.getElementById('player_mixer_final').src = "data:audio/wav;base64," + dados.audio_base64;
 
         } catch (error) {
-            container.innerHTML = `<p class="text-red-400 text-sm p-3 font-bold"><i class="fa-solid fa-triangle-exclamation"></i> Erro do Servidor: ${error.message}</p>`;
+            // Tratamento bonitão se faltar saldo
+            if(error.message.includes('Coins insuficientes')) {
+                container.innerHTML = `<p class="text-yellow-400 bg-yellow-500/10 border border-yellow-500/20 p-4 rounded-lg text-sm font-bold text-center"><i class="fa-solid fa-triangle-exclamation text-2xl mb-2 block"></i><br>${error.message}</p>`;
+            } else {
+                container.innerHTML = `<p class="text-red-400 text-sm p-3 font-bold text-center"><i class="fa-solid fa-triangle-exclamation"></i> Erro do Servidor: ${error.message}</p>`;
+            }
         } finally {
             btn.classList.remove('opacity-70', 'cursor-not-allowed');
-            txtBtn.innerHTML = "Iniciar Masterização";
+            txtBtn.innerHTML = "Iniciar Masterização (10 Coins)";
         }
     }
 
