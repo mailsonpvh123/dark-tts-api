@@ -32,13 +32,13 @@ async def process_script(
     if not req.ideia_base:
         raise HTTPException(status_code=400, detail="A ideia base é obrigatória.")
 
-    # Custo do Roteiro (O peso pesado do SaaS)
+    # Custo do Roteiro
     custo_operacao = 25
 
     if usuario.coins < custo_operacao:
         raise HTTPException(status_code=402, detail=f"Coins insuficientes! Você precisa de {custo_operacao} coins para forjar este roteiro.")
 
-    # 2. LÓGICA DE PROMPT (Com o BUG do exagero corrigido)
+    # 2. LÓGICA DE PROMPT (Com Tolerância Zero para Metalinguagem e Ant-Preguiça)
     if re.search(r'reddit|porão|medoteca', req.canal, re.IGNORECASE):
         modulo_1_regras = """Regras Específicas para Reddit/Relatos:
 - Faça a tradução/adaptação com o mínimo de cortes. Não resuma a essência.
@@ -47,9 +47,9 @@ async def process_script(
 - Oculte partes onde o usuário diz não ser o autor original (OP) ou avisos prévios."""
     else:
         modulo_1_regras = """Regras Específicas para Documentário/Mistério/Listas:
-- Crie uma narrativa imersiva e profunda.
-- REGRAS DE LISTA (TOP 10): Se o roteiro for uma lista, NUNCA inicie os tópicos com números soltos ou secos (ex: '10.', '9. O Caso'). Você DEVE usar formato ordinal em texto corrido: 'Em décimo lugar, temos o bizarro caso...', 'Ocupando a nona posição...'. O TTS não entona números secos corretamente.
-- PROIBIDO ANUNCIAR A ORDEM: Nunca avise o espectador que a lista será apresentada em ordem decrescente ou crescente. Apenas inicie a contagem regressiva naturalmente, sem metalinguagem."""
+- Crie uma narrativa imersiva focada em storytelling cinematográfico.
+- REGRAS DE POSIÇÃO (TOP 10): NUNCA inicie tópicos com números secos (ex: '10.', '9. O Caso'). Use texto corrido: 'Em décimo lugar, temos...', 'Ocupando a nona posição...'.
+- 🚨 TOLERÂNCIA ZERO PARA METALINGUAGEM: O roteiro é o que o narrador vai falar. Você está TERMINANTEMENTE PROIBIDO de usar expressões como "nesta contagem regressiva", "nesta lista", "vamos listar", ou "em ordem decrescente". Não avise o espectador sobre a estrutura mecânica do vídeo, APENAS CONTE A HISTÓRIA."""
 
     system_prompt = f"""Você é um Diretor de Roteiro Sênior para canais Dark do YouTube. Sua função é criar roteiros hipnóticos, perfeitamente adaptados para narração por IA (Edge TTS).
 
@@ -60,16 +60,17 @@ Você está ESTRITAMENTE PROIBIDO de inventar temas. O seu roteiro DEVE ser cons
 {modulo_1_regras}
 
 ⚙️ MÓDULO 2: OTIMIZAÇÃO EDGE TTS (O BUG DO SOTAQUE E PROSÓDIA)
-O motor Multilingual possui um defeito: sentenças curtas (menos de 6 palavras) e perguntas curtas forçam um sotaque estrangeiro bizarro. VOCÊ TEM A OBRIGAÇÃO DE IMPEDIR ISSO:
-- PROIBIDO FRASES CURTAS E PERGUNTAS RÁPIDAS: Nunca use perguntas retóricas curtas. Em vez disso, use frases longas.
+- PROIBIDO FRASES CURTAS E PERGUNTAS RÁPIDAS: Nunca use perguntas retóricas curtas. Em vez disso, use frases longas e compostas.
 - AGLUTINAÇÃO OBRIGATÓRIA: Transforme qualquer exclamação ou diálogo curto em narrativa estendida.
 - PONTUAÇÃO E LIMPEZA: O texto deve ser 100% liso. ZERO markdown (*, #). ZERO emojis. ZERO rubricas.
 
-📏 MÓDULO 3: CONTROLE DE TAMANHO (PRECISÃO CIRÚRGICA)
-- O usuário solicitou o tamanho alvo de: [{req.tamanho}].
-- CÁLCULO BASE: Considere que 1 minuto de áudio falado = 150 palavras. (Ex: 10 minutos = 1500 palavras).
-- REGRA DO LIMITE SUPERIOR: IAs tendem a exagerar e encher linguiça quando pedimos vídeos longos. Você está PROIBIDO de ultrapassar o limite pedido. Se o alvo é 3000 palavras, entregue no máximo entre 3000 e 3200 palavras. Se for 15 minutos (2250 palavras), não passe de 2400 palavras. 
-- REGRA DO LIMITE INFERIOR: Não seja preguiçoso. Entregue o volume solicitado aprofundando os detalhes, mas conclua a narrativa assim que o alvo numérico for atingido. Sem enrolação infinita.
+📏 MÓDULO 3: ENGENHARIA DE EXTENSÃO E PROFUNDIDADE (ANTI-PREGUIÇA)
+- Meta de tamanho solicitada pelo usuário: [{req.tamanho}]. (Lembrete: 1 minuto de áudio = 150 palavras. 15 minutos = 2250 palavras).
+- IAs costumam sofrer de "encurtamento crônico". Para combater isso e atingir a meta exigida, aplique a regra da DENSIDADE EXTREMA:
+  1. Nunca resolva um ponto ou tópico em um único parágrafo. 
+  2. Descreva o "Antes", o "Durante" e o "Depois" de cada evento com riqueza de detalhes (clima, sons, sensações).
+  3. Se for uma lista de 10 itens para 15 minutos, CADA ITEM precisa ser longo o suficiente para durar quase 1 minuto e meio.
+- Use transições elaboradas. Cumpra a extensão total exigida pelo usuário sem parecer que está enrolando. Mergulhe fundo na narrativa.
 
 Retorne APENAS o texto final liso."""
 
@@ -78,7 +79,7 @@ Retorne APENAS o texto final liso."""
 - Formato: {req.formato}
 - Meta de Tamanho: {req.tamanho}
 - Tom: {req.tom}
-- Instruções Extras: {req.instrucoes}
+- Instruções Extras do Cliente: {req.instrucoes} (Incorpore a intenção dessas instruções na narrativa, MAS NUNCA fale essas instruções em voz alta no roteiro).
 
 TEXTO ORIGINAL / IDEIA BASE:
 {req.ideia_base}"""
