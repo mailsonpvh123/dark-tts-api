@@ -15,13 +15,13 @@ from database import engine, get_db
 from auth import criar_token_acesso, verificar_senha, get_usuario_atual
 
 # Importa as rotas dos arquivos modulares
-from rotas import minerador, voice_synth, audio_mixer, paraphraser, gen_insights, script_forge, meta_seo, thumb_maker
+from rotas import minerador, voice_synth, audio_mixer, paraphraser, gen_insights, script_forge, meta_seo, thumb_maker, historico
 
 # --- INICIALIZAÇÃO ---
 app = FastAPI(
     title="Dark Creator OS - API",
     description="SaaS com Sistema de Coins e Tiers (Porto Velho/RO)",
-    version="3.5"
+    version="3.6"
 )
 
 # Cria as tabelas no banco de dados automaticamente
@@ -51,6 +51,7 @@ app.include_router(gen_insights.router)
 app.include_router(script_forge.router)
 app.include_router(meta_seo.router)
 app.include_router(thumb_maker.router)
+app.include_router(historico.router) # Nova Rota do Histórico Acoplada!
 
 # --- FUNÇÃO AUXILIAR DE SESSÃO ---
 async def obter_user_ou_redirect(request: Request, db: Session):
@@ -75,17 +76,17 @@ async def registrar(request: Request, db: Session = Depends(get_db)):
     if db.query(models.Usuario).filter(models.Usuario.email == email).first():
         return JSONResponse(status_code=400, content={"status": "erro", "message": "E-mail já cadastrado."})
 
-    # Criando usuário com o presente de 30 coins (1 vídeo grátis)
+    # Criando usuário com o presente de 100 coins (1 vídeo grátis completo!)
     novo_usuario = models.Usuario(
         email=email,
         senha=pwd_context.hash(senha),
         tipo_plano="FREE",
-        coins=30 
+        coins=100 
     )
 
     db.add(novo_usuario)
     db.commit()
-    return JSONResponse(content={"status": "sucesso", "message": "Conta criada! 30 coins adicionadas."})
+    return JSONResponse(content={"status": "sucesso", "message": "Conta criada! 100 coins adicionadas."})
 
 @app.post("/api/login")
 async def login(request: Request, db: Session = Depends(get_db)):
@@ -179,19 +180,22 @@ async def thumb_page(request: Request, db: Session = Depends(get_db)):
     if not user: return RedirectResponse(url="/login")
     return templates.TemplateResponse("thumb_maker.html", {"request": request, "title": "Thumb Maker", "user": user})
 
-# --- SETUP INICIAL ADMIN (MODO PRO: ATUALIZA SE JÁ EXISTIR) ---
+@app.get("/historico", response_class=HTMLResponse)
+async def historico_page(request: Request, db: Session = Depends(get_db)):
+    user = await obter_user_ou_redirect(request, db)
+    if not user: return RedirectResponse(url="/login")
+    return templates.TemplateResponse("historico.html", {"request": request, "title": "Histórico de Produção", "user": user})
+
+# --- SETUP INICIAL ADMIN ---
 @app.get("/setup-admin")
 def setup_admin(db: Session = Depends(get_db)):
     try:
         meu_email = "redbull782.mab@gmail.com"
-        
-        # IMPORTANTE: TROQUE O TEXTO ABAIXO PELA SUA SENHA REAL ANTES DE SUBIR
-        minha_senha = "18022006Lipe#" 
+        minha_senha = "SUA_SENHA_AQUI" 
 
         user = db.query(models.Usuario).filter(models.Usuario.email == meu_email).first()
         
         if not user:
-            # Cria se não existir
             admin = models.Usuario(
                 email=meu_email, 
                 senha=pwd_context.hash(minha_senha), 
@@ -202,7 +206,6 @@ def setup_admin(db: Session = Depends(get_db)):
             db.commit()
             return {"msg": "Admin master criado com sucesso!"}
         else:
-            # Atualiza a senha e as coins se já existir (Resolve seu problema de login)
             user.senha = pwd_context.hash(minha_senha)
             user.coins = 10000
             user.tipo_plano = "PLUS"
