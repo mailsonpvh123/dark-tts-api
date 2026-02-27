@@ -18,3 +18,4 @@ sqlalchemy
 passlib[bcrypt]
 python-jose[cryptography]
 mercadopago
+google-generativeai
