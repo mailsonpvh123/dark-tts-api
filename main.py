@@ -120,18 +120,17 @@ async def login_page(request: Request, db: Session = Depends(get_db)):
     if user: return RedirectResponse(url="/")
     return templates.TemplateResponse("login.html", {"request": request, "title": "Acesso Colorido"})
 
-@app.get("/", response_class=HTMLResponse)
-async def home(request: Request, db: Session = Depends(get_db)):
+@app.get("/registrar", response_class=HTMLResponse)
+async def registrar_page(request: Request, db: Session = Depends(get_db)):
     user = await obter_user_ou_redirect(request, db)
-    if not user: return RedirectResponse(url="/login")
-    # Agora renderiza a nova página de dashboard
-    return templates.TemplateResponse("dashboard.html", {"request": request, "title": "Dashboard", "user": user})
+    if user: return RedirectResponse(url="/")
+    return templates.TemplateResponse("registro.html", {"request": request, "title": "Registro Sóbrio"})
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request, db: Session = Depends(get_db)):
     user = await obter_user_ou_redirect(request, db)
     if not user: return RedirectResponse(url="/login")
-    return templates.TemplateResponse("base.html", {"request": request, "title": "Dashboard", "user": user})
+    return templates.TemplateResponse("dashboard.html", {"request": request, "title": "Dashboard", "user": user})
 
 @app.get("/gen-insights", response_class=HTMLResponse)
 async def gen_insights_page(request: Request, db: Session = Depends(get_db)):
