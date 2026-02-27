@@ -1,87 +1,118 @@
 {% extends "base.html" %}
 
 {% block content %}
-<section class="animate-fade-in block relative z-10">
+<section class="animate-fade-in block relative z-10 pb-20">
     <div class="text-center max-w-3xl mx-auto mb-16 relative">
         <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-emerald-500/20 rounded-full blur-[80px] pointer-events-none"></div>
         <h1 class="text-4xl md:text-5xl font-black text-white mb-6 tracking-tight relative z-10">
             Produção em escala.<br>
-            <span class="bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-purple-500">Custos no chão.</span>
+            <span class="bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-purple-500">Custos previsíveis.</span>
         </h1>
         <p class="text-lg text-zinc-400 relative z-10">
-            Não pague mensalidades absurdas para cada ferramenta. No Dark Creator OS você compra <strong class="text-emerald-400">Coins</strong> e gasta apenas com o que usar.
+            A matemática é simples: <strong class="text-emerald-400">R$ 0,025 por Coin</strong> em qualquer plano. Você compra saldo e gasta apenas com as ferramentas que usar.
         </p>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto mb-20 relative z-10">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto mb-20 relative z-10">
         
         <div class="bg-[#121214] border border-zinc-800 rounded-2xl p-8 flex flex-col hover:border-zinc-700 transition-colors">
             <div class="mb-6">
-                <span class="text-zinc-500 font-bold uppercase tracking-widest text-sm">Free</span>
-                <h2 class="text-3xl font-bold text-white mt-2">R$ 0<span class="text-sm font-normal text-zinc-500">/eterno</span></h2>
-                <p class="text-zinc-400 text-sm mt-3">Para testar o poder dos motores neurais sem compromisso.</p>
+                <span class="text-zinc-500 font-bold uppercase tracking-widest text-sm">Basic</span>
+                <h2 class="text-4xl font-black text-white mt-2">R$ 75<span class="text-lg font-normal text-zinc-500">/mês</span></h2>
+                <p class="text-zinc-400 text-sm mt-3">Para iniciar o seu império de canais dark.</p>
+            </div>
+            <div class="bg-zinc-800/50 border border-zinc-700/50 rounded-lg p-3 mb-6 flex items-center gap-3">
+                <i class="fa-solid fa-coins text-2xl text-yellow-500"></i>
+                <div>
+                    <p class="text-white font-bold text-lg leading-tight">3.000 Coins</p>
+                    <p class="text-xs text-zinc-400">Até 30 vídeos completos</p>
+                </div>
             </div>
             <div class="flex-1 space-y-4 mb-8">
-                <p class="flex items-center gap-3 text-sm text-zinc-300"><i class="fa-solid fa-check text-zinc-600"></i> 100 Coins Iniciais</p>
-                <p class="flex items-center gap-3 text-sm text-zinc-300"><i class="fa-solid fa-check text-zinc-600"></i> Acesso às 8 Ferramentas</p>
-                <p class="flex items-center gap-3 text-sm text-zinc-300"><i class="fa-solid fa-check text-zinc-600"></i> Vozes Padrão (Edge TTS)</p>
-                <p class="flex items-center gap-3 text-sm text-zinc-500 italic"><i class="fa-solid fa-xmark text-zinc-700"></i> Sem Vozes Premium</p>
+                <p class="flex items-center gap-3 text-sm text-zinc-300"><i class="fa-solid fa-check text-emerald-500"></i> Acesso às 8 Ferramentas</p>
+                <p class="flex items-center gap-3 text-sm text-zinc-300"><i class="fa-solid fa-check text-emerald-500"></i> Vozes Padrão (Edge TTS)</p>
+                <p class="flex items-center gap-3 text-sm text-zinc-300"><i class="fa-solid fa-bolt text-yellow-500"></i> Acesso às Vozes Premium</p>
             </div>
-            {% if user and user.tipo_plano == "FREE" %}
-                <button disabled class="w-full py-3 rounded-lg font-bold bg-zinc-800 text-zinc-500 cursor-not-allowed">Plano Atual</button>
-            {% else %}
-                <a href="/registrar" class="block text-center w-full py-3 rounded-lg font-bold bg-[#18181b] border border-zinc-700 text-white hover:bg-zinc-800 transition-colors">Criar Conta Grátis</a>
-            {% endif %}
+            <button class="w-full py-3 rounded-lg font-bold bg-[#18181b] border border-zinc-700 text-white hover:bg-zinc-800 transition-colors">
+                Assinar Basic
+            </button>
         </div>
 
         <div class="bg-[#18181b] border-2 border-emerald-500 rounded-2xl p-8 flex flex-col relative transform md:-translate-y-4 shadow-[0_0_30px_rgba(16,185,129,0.15)]">
             <div class="absolute -top-4 left-1/2 -translate-x-1/2 bg-emerald-500 text-white text-xs font-black uppercase tracking-widest py-1 px-4 rounded-full">
-                Recomendado
+                O Mais Popular
             </div>
             <div class="mb-6">
-                <span class="text-emerald-400 font-bold uppercase tracking-widest text-sm">Basic</span>
-                <h2 class="text-4xl font-black text-white mt-2">R$ 75<span class="text-lg font-normal text-zinc-500">/mês</span></h2>
-                <p class="text-zinc-400 text-sm mt-3">A máquina de fazer canais dark rodar no automático.</p>
+                <span class="text-emerald-400 font-bold uppercase tracking-widest text-sm">Plus</span>
+                <h2 class="text-4xl font-black text-white mt-2">R$ 150<span class="text-lg font-normal text-zinc-500">/mês</span></h2>
+                <p class="text-zinc-400 text-sm mt-3">Para produtores consistentes e focados.</p>
             </div>
             <div class="bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-3 mb-6 flex items-center gap-3">
                 <i class="fa-solid fa-coins text-2xl text-yellow-500"></i>
                 <div>
-                    <p class="text-emerald-400 font-bold text-lg leading-tight">3.000 Coins</p>
-                    <p class="text-xs text-emerald-500/80">Até 30 vídeos completos/mês</p>
+                    <p class="text-emerald-400 font-bold text-lg leading-tight">6.000 Coins</p>
+                    <p class="text-xs text-emerald-500/80">Até 60 vídeos completos</p>
                 </div>
             </div>
             <div class="flex-1 space-y-4 mb-8">
-                <p class="flex items-center gap-3 text-sm text-zinc-200"><i class="fa-solid fa-check text-emerald-500"></i> Text Transmuter Ilimitado</p>
-                <p class="flex items-center gap-3 text-sm text-zinc-200"><i class="fa-solid fa-check text-emerald-500"></i> Masterização (Audio Mixer)</p>
-                <p class="flex items-center gap-3 text-sm text-zinc-200"><i class="fa-solid fa-check text-emerald-500"></i> Meta & SEO para YouTube</p>
-                <p class="flex items-center gap-3 text-sm text-zinc-200"><i class="fa-solid fa-bolt text-yellow-400"></i> Acesso às Vozes Premium</p>
+                <p class="flex items-center gap-3 text-sm text-zinc-200"><i class="fa-solid fa-check text-emerald-500"></i> Tudo do plano Basic</p>
+                <p class="flex items-center gap-3 text-sm text-zinc-200"><i class="fa-solid fa-check text-emerald-500"></i> Margem para testes virais</p>
+                <p class="flex items-center gap-3 text-sm text-zinc-200"><i class="fa-solid fa-bolt text-yellow-400"></i> Mais conforto com Vozes Premium</p>
             </div>
             <button class="w-full py-4 rounded-lg font-bold bg-emerald-500 hover:bg-emerald-400 text-white shadow-[0_0_15px_rgba(16,185,129,0.4)] transition-all transform hover:scale-[1.02]">
-                Assinar Basic
+                Assinar Plus
             </button>
         </div>
 
         <div class="bg-[#121214] border border-zinc-800 rounded-2xl p-8 flex flex-col hover:border-purple-500/50 transition-colors">
             <div class="mb-6">
-                <span class="text-purple-500 font-bold uppercase tracking-widest text-sm">Plus</span>
-                <h2 class="text-3xl font-bold text-white mt-2">R$ 197<span class="text-sm font-normal text-zinc-500">/mês</span></h2>
+                <span class="text-purple-500 font-bold uppercase tracking-widest text-sm">Pro</span>
+                <h2 class="text-4xl font-black text-white mt-2">R$ 300<span class="text-lg font-normal text-zinc-500">/mês</span></h2>
                 <p class="text-zinc-400 text-sm mt-3">Escala massiva para agências e multi-canais.</p>
             </div>
             <div class="bg-purple-500/10 border border-purple-500/20 rounded-lg p-3 mb-6 flex items-center gap-3">
                 <i class="fa-solid fa-coins text-2xl text-yellow-500"></i>
                 <div>
-                    <p class="text-purple-400 font-bold text-lg leading-tight">10.000 Coins</p>
-                    <p class="text-xs text-purple-500/80">Até 100 vídeos completos/mês</p>
+                    <p class="text-purple-400 font-bold text-lg leading-tight">12.000 Coins</p>
+                    <p class="text-xs text-purple-500/80">Até 120 vídeos completos</p>
                 </div>
             </div>
             <div class="flex-1 space-y-4 mb-8">
-                <p class="flex items-center gap-3 text-sm text-zinc-300"><i class="fa-solid fa-check text-purple-500"></i> Tudo do plano Basic</p>
-                <p class="flex items-center gap-3 text-sm text-zinc-300"><i class="fa-solid fa-check text-purple-500"></i> Menor custo por Coin</p>
-                <p class="flex items-center gap-3 text-sm text-zinc-300"><i class="fa-solid fa-check text-purple-500"></i> Ideal para Vozes Premium longas</p>
+                <p class="flex items-center gap-3 text-sm text-zinc-300"><i class="fa-solid fa-check text-purple-500"></i> Tudo do plano Plus</p>
+                <p class="flex items-center gap-3 text-sm text-zinc-300"><i class="fa-solid fa-check text-purple-500"></i> Volume massivo de dados</p>
+                <p class="flex items-center gap-3 text-sm text-zinc-300"><i class="fa-solid fa-check text-purple-500"></i> Uso extremo de Vozes Premium</p>
             </div>
             <button class="w-full py-3 rounded-lg font-bold bg-[#18181b] border border-purple-500/50 text-white hover:bg-purple-600 transition-colors">
-                Assinar Plus
+                Assinar Pro
             </button>
+        </div>
+    </div>
+
+    <div class="max-w-4xl mx-auto mb-20 relative z-10">
+        <h3 class="text-2xl font-bold text-white mb-2 text-center">Ficou sem Coins no meio do mês?</h3>
+        <p class="text-zinc-400 text-center text-sm mb-8">Compre pacotes de recarga avulsos. O valor do Coin continua sendo exatamente o mesmo (R$ 0,025).</p>
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="bg-[#18181b] border border-zinc-800 p-6 rounded-xl text-center hover:border-yellow-500/30 transition-colors group cursor-pointer">
+                <i class="fa-solid fa-coins text-3xl text-yellow-500 mb-3 group-hover:scale-110 transition-transform"></i>
+                <h4 class="text-white font-bold text-xl mb-1">1.000 Coins</h4>
+                <p class="text-yellow-400 font-bold text-2xl mb-4">R$ 25</p>
+                <button class="text-xs bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500 hover:text-white border border-yellow-500/20 py-2 px-6 rounded-lg transition-colors font-bold w-full">Comprar</button>
+            </div>
+            
+            <div class="bg-[#18181b] border border-zinc-800 p-6 rounded-xl text-center hover:border-yellow-500/30 transition-colors group cursor-pointer">
+                <i class="fa-solid fa-sack-dollar text-3xl text-yellow-500 mb-3 group-hover:scale-110 transition-transform"></i>
+                <h4 class="text-white font-bold text-xl mb-1">2.000 Coins</h4>
+                <p class="text-yellow-400 font-bold text-2xl mb-4">R$ 50</p>
+                <button class="text-xs bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500 hover:text-white border border-yellow-500/20 py-2 px-6 rounded-lg transition-colors font-bold w-full">Comprar</button>
+            </div>
+            
+            <div class="bg-[#18181b] border border-zinc-800 p-6 rounded-xl text-center hover:border-yellow-500/30 transition-colors group cursor-pointer">
+                <i class="fa-solid fa-box-open text-3xl text-yellow-500 mb-3 group-hover:scale-110 transition-transform"></i>
+                <h4 class="text-white font-bold text-xl mb-1">4.000 Coins</h4>
+                <p class="text-yellow-400 font-bold text-2xl mb-4">R$ 100</p>
+                <button class="text-xs bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500 hover:text-white border border-yellow-500/20 py-2 px-6 rounded-lg transition-colors font-bold w-full">Comprar</button>
+            </div>
         </div>
     </div>
 
