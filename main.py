@@ -15,7 +15,7 @@ from database import engine, get_db
 from auth import criar_token_acesso, verificar_senha, get_usuario_atual
 
 # Importa as rotas dos arquivos modulares
-from rotas import minerador, voice_synth, audio_mixer, paraphraser, gen_insights, script_forge, meta_seo, thumb_maker, historico
+from rotas import minerador, voice_synth, audio_mixer, paraphraser, gen_insights, script_forge, meta_seo, thumb_maker, historico, pagamentos
 
 # --- INICIALIZAÇÃO ---
 app = FastAPI(
@@ -51,7 +51,8 @@ app.include_router(gen_insights.router)
 app.include_router(script_forge.router)
 app.include_router(meta_seo.router)
 app.include_router(thumb_maker.router)
-app.include_router(historico.router) # Nova Rota do Histórico Acoplada!
+app.include_router(historico.router)
+app.include_router(pagamentos.router)
 
 # --- FUNÇÃO AUXILIAR DE SESSÃO ---
 async def obter_user_ou_redirect(request: Request, db: Session):
