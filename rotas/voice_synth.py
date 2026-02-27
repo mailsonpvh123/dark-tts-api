@@ -4,7 +4,8 @@ import math
 import os
 import io
 import time
-import nltk
+import re
+import textwrap
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -17,12 +18,6 @@ from google.genai import types
 import models
 from database import get_db
 from auth import get_usuario_atual
-
-# Garante que o NLTK tem o pacote necessário para fatiar o texto
-try:
-    nltk.data.find('tokenizers/punkt')
-except LookupError:
-    nltk.download('punkt', quiet=True)
 
 router = APIRouter(tags=["Voice Synthesizer"])
 
@@ -48,26 +43,41 @@ VOICES_MAP = {
 vozes_cache = []
 
 # ==========================================
-# FUNÇÃO DE FATIAMENTO (CHUNKING) INTELIGENTE
+# FATIAMENTO BLINDADO (Sem depender do NLTK)
 # ==========================================
-def split_text_for_gemini(texto, max_chars=800):
-    texto = texto.replace('*', '').replace('#', '').replace('"', '').replace('”', '').replace('“', '')
-    try:
-        sentences = nltk.sent_tokenize(texto, language='portuguese')
-    except:
-        sentences = [s.strip() for s in texto.replace('\n', ' ').split('.') if s.strip()]
-        
+def split_text_for_gemini(texto, max_chars=400):
+    # Limpeza rigorosa de caracteres que quebram o TTS
+    texto = re.sub(r'[*#""“”]', '', texto)
+    texto = texto.replace('\n', ' ')
+    
+    # Divide por pontuação forte
+    frases = re.split(r'(?<=[.!?]) +', texto)
+    
     chunks = []
-    current_chunk = ""
-    for s in sentences:
-        s = s.strip()
-        if not s: continue
-        if len(current_chunk) + len(s) < max_chars: 
-            current_chunk += s + " "
+    chunk_atual = ""
+    
+    for frase in frases:
+        frase = frase.strip()
+        if not frase: continue
+        
+        if len(chunk_atual) + len(frase) < max_chars:
+            chunk_atual += frase + " "
         else:
-            if current_chunk: chunks.append(current_chunk.strip())
-            current_chunk = s + " "
-    if current_chunk: chunks.append(current_chunk.strip())
+            if chunk_atual:
+                chunks.append(chunk_atual.strip())
+            
+            # Se uma frase isolada for maior que o limite (Raro, mas previne quebra)
+            if len(frase) >= max_chars:
+                pedacos = textwrap.wrap(frase, width=max_chars)
+                for p in pedacos[:-1]:
+                    chunks.append(p.strip())
+                chunk_atual = pedacos[-1] + " "
+            else:
+                chunk_atual = frase + " "
+                
+    if chunk_atual:
+        chunks.append(chunk_atual.strip())
+        
     return chunks
 
 @router.on_event("startup")
@@ -156,12 +166,12 @@ async def gerar_narracao(
             if req.instrucao_estilo:
                 kwargs["system_instruction"] = req.instrucao_estilo
 
-            # 1. FATIAMENTO SEGURO
-            chunks = split_text_for_gemini(texto, max_chars=800)
+            # 1. FATIAMENTO 
+            chunks = split_text_for_gemini(texto, max_chars=400)
             final_audio = AudioSegment.empty()
-            pause_seg = AudioSegment.silent(duration=400) # Pausa natural entre blocos
+            pause_seg = AudioSegment.silent(duration=300)
 
-            # 2. LOOP COM SISTEMA ANTI-FALHAS E RETENTATIVAS
+            # 2. LOOP COM SISTEMA ANTI-FALHAS E CURA AUTOMÁTICA
             for i, chunk in enumerate(chunks):
                 pcm_data = None
                 max_retries = 3
@@ -186,26 +196,32 @@ async def gerar_narracao(
                         
                         pcm_data = next((part.inline_data.data for part in response.candidates[0].content.parts if part.inline_data), None)
                         if not pcm_data: raise ValueError("Resposta de áudio vazia.")
-                        break # Se deu certo, sai do loop de tentativas
+                        break # Sucesso, sai do loop de tentativas
                         
                     except Exception as api_err:
                         err_str = str(api_err).lower()
                         print(f"⚠️ Aviso no chunk {i+1} (Tentativa {attempt+1}/{max_retries}): {api_err}")
                         
                         if "500" in err_str or "internal" in err_str:
-                            if attempt < max_retries - 1:
-                                time.sleep(2) # Respira e tenta de novo
+                            # Auto-Heal: O Google odiou a instrução de sistema. Tentamos sem ela na próxima.
+                            if attempt == 0 and "system_instruction" in kwargs:
+                                kwargs.pop("system_instruction")
+                                print("♻️ Removendo Instrução de Estilo para contornar Erro 500...")
+                                time.sleep(2)
+                                continue
+                            elif attempt < max_retries - 1:
+                                time.sleep(5)
                                 continue
                             else:
-                                raise Exception("Servidor do Google engasgou (Erro 500 constante).")
+                                raise Exception("Servidor do Google engasgou definitivamente (Erro 500).")
                         elif "429" in err_str or "quota" in err_str:
                             if attempt < max_retries - 1:
-                                time.sleep(5) # Respira mais longo por limite de taxa
+                                time.sleep(10)
                                 continue
                             else:
-                                raise Exception("Cota da API do Google excedida.")
+                                raise Exception("Cota da API excedida.")
                         else:
-                            raise api_err # Erro fatal, aborta
+                            raise api_err
                 
                 if not pcm_data:
                     raise Exception(f"Falha ao gerar o bloco {i+1} do áudio.")
@@ -214,7 +230,6 @@ async def gerar_narracao(
                 seg = AudioSegment(data=pcm_data, sample_width=2, frame_rate=24000, channels=1)
                 final_audio += (pause_seg + seg) if i > 0 else seg
 
-            # Exporta tudo junto
             mp3_io = io.BytesIO()
             final_audio.export(mp3_io, format="mp3", bitrate="128k")
             audio_base64 = base64.b64encode(mp3_io.getvalue()).decode('utf-8')
@@ -255,4 +270,4 @@ async def gerar_narracao(
         usuario.coins += custo_operacao
         db.commit()
         print(f"❌ Erro na Geração de Áudio: {e}")
-        raise HTTPException(status_code=500, detail=f"Falha na API: {str(e)} Os seus {custo_operacao} coins foram estornados.")
+        raise HTTPException(status_code=500, detail=f"Falha na API: {str(e)}")
