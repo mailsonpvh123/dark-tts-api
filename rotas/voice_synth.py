@@ -4,6 +4,8 @@ import math
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
+import google.generativeai as genai
+import os
 
 # Nossos imports internos
 import models
@@ -11,6 +13,13 @@ from database import get_db
 from auth import get_usuario_atual
 
 router = APIRouter(tags=["Voice Synthesizer"])
+
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+
+if not GEMINI_API_KEY:
+    print("⚠️ AVISO: GEMINI_API_KEY não encontrada nas variáveis de ambiente!")
+else:
+    genai.configure(api_key=GEMINI_API_KEY)
 
 # Modelos
 class AudioRequest(BaseModel):
