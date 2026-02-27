@@ -11,9 +11,9 @@
 <body class="bg-[#09090b] text-zinc-300 font-sans antialiased flex flex-col md:flex-row h-screen overflow-hidden">
 
     <header class="md:hidden flex items-center justify-between p-4 bg-[#09090b] border-b border-zinc-800 z-30 relative shrink-0">
-        <span class="text-xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-purple-500 via-purple-400 to-emerald-400 drop-shadow-sm italic">
+        <a href="/" class="text-xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-purple-500 via-purple-400 to-emerald-400 drop-shadow-sm italic hover:opacity-80 transition-opacity">
             <i class="fa-solid fa-moon text-purple-500 mr-1"></i>DARK<span class="text-zinc-500 font-normal">CREATOR</span>
-        </span>
+        </a>
         <button onclick="toggleMenuMobile()" class="text-zinc-400 hover:text-white focus:outline-none w-10 h-10 flex items-center justify-center rounded-lg bg-zinc-800/50 border border-zinc-700 transition-colors">
             <i class="fa-solid fa-bars text-lg"></i>
         </button>
@@ -25,9 +25,9 @@
         <div class="absolute top-0 left-0 w-full h-32 bg-purple-600/5 blur-[50px] pointer-events-none"></div>
         
         <div class="h-16 flex items-center justify-between px-6 border-b border-zinc-800/80 relative z-10">
-            <span class="text-xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-purple-500 via-purple-400 to-emerald-400 drop-shadow-sm italic">
+            <a href="/" class="text-xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-purple-500 via-purple-400 to-emerald-400 drop-shadow-sm italic hover:opacity-80 transition-opacity">
                 <i class="fa-solid fa-moon text-purple-500 mr-1"></i>DARK<span class="text-zinc-500 font-normal">CREATOR</span>
-            </span>
+            </a>
             <button onclick="toggleMenuMobile()" class="md:hidden text-zinc-400 hover:text-red-400 transition-colors w-8 h-8 flex items-center justify-center rounded-lg hover:bg-zinc-800">
                 <i class="fa-solid fa-xmark text-xl"></i>
             </button>
@@ -67,8 +67,11 @@
                 
                 <p class="px-3 text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-3">Gerenciamento</p>
                 <div class="space-y-1">
+                    <a href="/" class="menu-btn w-full flex items-center gap-3 px-3 py-2.5 text-zinc-400 hover:text-white hover:bg-zinc-800/50 rounded-lg transition-all text-sm border border-transparent">
+                        <i class="fa-solid fa-house w-5 text-center transition-colors"></i> Dashboard
+                    </a>
                     <a href="/historico" class="menu-btn w-full flex items-center gap-3 px-3 py-2.5 text-zinc-400 hover:text-white hover:bg-zinc-800/50 rounded-lg transition-all text-sm border border-transparent">
-                        <i class="fa-solid fa-clock-rotate-left w-5 text-center"></i> Histórico
+                        <i class="fa-solid fa-clock-rotate-left w-5 text-center transition-colors"></i> Histórico
                     </a>
                 </div>
             </div>
@@ -120,8 +123,16 @@
             sidebar.classList.toggle('-translate-x-full');
             overlay.classList.toggle('hidden');
         }
+
+        // Script rápido para garantir que o ícone da Dashboard ganha cor se estivermos nela
+        document.addEventListener('DOMContentLoaded', () => {
+            if(window.location.pathname === '/') {
+                const icon = document.querySelector('a[href="/"] i.fa-house');
+                if(icon) icon.classList.add('text-emerald-400');
+            }
+        });
     </script>
     
-    <script src="/static/js/main.js?v=7"></script>
+    <script src="/static/js/main.js?v=8"></script>
 </body>
 </html>
