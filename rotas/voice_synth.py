@@ -8,6 +8,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from pydub import AudioSegment
 
+# IMPORT CORRETO DA NOVA SDK DO GEMINI
 from google import genai
 from google.genai import types
 
@@ -139,11 +140,22 @@ async def gerar_narracao(
                 )
             }
             
-            response = client.models.generate_content(
-                model="gemini-2.5-flash", 
-                contents=texto, 
-                config=types.GenerateContentConfig(**kwargs)
-            )
+            # --- MODELOS EXATOS DO GEMINI TTS (Validados no seu teste de PC) ---
+            try:
+                response = client.models.generate_content(
+                    model="gemini-2.5-flash-preview-tts", 
+                    contents=texto, 
+                    config=types.GenerateContentConfig(**kwargs)
+                )
+            except Exception as fallback_e:
+                if "404" in str(fallback_e) or "not found" in str(fallback_e).lower():
+                    response = client.models.generate_content(
+                        model="gemini-2.5-flash-tts", 
+                        contents=texto, 
+                        config=types.GenerateContentConfig(**kwargs)
+                    )
+                else:
+                    raise fallback_e
             
             pcm_data = next((part.inline_data.data for part in response.candidates[0].content.parts if part.inline_data), None)
             if not pcm_data: raise ValueError("A API do Gemini falhou em retornar o áudio.")
@@ -189,4 +201,4 @@ async def gerar_narracao(
         usuario.coins += custo_operacao
         db.commit()
         print(f"❌ Erro na Geração de Áudio: {e}")
-        raise HTTPException(status_code=500, detail=f"Falha na IA. Os seus {custo_operacao} coins foram estornados. Tente novamente.")
+        raise HTTPException(status_code=500, detail=f"Falha na IA. Os seus {custo_operacao} coins foram estornados. Tente novamente. Detalhe: {str(e)}")
