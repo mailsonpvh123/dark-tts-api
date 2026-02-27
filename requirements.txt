@@ -17,3 +17,4 @@ google-genai
 sqlalchemy
 passlib[bcrypt]
 python-jose[cryptography]
+mercadopago
