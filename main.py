@@ -76,17 +76,17 @@ async def registrar(request: Request, db: Session = Depends(get_db)):
     if db.query(models.Usuario).filter(models.Usuario.email == email).first():
         return JSONResponse(status_code=400, content={"status": "erro", "message": "E-mail já cadastrado."})
 
-    # Criando usuário com o presente de 100 coins (1 vídeo grátis completo!)
+    # Criando usuário com o presente de 300 coins (3 vídeos grátis completos!)
     novo_usuario = models.Usuario(
         email=email,
         senha=pwd_context.hash(senha),
         tipo_plano="FREE",
-        coins=100 
+        coins=300 
     )
 
     db.add(novo_usuario)
     db.commit()
-    return JSONResponse(content={"status": "sucesso", "message": "Conta criada! 100 coins adicionadas."})
+    return JSONResponse(content={"status": "sucesso", "message": "Conta criada! 300 coins adicionadas."})
 
 @app.post("/api/login")
 async def login(request: Request, db: Session = Depends(get_db)):
