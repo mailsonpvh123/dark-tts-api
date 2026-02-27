@@ -28,16 +28,13 @@ class AudioRequest(BaseModel):
     temperatura: float = 1.0       # Novo: Para o Gemini
     instrucao_estilo: str = ""     # Novo: Para o Gemini
 
-# Mapa oficial das 30 Vozes Premium do Gemini
+# Mapa oficial das 21 Vozes Premium (Revisado com o Google AI Studio)
 VOICES_MAP = {
     "Puck": "Animado / Jovem", "Charon": "Informativo / Grave", "Kore": "Firme / Madura",
-    "Fenrir": "Excitado / Forte", "Aoede": "Suave / Breezy", "Leda": "Jovem / Articulada",
-    "Orus": "Firme / Clássico", "Zephyr": "Brilhante / Enérgico", "Callirrhoe": "Relaxado",
-    "Autonoe": "Brilhante", "Enceladus": "Sussurrado / Ofegante", "Iapetus": "Claro",
-    "Umbriel": "Relaxado", "Algieba": "Suave", "Despina": "Suave",
-    "Erinome": "Claro", "Algenib": "Áspero", "Rasalgethi": "Informativo",
-    "Laomedeia": "Animado", "Achernar": "Macio", "Alnilam": "Firme",
-    "Schedar": "Regular", "Gacrux": "Maduro", "Pulcherrima": "Avançado",
+    "Fenrir": "Excitado / Forte", "Leda": "Jovem / Articulada", "Orus": "Firme / Clássico",
+    "Aoede": "Suave / Breezy", "Callirrhoe": "Relaxado", "Zephyr": "Brilhante / Enérgico",
+    "Despina": "Suave", "Erinome": "Claro", "Algenib": "Áspero", 
+    "Rasalgethi": "Informativo", "Laomedeia": "Animado", "Pulcherrima": "Avançado",
     "Achird": "Amigável", "Zubenelgenubi": "Casual", "Vindemiatrix": "Gentil",
     "Sadachbia": "Vivo", "Sadaltager": "Sábio", "Sulafat": "Caloroso"
 }
@@ -47,8 +44,10 @@ vozes_cache = []
 @router.on_event("startup")
 async def carregar_vozes_memoria():
     global vozes_cache
+    vozes_cache.clear() # <- O SEGREDO ESTÁ AQUI: Limpa a lista para não duplicar no reload do Easypanel
+    
     try:
-        # 1. Carregando as 30 Vozes Premium (Gemini)
+        # 1. Carregando as 21 Vozes Premium (Gemini)
         for v_name, v_desc in VOICES_MAP.items():
             vozes_cache.append({
                 "name": f"{v_name} ({v_desc})",
@@ -85,7 +84,8 @@ async def gerar_narracao(
     usuario: models.Usuario = Depends(get_usuario_atual)
 ):
     if not usuario:
-        raise HTTPException(status_code=401, detail="Sessão expirada.")
+        raise HTTPException(status_code=401, detail="Sessão expirada. Faça login novamente.")
+        
     texto = req.texto.strip()
     if not texto:
         raise HTTPException(status_code=400, detail="O texto para narração é obrigatório.")
@@ -93,19 +93,25 @@ async def gerar_narracao(
     is_premium = req.voz.startswith("gemini-premium")
     tamanho_texto = len(texto)
 
+    # ==========================================
+    # CÁLCULO DE CUSTO E TRAVAS DE SEGURANÇA
+    # ==========================================
     if is_premium:
         if tamanho_texto > 4500:
-            raise HTTPException(status_code=400, detail=f"Texto muito longo para Voz Premium (Máximo 4500).")
+            raise HTTPException(status_code=400, detail=f"Texto muito longo para Voz Premium (Máximo 4500). Você enviou {tamanho_texto} caracteres.")
         custo_operacao = max(1, math.ceil((tamanho_texto / 900.0) * 10))
     else:
         custo_operacao = 30
 
     if usuario.coins < custo_operacao:
-        raise HTTPException(status_code=402, detail=f"Coins insuficientes! Você precisa de {custo_operacao} coins.")
+        raise HTTPException(status_code=402, detail=f"Coins insuficientes! Você precisa de {custo_operacao} coins para esta narração.")
 
     usuario.coins -= custo_operacao
     db.commit()
 
+    # ==========================================
+    # GERAÇÃO DE ÁUDIO (HÍBRIDA)
+    # ==========================================
     try:
         srt_content = ""
         audio_base64 = ""
@@ -142,6 +148,7 @@ async def gerar_narracao(
             pcm_data = next((part.inline_data.data for part in response.candidates[0].content.parts if part.inline_data), None)
             if not pcm_data: raise ValueError("A API do Gemini falhou em retornar o áudio.")
 
+            # Conversão PyDub (Memória)
             seg = AudioSegment(data=pcm_data, sample_width=2, frame_rate=24000, channels=1)
             mp3_io = io.BytesIO()
             seg.export(mp3_io, format="mp3", bitrate="128k")
