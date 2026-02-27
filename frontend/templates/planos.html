@@ -14,7 +14,6 @@
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto mb-20 relative z-10">
-        
         <div class="bg-[#121214] border border-zinc-800 rounded-2xl p-8 flex flex-col hover:border-zinc-700 transition-colors">
             <div class="mb-6">
                 <span class="text-zinc-500 font-bold uppercase tracking-widest text-sm">Basic</span>
@@ -33,8 +32,8 @@
                 <p class="flex items-center gap-3 text-sm text-zinc-300"><i class="fa-solid fa-check text-emerald-500"></i> Vozes Padrão (Edge TTS)</p>
                 <p class="flex items-center gap-3 text-sm text-zinc-300"><i class="fa-solid fa-bolt text-yellow-500"></i> Acesso às Vozes Premium</p>
             </div>
-            <button class="w-full py-3 rounded-lg font-bold bg-[#18181b] border border-zinc-700 text-white hover:bg-zinc-800 transition-colors">
-                Assinar Basic
+            <button onclick="abrirCheckoutPix('basic', this)" class="w-full py-3 rounded-lg font-bold bg-[#18181b] border border-zinc-700 text-white hover:bg-zinc-800 transition-colors flex justify-center items-center gap-2">
+                <span>Assinar Basic</span>
             </button>
         </div>
 
@@ -59,8 +58,8 @@
                 <p class="flex items-center gap-3 text-sm text-zinc-200"><i class="fa-solid fa-check text-emerald-500"></i> Margem para testes virais</p>
                 <p class="flex items-center gap-3 text-sm text-zinc-200"><i class="fa-solid fa-bolt text-yellow-400"></i> Mais conforto com Vozes Premium</p>
             </div>
-            <button class="w-full py-4 rounded-lg font-bold bg-emerald-500 hover:bg-emerald-400 text-white shadow-[0_0_15px_rgba(16,185,129,0.4)] transition-all transform hover:scale-[1.02]">
-                Assinar Plus
+            <button onclick="abrirCheckoutPix('plus', this)" class="w-full py-4 rounded-lg font-bold bg-emerald-500 hover:bg-emerald-400 text-white shadow-[0_0_15px_rgba(16,185,129,0.4)] transition-all transform hover:scale-[1.02] flex justify-center items-center gap-2">
+                <span>Assinar Plus</span>
             </button>
         </div>
 
@@ -82,8 +81,8 @@
                 <p class="flex items-center gap-3 text-sm text-zinc-300"><i class="fa-solid fa-check text-purple-500"></i> Volume massivo de dados</p>
                 <p class="flex items-center gap-3 text-sm text-zinc-300"><i class="fa-solid fa-check text-purple-500"></i> Uso extremo de Vozes Premium</p>
             </div>
-            <button class="w-full py-3 rounded-lg font-bold bg-[#18181b] border border-purple-500/50 text-white hover:bg-purple-600 transition-colors">
-                Assinar Pro
+            <button onclick="abrirCheckoutPix('pro', this)" class="w-full py-3 rounded-lg font-bold bg-[#18181b] border border-purple-500/50 text-white hover:bg-purple-600 transition-colors flex justify-center items-center gap-2">
+                <span>Assinar Pro</span>
             </button>
         </div>
     </div>
@@ -93,67 +92,132 @@
         <p class="text-zinc-400 text-center text-sm mb-8">Compre pacotes de recarga avulsos. O valor do Coin continua sendo exatamente o mesmo (R$ 0,025).</p>
         
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div class="bg-[#18181b] border border-zinc-800 p-6 rounded-xl text-center hover:border-yellow-500/30 transition-colors group cursor-pointer">
+            <div class="bg-[#18181b] border border-zinc-800 p-6 rounded-xl text-center hover:border-yellow-500/30 transition-colors group">
                 <i class="fa-solid fa-coins text-3xl text-yellow-500 mb-3 group-hover:scale-110 transition-transform"></i>
                 <h4 class="text-white font-bold text-xl mb-1">1.000 Coins</h4>
                 <p class="text-yellow-400 font-bold text-2xl mb-4">R$ 25</p>
-                <button class="text-xs bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500 hover:text-white border border-yellow-500/20 py-2 px-6 rounded-lg transition-colors font-bold w-full">Comprar</button>
+                <button onclick="abrirCheckoutPix('avulso_1000', this)" class="text-xs bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500 hover:text-white border border-yellow-500/20 py-2 px-6 rounded-lg transition-colors font-bold w-full flex justify-center items-center gap-2"><span>Comprar</span></button>
             </div>
             
-            <div class="bg-[#18181b] border border-zinc-800 p-6 rounded-xl text-center hover:border-yellow-500/30 transition-colors group cursor-pointer">
+            <div class="bg-[#18181b] border border-zinc-800 p-6 rounded-xl text-center hover:border-yellow-500/30 transition-colors group">
                 <i class="fa-solid fa-sack-dollar text-3xl text-yellow-500 mb-3 group-hover:scale-110 transition-transform"></i>
                 <h4 class="text-white font-bold text-xl mb-1">2.000 Coins</h4>
                 <p class="text-yellow-400 font-bold text-2xl mb-4">R$ 50</p>
-                <button class="text-xs bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500 hover:text-white border border-yellow-500/20 py-2 px-6 rounded-lg transition-colors font-bold w-full">Comprar</button>
+                <button onclick="abrirCheckoutPix('avulso_2000', this)" class="text-xs bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500 hover:text-white border border-yellow-500/20 py-2 px-6 rounded-lg transition-colors font-bold w-full flex justify-center items-center gap-2"><span>Comprar</span></button>
             </div>
             
-            <div class="bg-[#18181b] border border-zinc-800 p-6 rounded-xl text-center hover:border-yellow-500/30 transition-colors group cursor-pointer">
+            <div class="bg-[#18181b] border border-zinc-800 p-6 rounded-xl text-center hover:border-yellow-500/30 transition-colors group">
                 <i class="fa-solid fa-box-open text-3xl text-yellow-500 mb-3 group-hover:scale-110 transition-transform"></i>
                 <h4 class="text-white font-bold text-xl mb-1">4.000 Coins</h4>
                 <p class="text-yellow-400 font-bold text-2xl mb-4">R$ 100</p>
-                <button class="text-xs bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500 hover:text-white border border-yellow-500/20 py-2 px-6 rounded-lg transition-colors font-bold w-full">Comprar</button>
-            </div>
-        </div>
-    </div>
-
-    <div class="max-w-4xl mx-auto bg-[#18181b] border border-zinc-800 rounded-2xl p-8 shadow-xl relative z-10">
-        <h3 class="text-xl font-bold text-white mb-6 text-center">Como os seus Coins são investidos?</h3>
-        <p class="text-zinc-400 text-center text-sm mb-8">O nosso sistema modular permite que construa o seu vídeo à la carte. Um vídeo completo padrão custa <strong>100 Coins</strong>.</p>
-        
-        <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
-            <div class="bg-[#09090b] border border-zinc-800 p-4 rounded-xl flex justify-between items-center">
-                <span class="text-sm text-zinc-300"><i class="fa-solid fa-lightbulb text-yellow-400 w-5"></i> Ideias</span>
-                <span class="text-xs font-bold text-zinc-500 bg-zinc-800 px-2 py-1 rounded">5 Coins</span>
-            </div>
-            <div class="bg-[#09090b] border border-zinc-800 p-4 rounded-xl flex justify-between items-center">
-                <span class="text-sm text-zinc-300"><i class="fa-solid fa-pen-nib text-orange-400 w-5"></i> Roteiro</span>
-                <span class="text-xs font-bold text-zinc-500 bg-zinc-800 px-2 py-1 rounded">25 Coins</span>
-            </div>
-            <div class="bg-[#09090b] border border-zinc-800 p-4 rounded-xl flex justify-between items-center">
-                <span class="text-sm text-zinc-300"><i class="fa-solid fa-microphone text-purple-400 w-5"></i> Voz Padrão</span>
-                <span class="text-xs font-bold text-zinc-500 bg-zinc-800 px-2 py-1 rounded">30 Coins</span>
-            </div>
-            <div class="bg-[#09090b] border border-zinc-800 p-4 rounded-xl flex justify-between items-center">
-                <span class="text-sm text-zinc-300"><i class="fa-solid fa-sliders text-amber-400 w-5"></i> Mixagem</span>
-                <span class="text-xs font-bold text-zinc-500 bg-zinc-800 px-2 py-1 rounded">10 Coins</span>
-            </div>
-            <div class="bg-[#09090b] border border-zinc-800 p-4 rounded-xl flex justify-between items-center">
-                <span class="text-sm text-zinc-300"><i class="fa-solid fa-image text-pink-400 w-5"></i> Thumb</span>
-                <span class="text-xs font-bold text-zinc-500 bg-zinc-800 px-2 py-1 rounded">15 Coins</span>
-            </div>
-            <div class="bg-[#09090b] border border-zinc-800 p-4 rounded-xl flex justify-between items-center">
-                <span class="text-sm text-zinc-300"><i class="fa-solid fa-chart-line text-blue-400 w-5"></i> SEO</span>
-                <span class="text-xs font-bold text-zinc-500 bg-zinc-800 px-2 py-1 rounded">15 Coins</span>
-            </div>
-        </div>
-
-        <div class="mt-8 p-4 bg-yellow-500/5 border border-yellow-500/20 rounded-xl flex gap-4 items-start">
-            <i class="fa-solid fa-bolt text-yellow-500 text-xl mt-1"></i>
-            <div>
-                <h4 class="text-sm font-bold text-yellow-400 mb-1">Vozes Premium (Gemini Flash Ultra-Realista)</h4>
-                <p class="text-xs text-zinc-400 leading-relaxed">As vozes premium utilizam um modelo dinâmico de cobrança baseado no tamanho do seu texto. O custo é de <strong>10 Coins por cada minuto de áudio gerado</strong> (~900 caracteres). O estúdio calculará o valor exato na tela antes de você confirmar a geração.</p>
+                <button onclick="abrirCheckoutPix('avulso_4000', this)" class="text-xs bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500 hover:text-white border border-yellow-500/20 py-2 px-6 rounded-lg transition-colors font-bold w-full flex justify-center items-center gap-2"><span>Comprar</span></button>
             </div>
         </div>
     </div>
 </section>
+
+<div id="modal_pix" class="fixed inset-0 bg-[#09090b]/95 backdrop-blur-md z-[100] hidden flex items-center justify-center p-4 transition-opacity">
+    <div class="bg-[#18181b] border border-emerald-500/30 rounded-2xl shadow-[0_0_50px_rgba(16,185,129,0.15)] w-full max-w-md flex flex-col relative transform scale-95 transition-transform" id="modal_pix_conteudo">
+        
+        <div class="flex justify-between items-center p-5 border-b border-zinc-800">
+            <h3 class="text-lg font-black text-white flex items-center gap-2"><i class="fa-brands fa-pix text-emerald-400"></i> Checkout Seguro</h3>
+            <button onclick="fecharModalPix()" class="text-zinc-500 hover:text-red-400 transition-colors w-8 h-8 flex items-center justify-center rounded-lg hover:bg-zinc-800">
+                <i class="fa-solid fa-xmark text-xl"></i>
+            </button>
+        </div>
+        
+        <div class="p-8 flex flex-col items-center justify-center text-center">
+            <p class="text-zinc-400 text-sm mb-4">Abra o app do seu banco e escaneie o código abaixo para liberar as suas Coins.</p>
+            
+            <div class="bg-white p-3 rounded-xl mb-6 shadow-inner">
+                <img id="pix_qr_code" src="" alt="QR Code PIX" class="w-48 h-48 object-contain">
+            </div>
+
+            <p class="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-2">Ou use o Pix Copia e Cola</p>
+            
+            <div class="w-full flex items-center gap-2 bg-[#09090b] border border-zinc-800 rounded-lg p-2">
+                <input type="text" id="pix_copia_cola" class="flex-1 bg-transparent text-zinc-300 text-xs font-mono outline-none truncate px-2" readonly>
+                <button onclick="copiarPix()" class="bg-emerald-500/10 hover:bg-emerald-500 text-emerald-500 hover:text-white border border-emerald-500/20 px-4 py-2 rounded transition-colors text-xs font-bold shrink-0">Copiar</button>
+            </div>
+
+            <div class="mt-8 w-full p-4 bg-yellow-500/5 border border-yellow-500/20 rounded-lg flex items-center justify-center gap-3">
+                <i class="fa-solid fa-circle-notch fa-spin text-yellow-500"></i>
+                <p class="text-xs font-bold text-yellow-500">Aguardando pagamento...</p>
+            </div>
+            <p class="text-[10px] text-zinc-500 mt-3">A liberação ocorre em até 10 segundos após o pagamento.</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    async function abrirCheckoutPix(pacoteId, btnElement) {
+        const spanTexto = btnElement.querySelector('span');
+        const textoOriginal = spanTexto.innerText;
+        const iconLoader = `<i class="fa-solid fa-circle-notch fa-spin"></i>`;
+        
+        btnElement.disabled = true;
+        spanTexto.innerHTML = `${iconLoader} Gerando PIX...`;
+
+        try {
+            const res = await fetch('/api/v1/pagamentos/gerar-pix', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ pacote: pacoteId })
+            });
+
+            const dados = await res.json();
+
+            if (!res.ok) throw new Error(dados.detail || "Erro ao gerar cobrança.");
+
+            // Preenche o Modal
+            document.getElementById('pix_qr_code').src = `data:image/jpeg;base64,${dados.qr_code_base64}`;
+            document.getElementById('pix_copia_cola').value = dados.qr_code;
+            
+            // Exibe o Modal
+            const modal = document.getElementById('modal_pix');
+            const conteudo = document.getElementById('modal_pix_conteudo');
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                conteudo.classList.remove('scale-95');
+                conteudo.classList.add('scale-100');
+            }, 10);
+
+            // Inicia o Loop para verificar se o usuário já pagou (atualiza a página)
+            iniciarVerificacaoPagamento();
+
+        } catch (error) {
+            alert("Falha na conexão com o Banco: " + error.message);
+        } finally {
+            btnElement.disabled = false;
+            spanTexto.innerText = textoOriginal;
+        }
+    }
+
+    function fecharModalPix() {
+        const modal = document.getElementById('modal_pix');
+        const conteudo = document.getElementById('modal_pix_conteudo');
+        conteudo.classList.remove('scale-100');
+        conteudo.classList.add('scale-95');
+        setTimeout(() => { modal.classList.add('hidden'); }, 200);
+    }
+
+    function copiarPix() {
+        const input = document.getElementById('pix_copia_cola');
+        input.select();
+        input.setSelectionRange(0, 99999);
+        navigator.clipboard.writeText(input.value);
+        alert("Código PIX copiado!");
+    }
+
+    function iniciarVerificacaoPagamento() {
+        // Um pequeno "hack" de UX: A cada 5 segundos ele recarrega a página. 
+        // Se o webhook do back-end já tiver adicionado as moedas, ao recarregar, o saldo novo vai aparecer no menu!
+        setInterval(() => {
+            const modal = document.getElementById('modal_pix');
+            if(!modal.classList.contains('hidden')) {
+                window.location.reload(); 
+            }
+        }, 10000); // Checa a cada 10 segundos
+    }
+</script>
 {% endblock %}
