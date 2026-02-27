@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="animate-fade-in block relative z-10">
+    <div class="text-center max-w-3xl mx-auto mb-16 relative">
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-emerald-500/20 rounded-full blur-[80px] pointer-events-none"></div>
+        <h1 class="text-4xl md:text-5xl font-black text-white mb-6 tracking-tight relative z-10">
+            Produção em escala.<br>
+            <span class="bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-purple-500">Custos no chão.</span>
+        </h1>
+        <p class="text-lg text-zinc-400 relative z-10">
+            Não pague mensalidades absurdas para cada ferramenta. No Dark Creator OS você compra <strong class="text-emerald-400">Coins</strong> e gasta apenas com o que usar.
+        </p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto mb-20 relative z-10">
+        
+        <div class="bg-[#121214] border border-zinc-800 rounded-2xl p-8 flex flex-col hover:border-zinc-700 transition-colors">
+            <div class="mb-6">
+                <span class="text-zinc-500 font-bold uppercase tracking-widest text-sm">Free</span>
+                <h2 class="text-3xl font-bold text-white mt-2">R$ 0<span class="text-sm font-normal text-zinc-500">/eterno</span></h2>
+                <p class="text-zinc-400 text-sm mt-3">Para testar o poder dos motores neurais sem compromisso.</p>
+            </div>
+            <div class="flex-1 space-y-4 mb-8">
+                <p class="flex items-center gap-3 text-sm text-zinc-300"><i class="fa-solid fa-check text-zinc-600"></i> 100 Coins Iniciais</p>
+                <p class="flex items-center gap-3 text-sm text-zinc-300"><i class="fa-solid fa-check text-zinc-600"></i> Acesso às 8 Ferramentas</p>
+                <p class="flex items-center gap-3 text-sm text-zinc-300"><i class="fa-solid fa-check text-zinc-600"></i> Vozes Padrão (Edge TTS)</p>
+                <p class="flex items-center gap-3 text-sm text-zinc-500 italic"><i class="fa-solid fa-xmark text-zinc-700"></i> Sem Vozes Premium</p>
+            </div>
+            {% if user and user.tipo_plano == "FREE" %}
+                <button disabled class="w-full py-3 rounded-lg font-bold bg-zinc-800 text-zinc-500 cursor-not-allowed">Plano Atual</button>
+            {% else %}
+                <a href="/registrar" class="block text-center w-full py-3 rounded-lg font-bold bg-[#18181b] border border-zinc-700 text-white hover:bg-zinc-800 transition-colors">Criar Conta Grátis</a>
+            {% endif %}
+        </div>
+
+        <div class="bg-[#18181b] border-2 border-emerald-500 rounded-2xl p-8 flex flex-col relative transform md:-translate-y-4 shadow-[0_0_30px_rgba(16,185,129,0.15)]">
+            <div class="absolute -top-4 left-1/2 -translate-x-1/2 bg-emerald-500 text-white text-xs font-black uppercase tracking-widest py-1 px-4 rounded-full">
+                Recomendado
+            </div>
+            <div class="mb-6">
+                <span class="text-emerald-400 font-bold uppercase tracking-widest text-sm">Basic</span>
+                <h2 class="text-4xl font-black text-white mt-2">R$ 75<span class="text-lg font-normal text-zinc-500">/mês</span></h2>
+                <p class="text-zinc-400 text-sm mt-3">A máquina de fazer canais dark rodar no automático.</p>
+            </div>
+            <div class="bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-3 mb-6 flex items-center gap-3">
+                <i class="fa-solid fa-coins text-2xl text-yellow-500"></i>
+                <div>
+                    <p class="text-emerald-400 font-bold text-lg leading-tight">3.000 Coins</p>
+                    <p class="text-xs text-emerald-500/80">Até 30 vídeos completos/mês</p>
+                </div>
+            </div>
+            <div class="flex-1 space-y-4 mb-8">
+                <p class="flex items-center gap-3 text-sm text-zinc-200"><i class="fa-solid fa-check text-emerald-500"></i> Text Transmuter Ilimitado</p>
+                <p class="flex items-center gap-3 text-sm text-zinc-200"><i class="fa-solid fa-check text-emerald-500"></i> Masterização (Audio Mixer)</p>
+                <p class="flex items-center gap-3 text-sm text-zinc-200"><i class="fa-solid fa-check text-emerald-500"></i> Meta & SEO para YouTube</p>
+                <p class="flex items-center gap-3 text-sm text-zinc-200"><i class="fa-solid fa-bolt text-yellow-400"></i> Acesso às Vozes Premium</p>
+            </div>
+            <button class="w-full py-4 rounded-lg font-bold bg-emerald-500 hover:bg-emerald-400 text-white shadow-[0_0_15px_rgba(16,185,129,0.4)] transition-all transform hover:scale-[1.02]">
+                Assinar Basic
+            </button>
+        </div>
+
+        <div class="bg-[#121214] border border-zinc-800 rounded-2xl p-8 flex flex-col hover:border-purple-500/50 transition-colors">
+            <div class="mb-6">
+                <span class="text-purple-500 font-bold uppercase tracking-widest text-sm">Plus</span>
+                <h2 class="text-3xl font-bold text-white mt-2">R$ 197<span class="text-sm font-normal text-zinc-500">/mês</span></h2>
+                <p class="text-zinc-400 text-sm mt-3">Escala massiva para agências e multi-canais.</p>
+            </div>
+            <div class="bg-purple-500/10 border border-purple-500/20 rounded-lg p-3 mb-6 flex items-center gap-3">
+                <i class="fa-solid fa-coins text-2xl text-yellow-500"></i>
+                <div>
+                    <p class="text-purple-400 font-bold text-lg leading-tight">10.000 Coins</p>
+                    <p class="text-xs text-purple-500/80">Até 100 vídeos completos/mês</p>
+                </div>
+            </div>
+            <div class="flex-1 space-y-4 mb-8">
+                <p class="flex items-center gap-3 text-sm text-zinc-300"><i class="fa-solid fa-check text-purple-500"></i> Tudo do plano Basic</p>
+                <p class="flex items-center gap-3 text-sm text-zinc-300"><i class="fa-solid fa-check text-purple-500"></i> Menor custo por Coin</p>
+                <p class="flex items-center gap-3 text-sm text-zinc-300"><i class="fa-solid fa-check text-purple-500"></i> Ideal para Vozes Premium longas</p>
+            </div>
+            <button class="w-full py-3 rounded-lg font-bold bg-[#18181b] border border-purple-500/50 text-white hover:bg-purple-600 transition-colors">
+                Assinar Plus
+            </button>
+        </div>
+    </div>
+
+    <div class="max-w-4xl mx-auto bg-[#18181b] border border-zinc-800 rounded-2xl p-8 shadow-xl relative z-10">
+        <h3 class="text-xl font-bold text-white mb-6 text-center">Como os seus Coins são investidos?</h3>
+        <p class="text-zinc-400 text-center text-sm mb-8">O nosso sistema modular permite que construa o seu vídeo à la carte. Um vídeo completo padrão custa <strong>100 Coins</strong>.</p>
+        
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div class="bg-[#09090b] border border-zinc-800 p-4 rounded-xl flex justify-between items-center">
+                <span class="text-sm text-zinc-300"><i class="fa-solid fa-lightbulb text-yellow-400 w-5"></i> Ideias</span>
+                <span class="text-xs font-bold text-zinc-500 bg-zinc-800 px-2 py-1 rounded">5 Coins</span>
+            </div>
+            <div class="bg-[#09090b] border border-zinc-800 p-4 rounded-xl flex justify-between items-center">
+                <span class="text-sm text-zinc-300"><i class="fa-solid fa-pen-nib text-orange-400 w-5"></i> Roteiro</span>
+                <span class="text-xs font-bold text-zinc-500 bg-zinc-800 px-2 py-1 rounded">25 Coins</span>
+            </div>
+            <div class="bg-[#09090b] border border-zinc-800 p-4 rounded-xl flex justify-between items-center">
+                <span class="text-sm text-zinc-300"><i class="fa-solid fa-microphone text-purple-400 w-5"></i> Voz Padrão</span>
+                <span class="text-xs font-bold text-zinc-500 bg-zinc-800 px-2 py-1 rounded">30 Coins</span>
+            </div>
+            <div class="bg-[#09090b] border border-zinc-800 p-4 rounded-xl flex justify-between items-center">
+                <span class="text-sm text-zinc-300"><i class="fa-solid fa-sliders text-amber-400 w-5"></i> Mixagem</span>
+                <span class="text-xs font-bold text-zinc-500 bg-zinc-800 px-2 py-1 rounded">10 Coins</span>
+            </div>
+            <div class="bg-[#09090b] border border-zinc-800 p-4 rounded-xl flex justify-between items-center">
+                <span class="text-sm text-zinc-300"><i class="fa-solid fa-image text-pink-400 w-5"></i> Thumb</span>
+                <span class="text-xs font-bold text-zinc-500 bg-zinc-800 px-2 py-1 rounded">15 Coins</span>
+            </div>
+            <div class="bg-[#09090b] border border-zinc-800 p-4 rounded-xl flex justify-between items-center">
+                <span class="text-sm text-zinc-300"><i class="fa-solid fa-chart-line text-blue-400 w-5"></i> SEO</span>
+                <span class="text-xs font-bold text-zinc-500 bg-zinc-800 px-2 py-1 rounded">15 Coins</span>
+            </div>
+        </div>
+
+        <div class="mt-8 p-4 bg-yellow-500/5 border border-yellow-500/20 rounded-xl flex gap-4 items-start">
+            <i class="fa-solid fa-bolt text-yellow-500 text-xl mt-1"></i>
+            <div>
+                <h4 class="text-sm font-bold text-yellow-400 mb-1">Vozes Premium (Gemini Flash Ultra-Realista)</h4>
+                <p class="text-xs text-zinc-400 leading-relaxed">As vozes premium utilizam um modelo dinâmico de cobrança baseado no tamanho do seu texto. O custo é de <strong>10 Coins por cada minuto de áudio gerado</strong> (~900 caracteres). O estúdio calculará o valor exato na tela antes de você confirmar a geração.</p>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
