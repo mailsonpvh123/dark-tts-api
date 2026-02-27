@@ -8,7 +8,6 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from pydub import AudioSegment
 
-# IMPORT CORRETO DA NOVA SDK DO GEMINI
 from google import genai
 from google.genai import types
 
@@ -19,30 +18,46 @@ from auth import get_usuario_atual
 
 router = APIRouter(tags=["Voice Synthesizer"])
 
-# Modelos
+# Modelos atualizados com os parâmetros do Gemini
 class AudioRequest(BaseModel):
     texto: str
     voz: str = "pt-BR-AntonioNeural"
     velocidade: float = 1.0
     pitch: int = 0
     volume: int = 0
+    temperatura: float = 1.0       # Novo: Para o Gemini
+    instrucao_estilo: str = ""     # Novo: Para o Gemini
 
-# Cache de vozes
+# Mapa oficial das 30 Vozes Premium do Gemini
+VOICES_MAP = {
+    "Puck": "Animado / Jovem", "Charon": "Informativo / Grave", "Kore": "Firme / Madura",
+    "Fenrir": "Excitado / Forte", "Aoede": "Suave / Breezy", "Leda": "Jovem / Articulada",
+    "Orus": "Firme / Clássico", "Zephyr": "Brilhante / Enérgico", "Callirrhoe": "Relaxado",
+    "Autonoe": "Brilhante", "Enceladus": "Sussurrado / Ofegante", "Iapetus": "Claro",
+    "Umbriel": "Relaxado", "Algieba": "Suave", "Despina": "Suave",
+    "Erinome": "Claro", "Algenib": "Áspero", "Rasalgethi": "Informativo",
+    "Laomedeia": "Animado", "Achernar": "Macio", "Alnilam": "Firme",
+    "Schedar": "Regular", "Gacrux": "Maduro", "Pulcherrima": "Avançado",
+    "Achird": "Amigável", "Zubenelgenubi": "Casual", "Vindemiatrix": "Gentil",
+    "Sadachbia": "Vivo", "Sadaltager": "Sábio", "Sulafat": "Caloroso"
+}
+
 vozes_cache = []
 
 @router.on_event("startup")
 async def carregar_vozes_memoria():
     global vozes_cache
     try:
-        # --- 1. INJETANDO A VOZ PREMIUM DE TESTE NA VITRINE ---
-        vozes_cache.append({
-            "name": "Gemini 2.5 Flash (Ultra-Realista)",
-            "shortName": "gemini-premium-pt",
-            "gender": "Neutral",
-            "tipo": "premium"
-        })
+        # 1. Carregando as 30 Vozes Premium (Gemini)
+        for v_name, v_desc in VOICES_MAP.items():
+            vozes_cache.append({
+                "name": f"{v_name} ({v_desc})",
+                "shortName": f"gemini-premium-{v_name}",
+                "gender": "Neutral",
+                "tipo": "premium"
+            })
         
-        # --- 2. CARREGANDO AS VOZES PADRÃO (EDGE TTS) ---
+        # 2. Carregando as Vozes Padrão (Edge TTS)
         voices = await edge_tts.list_voices()
         for v in voices:
             if v["Locale"].startswith("pt-") or "Multilingual" in v["ShortName"]:
@@ -69,57 +84,51 @@ async def gerar_narracao(
     db: Session = Depends(get_db),
     usuario: models.Usuario = Depends(get_usuario_atual)
 ):
-    # 1. VALIDAÇÃO BASE
     if not usuario:
-        raise HTTPException(status_code=401, detail="Sessão expirada. Faça login novamente.")
-
+        raise HTTPException(status_code=401, detail="Sessão expirada.")
     texto = req.texto.strip()
     if not texto:
         raise HTTPException(status_code=400, detail="O texto para narração é obrigatório.")
 
-    # ==========================================
-    # 2. MOTOR DE PRECIFICAÇÃO E LIMITES (BACK-END)
-    # ==========================================
     is_premium = req.voz.startswith("gemini-premium")
     tamanho_texto = len(texto)
 
     if is_premium:
         if tamanho_texto > 4500:
-            raise HTTPException(status_code=400, detail=f"Texto muito longo para Voz Premium (Máximo 4500). Você enviou {tamanho_texto} caracteres.")
-        
+            raise HTTPException(status_code=400, detail=f"Texto muito longo para Voz Premium (Máximo 4500).")
         custo_operacao = max(1, math.ceil((tamanho_texto / 900.0) * 10))
     else:
         custo_operacao = 30
 
-    # 3. VALIDAÇÃO DE SALDO E DÉBITO ANTECIPADO
     if usuario.coins < custo_operacao:
-        raise HTTPException(status_code=402, detail=f"Coins insuficientes! Você precisa de {custo_operacao} coins para esta narração.")
+        raise HTTPException(status_code=402, detail=f"Coins insuficientes! Você precisa de {custo_operacao} coins.")
 
     usuario.coins -= custo_operacao
     db.commit()
 
-    # ==========================================
-    # 4. GERAÇÃO DE ÁUDIO (EDGE OU GEMINI)
-    # ==========================================
     try:
         srt_content = ""
         audio_base64 = ""
 
         if is_premium:
-            # --- ROTA PREMIUM: GEMINI 2.5 FLASH AUDIO ---
             api_key = os.environ.get("GEMINI_API_KEY")
-            if not api_key:
-                raise ValueError("Chave GEMINI_API_KEY não configurada no Easypanel.")
+            if not api_key: raise ValueError("Chave GEMINI_API_KEY não configurada no Easypanel.")
 
             client = genai.Client(api_key=api_key)
             
+            # Extrai o nome real da voz (ex: "gemini-premium-Aoede" -> "Aoede")
+            voz_real = req.voz.split("-")[-1] 
+            
+            # Injeta o Prompt de Direção de Arte ou um padrão
+            instrucao = req.instrucao_estilo if req.instrucao_estilo else "Você é um narrador profissional. Leia o texto com emoção adequada e ritmo perfeito."
+
             kwargs = {
                 "response_modalities": ["AUDIO"],
+                "system_instruction": instrucao,
+                "temperature": req.temperatura,
                 "speech_config": types.SpeechConfig(
                     voice_config=types.VoiceConfig(
-                        prebuilt_voice_config=types.PrebuiltVoiceConfig(
-                            voice_name="Aoede"  # Voz Premium do Google
-                        )
+                        prebuilt_voice_config=types.PrebuiltVoiceConfig(voice_name=voz_real)
                     )
                 )
             }
@@ -130,20 +139,15 @@ async def gerar_narracao(
                 config=types.GenerateContentConfig(**kwargs)
             )
             
-            # Extrai o áudio bruto
             pcm_data = next((part.inline_data.data for part in response.candidates[0].content.parts if part.inline_data), None)
-            
-            if not pcm_data:
-                raise ValueError("A API do Gemini falhou em retornar o áudio.")
+            if not pcm_data: raise ValueError("A API do Gemini falhou em retornar o áudio.")
 
-            # MÁGICA DO PYDUB EM MEMÓRIA (Aproveitando o seu FFmpeg)
             seg = AudioSegment(data=pcm_data, sample_width=2, frame_rate=24000, channels=1)
             mp3_io = io.BytesIO()
             seg.export(mp3_io, format="mp3", bitrate="128k")
             audio_base64 = base64.b64encode(mp3_io.getvalue()).decode('utf-8')
 
         else:
-            # --- ROTA PADRÃO: EDGE TTS ---
             voz_engine = req.voz
             velocidade_formatada = f"{int((req.velocidade - 1.0) * 100):+d}%"
             pitch_formatado = f"{req.pitch:+d}Hz"
@@ -161,7 +165,6 @@ async def gerar_narracao(
             srt_content = submaker.get_srt()
             audio_base64 = base64.b64encode(audio_data).decode('utf-8')
         
-        # 5. SALVAR HISTÓRICO APÓS SUCESSO
         ferramenta_nome = "Voice Synth Premium" if is_premium else "Voice Synth"
         novo_historico = models.Historico(
             usuario_id=usuario.id,
@@ -176,7 +179,6 @@ async def gerar_narracao(
         return {"status": "sucesso", "audio_base64": audio_base64, "srt": srt_content, "novo_saldo": usuario.coins}
 
     except Exception as e:
-        # 6. ROLLBACK: DEVOLVE O DINHEIRO SE A IA FALHAR
         usuario.coins += custo_operacao
         db.commit()
         print(f"❌ Erro na Geração de Áudio: {e}")
