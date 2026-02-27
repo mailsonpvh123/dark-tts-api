@@ -3,12 +3,13 @@ import base64
 import math
 import os
 import io
+import time
+import nltk
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from pydub import AudioSegment
 
-# IMPORT CORRETO DA NOVA SDK DO GEMINI
 from google import genai
 from google.genai import types
 
@@ -17,19 +18,23 @@ import models
 from database import get_db
 from auth import get_usuario_atual
 
+# Garante que o NLTK tem o pacote necessário para fatiar o texto
+try:
+    nltk.data.find('tokenizers/punkt')
+except LookupError:
+    nltk.download('punkt', quiet=True)
+
 router = APIRouter(tags=["Voice Synthesizer"])
 
-# Modelos atualizados com os parâmetros do Gemini
 class AudioRequest(BaseModel):
     texto: str
     voz: str = "pt-BR-AntonioNeural"
     velocidade: float = 1.0
     pitch: int = 0
     volume: int = 0
-    temperatura: float = 1.0       # Novo: Para o Gemini
-    instrucao_estilo: str = ""     # Novo: Para o Gemini
+    temperatura: float = 1.0       
+    instrucao_estilo: str = ""     
 
-# Mapa oficial das 21 Vozes Premium (Revisado com o Google AI Studio)
 VOICES_MAP = {
     "Puck": "Animado / Jovem", "Charon": "Informativo / Grave", "Kore": "Firme / Madura",
     "Fenrir": "Excitado / Forte", "Leda": "Jovem / Articulada", "Orus": "Firme / Clássico",
@@ -42,13 +47,35 @@ VOICES_MAP = {
 
 vozes_cache = []
 
+# ==========================================
+# FUNÇÃO DE FATIAMENTO (CHUNKING) INTELIGENTE
+# ==========================================
+def split_text_for_gemini(texto, max_chars=800):
+    texto = texto.replace('*', '').replace('#', '').replace('"', '').replace('”', '').replace('“', '')
+    try:
+        sentences = nltk.sent_tokenize(texto, language='portuguese')
+    except:
+        sentences = [s.strip() for s in texto.replace('\n', ' ').split('.') if s.strip()]
+        
+    chunks = []
+    current_chunk = ""
+    for s in sentences:
+        s = s.strip()
+        if not s: continue
+        if len(current_chunk) + len(s) < max_chars: 
+            current_chunk += s + " "
+        else:
+            if current_chunk: chunks.append(current_chunk.strip())
+            current_chunk = s + " "
+    if current_chunk: chunks.append(current_chunk.strip())
+    return chunks
+
 @router.on_event("startup")
 async def carregar_vozes_memoria():
     global vozes_cache
-    vozes_cache.clear() # <- O SEGREDO ESTÁ AQUI: Limpa a lista para não duplicar no reload do Easypanel
+    vozes_cache.clear() 
     
     try:
-        # 1. Carregando as 21 Vozes Premium (Gemini)
         for v_name, v_desc in VOICES_MAP.items():
             vozes_cache.append({
                 "name": f"{v_name} ({v_desc})",
@@ -57,7 +84,6 @@ async def carregar_vozes_memoria():
                 "tipo": "premium"
             })
         
-        # 2. Carregando as Vozes Padrão (Edge TTS)
         voices = await edge_tts.list_voices()
         for v in voices:
             if v["Locale"].startswith("pt-") or "Multilingual" in v["ShortName"]:
@@ -94,25 +120,19 @@ async def gerar_narracao(
     is_premium = req.voz.startswith("gemini-premium")
     tamanho_texto = len(texto)
 
-    # ==========================================
-    # CÁLCULO DE CUSTO E TRAVAS DE SEGURANÇA
-    # ==========================================
     if is_premium:
         if tamanho_texto > 4500:
-            raise HTTPException(status_code=400, detail=f"Texto muito longo para Voz Premium (Máximo 4500). Você enviou {tamanho_texto} caracteres.")
+            raise HTTPException(status_code=400, detail=f"Texto muito longo para Voz Premium (Máximo 4500).")
         custo_operacao = max(1, math.ceil((tamanho_texto / 900.0) * 10))
     else:
         custo_operacao = 30
 
     if usuario.coins < custo_operacao:
-        raise HTTPException(status_code=402, detail=f"Coins insuficientes! Você precisa de {custo_operacao} coins para esta narração.")
+        raise HTTPException(status_code=402, detail=f"Coins insuficientes! Você precisa de {custo_operacao} coins.")
 
     usuario.coins -= custo_operacao
     db.commit()
 
-    # ==========================================
-    # GERAÇÃO DE ÁUDIO (HÍBRIDA)
-    # ==========================================
     try:
         srt_content = ""
         audio_base64 = ""
@@ -122,16 +142,10 @@ async def gerar_narracao(
             if not api_key: raise ValueError("Chave GEMINI_API_KEY não configurada no Easypanel.")
 
             client = genai.Client(api_key=api_key)
-            
-            # Extrai o nome real da voz (ex: "gemini-premium-Aoede" -> "Aoede")
             voz_real = req.voz.split("-")[-1] 
-            
-            # Injeta o Prompt de Direção de Arte ou um padrão
-            instrucao = req.instrucao_estilo if req.instrucao_estilo else "Você é um narrador profissional. Leia o texto com emoção adequada e ritmo perfeito."
 
             kwargs = {
                 "response_modalities": ["AUDIO"],
-                "system_instruction": instrucao,
                 "temperature": req.temperatura,
                 "speech_config": types.SpeechConfig(
                     voice_config=types.VoiceConfig(
@@ -139,34 +153,74 @@ async def gerar_narracao(
                     )
                 )
             }
-            
-            # --- MODELOS EXATOS DO GEMINI TTS (Validados no seu teste de PC) ---
-            try:
-                response = client.models.generate_content(
-                    model="gemini-2.5-flash-preview-tts", 
-                    contents=texto, 
-                    config=types.GenerateContentConfig(**kwargs)
-                )
-            except Exception as fallback_e:
-                if "404" in str(fallback_e) or "not found" in str(fallback_e).lower():
-                    response = client.models.generate_content(
-                        model="gemini-2.5-flash-tts", 
-                        contents=texto, 
-                        config=types.GenerateContentConfig(**kwargs)
-                    )
-                else:
-                    raise fallback_e
-            
-            pcm_data = next((part.inline_data.data for part in response.candidates[0].content.parts if part.inline_data), None)
-            if not pcm_data: raise ValueError("A API do Gemini falhou em retornar o áudio.")
+            if req.instrucao_estilo:
+                kwargs["system_instruction"] = req.instrucao_estilo
 
-            # Conversão PyDub (Memória)
-            seg = AudioSegment(data=pcm_data, sample_width=2, frame_rate=24000, channels=1)
+            # 1. FATIAMENTO SEGURO
+            chunks = split_text_for_gemini(texto, max_chars=800)
+            final_audio = AudioSegment.empty()
+            pause_seg = AudioSegment.silent(duration=400) # Pausa natural entre blocos
+
+            # 2. LOOP COM SISTEMA ANTI-FALHAS E RETENTATIVAS
+            for i, chunk in enumerate(chunks):
+                pcm_data = None
+                max_retries = 3
+                
+                for attempt in range(max_retries):
+                    try:
+                        try:
+                            response = client.models.generate_content(
+                                model="gemini-2.5-flash-preview-tts", 
+                                contents=chunk, 
+                                config=types.GenerateContentConfig(**kwargs)
+                            )
+                        except Exception as fallback_e:
+                            if "404" in str(fallback_e) or "not found" in str(fallback_e).lower():
+                                response = client.models.generate_content(
+                                    model="gemini-2.5-flash-tts", 
+                                    contents=chunk, 
+                                    config=types.GenerateContentConfig(**kwargs)
+                                )
+                            else:
+                                raise fallback_e
+                        
+                        pcm_data = next((part.inline_data.data for part in response.candidates[0].content.parts if part.inline_data), None)
+                        if not pcm_data: raise ValueError("Resposta de áudio vazia.")
+                        break # Se deu certo, sai do loop de tentativas
+                        
+                    except Exception as api_err:
+                        err_str = str(api_err).lower()
+                        print(f"⚠️ Aviso no chunk {i+1} (Tentativa {attempt+1}/{max_retries}): {api_err}")
+                        
+                        if "500" in err_str or "internal" in err_str:
+                            if attempt < max_retries - 1:
+                                time.sleep(2) # Respira e tenta de novo
+                                continue
+                            else:
+                                raise Exception("Servidor do Google engasgou (Erro 500 constante).")
+                        elif "429" in err_str or "quota" in err_str:
+                            if attempt < max_retries - 1:
+                                time.sleep(5) # Respira mais longo por limite de taxa
+                                continue
+                            else:
+                                raise Exception("Cota da API do Google excedida.")
+                        else:
+                            raise api_err # Erro fatal, aborta
+                
+                if not pcm_data:
+                    raise Exception(f"Falha ao gerar o bloco {i+1} do áudio.")
+
+                # 3. COSTURA DO ÁUDIO
+                seg = AudioSegment(data=pcm_data, sample_width=2, frame_rate=24000, channels=1)
+                final_audio += (pause_seg + seg) if i > 0 else seg
+
+            # Exporta tudo junto
             mp3_io = io.BytesIO()
-            seg.export(mp3_io, format="mp3", bitrate="128k")
+            final_audio.export(mp3_io, format="mp3", bitrate="128k")
             audio_base64 = base64.b64encode(mp3_io.getvalue()).decode('utf-8')
 
         else:
+            # --- ROTA PADRÃO (EDGE TTS) ---
             voz_engine = req.voz
             velocidade_formatada = f"{int((req.velocidade - 1.0) * 100):+d}%"
             pitch_formatado = f"{req.pitch:+d}Hz"
@@ -201,4 +255,4 @@ async def gerar_narracao(
         usuario.coins += custo_operacao
         db.commit()
         print(f"❌ Erro na Geração de Áudio: {e}")
-        raise HTTPException(status_code=500, detail=f"Falha na IA. Os seus {custo_operacao} coins foram estornados. Tente novamente. Detalhe: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Falha na API: {str(e)} Os seus {custo_operacao} coins foram estornados.")
