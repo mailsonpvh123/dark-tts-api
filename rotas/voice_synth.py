@@ -1,11 +1,16 @@
 import edge_tts
 import base64
 import math
+import os
+import io
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
-import google.generativeai as genai
-import os
+from pydub import AudioSegment
+
+# IMPORT CORRETO DA NOVA SDK DO GEMINI
+from google import genai
+from google.genai import types
 
 # Nossos imports internos
 import models
@@ -13,13 +18,6 @@ from database import get_db
 from auth import get_usuario_atual
 
 router = APIRouter(tags=["Voice Synthesizer"])
-
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
-
-if not GEMINI_API_KEY:
-    print("⚠️ AVISO: GEMINI_API_KEY não encontrada nas variáveis de ambiente!")
-else:
-    genai.configure(api_key=GEMINI_API_KEY)
 
 # Modelos
 class AudioRequest(BaseModel):
@@ -86,17 +84,14 @@ async def gerar_narracao(
     tamanho_texto = len(texto)
 
     if is_premium:
-        # Trava de Segurança contra Gargalo de API/Timeout
         if tamanho_texto > 4500:
             raise HTTPException(status_code=400, detail=f"Texto muito longo para Voz Premium (Máximo 4500). Você enviou {tamanho_texto} caracteres.")
         
-        # Matemática: (Caracteres / 900) * 10 (Arredondado para cima. Mínimo 1)
         custo_operacao = max(1, math.ceil((tamanho_texto / 900.0) * 10))
     else:
-        # Preço fixo da voz padrão
         custo_operacao = 30
 
-    # 3. VALIDAÇÃO DE SALDO E DÉBITO ANTECIPADO (Prevenção de fraude)
+    # 3. VALIDAÇÃO DE SALDO E DÉBITO ANTECIPADO
     if usuario.coins < custo_operacao:
         raise HTTPException(status_code=402, detail=f"Coins insuficientes! Você precisa de {custo_operacao} coins para esta narração.")
 
@@ -104,35 +99,75 @@ async def gerar_narracao(
     db.commit()
 
     # ==========================================
-    # 4. GERAÇÃO DE ÁUDIO COM SISTEMA DE ESTORNO
+    # 4. GERAÇÃO DE ÁUDIO (EDGE OU GEMINI)
     # ==========================================
     try:
-        # ATENÇÃO: Enquanto não plugamos a API real do Gemini, usamos uma voz Edge como "dublê" no motor
-        voz_engine = "pt-BR-AntonioNeural" if is_premium else req.voz
-        
-        velocidade_formatada = f"{int((req.velocidade - 1.0) * 100):+d}%"
-        pitch_formatado = f"{req.pitch:+d}Hz"
-        
-        communicate = edge_tts.Communicate(text=texto, voice=voz_engine, rate=velocidade_formatada, pitch=pitch_formatado)
-        submaker = edge_tts.SubMaker()
-        audio_data = bytearray()
-        
-        async for chunk in communicate.stream():
-            if chunk["type"] == "audio":
-                audio_data.extend(chunk["data"])
-            elif chunk["type"] in ("WordBoundary", "SentenceBoundary"):
-                submaker.feed(chunk)
-        
-        srt_content = submaker.get_srt()
-        audio_base64 = base64.b64encode(audio_data).decode('utf-8')
+        srt_content = ""
+        audio_base64 = ""
+
+        if is_premium:
+            # --- ROTA PREMIUM: GEMINI 2.5 FLASH AUDIO ---
+            api_key = os.environ.get("GEMINI_API_KEY")
+            if not api_key:
+                raise ValueError("Chave GEMINI_API_KEY não configurada no Easypanel.")
+
+            client = genai.Client(api_key=api_key)
+            
+            kwargs = {
+                "response_modalities": ["AUDIO"],
+                "speech_config": types.SpeechConfig(
+                    voice_config=types.VoiceConfig(
+                        prebuilt_voice_config=types.PrebuiltVoiceConfig(
+                            voice_name="Aoede"  # Voz Premium do Google
+                        )
+                    )
+                )
+            }
+            
+            response = client.models.generate_content(
+                model="gemini-2.5-flash", 
+                contents=texto, 
+                config=types.GenerateContentConfig(**kwargs)
+            )
+            
+            # Extrai o áudio bruto
+            pcm_data = next((part.inline_data.data for part in response.candidates[0].content.parts if part.inline_data), None)
+            
+            if not pcm_data:
+                raise ValueError("A API do Gemini falhou em retornar o áudio.")
+
+            # MÁGICA DO PYDUB EM MEMÓRIA (Aproveitando o seu FFmpeg)
+            seg = AudioSegment(data=pcm_data, sample_width=2, frame_rate=24000, channels=1)
+            mp3_io = io.BytesIO()
+            seg.export(mp3_io, format="mp3", bitrate="128k")
+            audio_base64 = base64.b64encode(mp3_io.getvalue()).decode('utf-8')
+
+        else:
+            # --- ROTA PADRÃO: EDGE TTS ---
+            voz_engine = req.voz
+            velocidade_formatada = f"{int((req.velocidade - 1.0) * 100):+d}%"
+            pitch_formatado = f"{req.pitch:+d}Hz"
+            
+            communicate = edge_tts.Communicate(text=texto, voice=voz_engine, rate=velocidade_formatada, pitch=pitch_formatado)
+            submaker = edge_tts.SubMaker()
+            audio_data = bytearray()
+            
+            async for chunk in communicate.stream():
+                if chunk["type"] == "audio":
+                    audio_data.extend(chunk["data"])
+                elif chunk["type"] in ("WordBoundary", "SentenceBoundary"):
+                    submaker.feed(chunk)
+            
+            srt_content = submaker.get_srt()
+            audio_base64 = base64.b64encode(audio_data).decode('utf-8')
         
         # 5. SALVAR HISTÓRICO APÓS SUCESSO
         ferramenta_nome = "Voice Synth Premium" if is_premium else "Voice Synth"
         novo_historico = models.Historico(
             usuario_id=usuario.id,
             ferramenta=ferramenta_nome,
-            input_usuario=f"Voz: {req.voz} | Vel: {req.velocidade}x | Pitch: {req.pitch}Hz\nTexto: {texto[:150]}...",
-            resultado="Áudio e SRT gerados com sucesso.", 
+            input_usuario=f"Voz: {req.voz} | Texto: {texto[:100]}...",
+            resultado="Áudio gerado com sucesso.", 
             custo_coins=custo_operacao
         )
         db.add(novo_historico)
@@ -144,4 +179,5 @@ async def gerar_narracao(
         # 6. ROLLBACK: DEVOLVE O DINHEIRO SE A IA FALHAR
         usuario.coins += custo_operacao
         db.commit()
+        print(f"❌ Erro na Geração de Áudio: {e}")
         raise HTTPException(status_code=500, detail=f"Falha na IA. Os seus {custo_operacao} coins foram estornados. Tente novamente.")
