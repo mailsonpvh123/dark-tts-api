@@ -186,6 +186,14 @@ async def historico_page(request: Request, db: Session = Depends(get_db)):
     if not user: return RedirectResponse(url="/login")
     return templates.TemplateResponse("historico.html", {"request": request, "title": "Histórico de Produção", "user": user})
 
+@app.get("/planos", response_class=HTMLResponse)
+async def planos_page(request: Request, db: Session = Depends(get_db)):
+    user = await obter_user_ou_redirect(request, db)
+    if not user: return RedirectResponse(url="/login")
+    return templates.TemplateResponse("planos.html", {"request": request, "title": "Planos e Preços", "user": user})
+
+# --- SETUP INICIAL ADMIN ---
+
 # --- SETUP INICIAL ADMIN ---
 @app.get("/setup-admin")
 def setup_admin(db: Session = Depends(get_db)):
