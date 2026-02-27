@@ -92,25 +92,65 @@
         <p class="text-zinc-400 text-center text-sm mb-8">Compre pacotes de recarga avulsos. O valor do Coin continua sendo exatamente o mesmo (R$ 0,025).</p>
         
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div class="bg-[#18181b] border border-zinc-800 p-6 rounded-xl text-center hover:border-yellow-500/30 transition-colors group">
+            <div class="bg-[#18181b] border border-zinc-800 p-6 rounded-xl text-center hover:border-yellow-500/30 transition-colors group cursor-pointer">
                 <i class="fa-solid fa-coins text-3xl text-yellow-500 mb-3 group-hover:scale-110 transition-transform"></i>
                 <h4 class="text-white font-bold text-xl mb-1">1.000 Coins</h4>
                 <p class="text-yellow-400 font-bold text-2xl mb-4">R$ 25</p>
                 <button onclick="abrirCheckoutPix('avulso_1000', this)" class="text-xs bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500 hover:text-white border border-yellow-500/20 py-2 px-6 rounded-lg transition-colors font-bold w-full flex justify-center items-center gap-2"><span>Comprar</span></button>
             </div>
             
-            <div class="bg-[#18181b] border border-zinc-800 p-6 rounded-xl text-center hover:border-yellow-500/30 transition-colors group">
+            <div class="bg-[#18181b] border border-zinc-800 p-6 rounded-xl text-center hover:border-yellow-500/30 transition-colors group cursor-pointer">
                 <i class="fa-solid fa-sack-dollar text-3xl text-yellow-500 mb-3 group-hover:scale-110 transition-transform"></i>
                 <h4 class="text-white font-bold text-xl mb-1">2.000 Coins</h4>
                 <p class="text-yellow-400 font-bold text-2xl mb-4">R$ 50</p>
                 <button onclick="abrirCheckoutPix('avulso_2000', this)" class="text-xs bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500 hover:text-white border border-yellow-500/20 py-2 px-6 rounded-lg transition-colors font-bold w-full flex justify-center items-center gap-2"><span>Comprar</span></button>
             </div>
             
-            <div class="bg-[#18181b] border border-zinc-800 p-6 rounded-xl text-center hover:border-yellow-500/30 transition-colors group">
+            <div class="bg-[#18181b] border border-zinc-800 p-6 rounded-xl text-center hover:border-yellow-500/30 transition-colors group cursor-pointer">
                 <i class="fa-solid fa-box-open text-3xl text-yellow-500 mb-3 group-hover:scale-110 transition-transform"></i>
                 <h4 class="text-white font-bold text-xl mb-1">4.000 Coins</h4>
                 <p class="text-yellow-400 font-bold text-2xl mb-4">R$ 100</p>
                 <button onclick="abrirCheckoutPix('avulso_4000', this)" class="text-xs bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500 hover:text-white border border-yellow-500/20 py-2 px-6 rounded-lg transition-colors font-bold w-full flex justify-center items-center gap-2"><span>Comprar</span></button>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-4xl mx-auto bg-[#18181b] border border-zinc-800 rounded-2xl p-8 shadow-xl relative z-10">
+        <h3 class="text-xl font-bold text-white mb-6 text-center">Como os seus Coins são investidos?</h3>
+        <p class="text-zinc-400 text-center text-sm mb-8">O nosso sistema modular permite que construa o seu vídeo à la carte. Um vídeo completo padrão custa <strong>100 Coins</strong>.</p>
+        
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div class="bg-[#09090b] border border-zinc-800 p-4 rounded-xl flex justify-between items-center">
+                <span class="text-sm text-zinc-300"><i class="fa-solid fa-lightbulb text-yellow-400 w-5"></i> Ideias</span>
+                <span class="text-xs font-bold text-zinc-500 bg-zinc-800 px-2 py-1 rounded">5 Coins</span>
+            </div>
+            <div class="bg-[#09090b] border border-zinc-800 p-4 rounded-xl flex justify-between items-center">
+                <span class="text-sm text-zinc-300"><i class="fa-solid fa-pen-nib text-orange-400 w-5"></i> Roteiro</span>
+                <span class="text-xs font-bold text-zinc-500 bg-zinc-800 px-2 py-1 rounded">25 Coins</span>
+            </div>
+            <div class="bg-[#09090b] border border-zinc-800 p-4 rounded-xl flex justify-between items-center">
+                <span class="text-sm text-zinc-300"><i class="fa-solid fa-microphone text-purple-400 w-5"></i> Voz Padrão</span>
+                <span class="text-xs font-bold text-zinc-500 bg-zinc-800 px-2 py-1 rounded">30 Coins</span>
+            </div>
+            <div class="bg-[#09090b] border border-zinc-800 p-4 rounded-xl flex justify-between items-center">
+                <span class="text-sm text-zinc-300"><i class="fa-solid fa-sliders text-amber-400 w-5"></i> Mixagem</span>
+                <span class="text-xs font-bold text-zinc-500 bg-zinc-800 px-2 py-1 rounded">10 Coins</span>
+            </div>
+            <div class="bg-[#09090b] border border-zinc-800 p-4 rounded-xl flex justify-between items-center">
+                <span class="text-sm text-zinc-300"><i class="fa-solid fa-image text-pink-400 w-5"></i> Thumb</span>
+                <span class="text-xs font-bold text-zinc-500 bg-zinc-800 px-2 py-1 rounded">15 Coins</span>
+            </div>
+            <div class="bg-[#09090b] border border-zinc-800 p-4 rounded-xl flex justify-between items-center">
+                <span class="text-sm text-zinc-300"><i class="fa-solid fa-chart-line text-blue-400 w-5"></i> SEO</span>
+                <span class="text-xs font-bold text-zinc-500 bg-zinc-800 px-2 py-1 rounded">15 Coins</span>
+            </div>
+        </div>
+
+        <div class="mt-8 p-4 bg-yellow-500/5 border border-yellow-500/20 rounded-xl flex gap-4 items-start">
+            <i class="fa-solid fa-bolt text-yellow-500 text-xl mt-1"></i>
+            <div>
+                <h4 class="text-sm font-bold text-yellow-400 mb-1">Vozes Premium (Gemini Flash Ultra-Realista)</h4>
+                <p class="text-xs text-zinc-400 leading-relaxed">As vozes premium utilizam um modelo dinâmico de cobrança baseado no tamanho do seu texto. O custo é de <strong>10 Coins por cada minuto de áudio gerado</strong> (~900 caracteres). O estúdio calculará o valor exato na tela antes de você confirmar a geração.</p>
             </div>
         </div>
     </div>
