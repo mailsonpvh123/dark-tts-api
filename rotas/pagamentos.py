@@ -13,7 +13,7 @@ router = APIRouter(prefix="/api/v1/pagamentos", tags=["Pagamentos"])
 # ==========================================
 # CONFIGURAÇÕES DO MERCADO PAGO
 # ==========================================
-MP_ACCESS_TOKEN = "SEU_ACCESS_TOKEN_AQUI_COMECA_COM_APP_USR"
+MP_ACCESS_TOKEN = "APP_USR-3763574332833219-080715-441c2d79367de336c403fd1c6ab2f82a-1220264860"
 DOMINIO_WEBHOOK = "https://suite.zappclube.com.br" # Coloque o seu domínio real aqui com HTTPS
 
 sdk = mercadopago.SDK(MP_ACCESS_TOKEN)
