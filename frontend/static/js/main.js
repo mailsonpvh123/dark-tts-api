@@ -6,6 +6,7 @@ const URL_API_DIRETA = "/gerar_narracao";
 let vozesData = [];
 let vozSelecionada = "pt-BR-AntonioNeural"; 
 let srtGlobal = ""; 
+let timerDebounceCusto = null; // Variável para o Debounce da Voz
 
 document.addEventListener('DOMContentLoaded', async function() {
     const path = window.location.pathname;
@@ -32,6 +33,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     if (textoVoice && document.getElementById('texto_voz')) {
         document.getElementById('texto_voz').value = textoVoice;
         localStorage.removeItem('texto_pendente_voice');
+        if(typeof recalcularCustoVoz === 'function') recalcularCustoVoz();
     }
 
     const textoScript = localStorage.getItem('ideia_pendente_script');
@@ -48,7 +50,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         if(typeof contarPalavrasLocal === 'function') contarPalavrasLocal('paraphraser_conteudo', 'contador_palavras_in');
     }
 
-    // CARREGADOR DE VOZES (Só roda na aba do Voice Synth)
+    // CARREGADOR DE VOZES
     if(document.getElementById('lista_vozes')) {
         try {
             const resposta = await fetch(URL_API_VOZES);
@@ -59,6 +61,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             
             vozesData = dados.vozes || dados;
             renderizarListaVozes();
+            recalcularCustoVoz(); // Força o primeiro cálculo
         } catch (error) { 
             console.log("Erro TTS:", error);
             document.getElementById('lista_vozes').innerHTML = `
@@ -71,7 +74,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 });
 
-// FUNÇÕES DE DESPACHO PARA A ESTEIRA (Rodam de qualquer página)
+// FUNÇÕES DE DESPACHO
 function despacharParaVoice(idCampoOrigem) {
     const texto = document.getElementById(idCampoOrigem).value;
     if(!texto || texto.trim() === "") return alert("Aviso: O texto está vazio!"); 
@@ -101,8 +104,54 @@ function contarPalavrasLocal(textAreaId, contadorId) {
 }
 
 // ==========================================
-// FUNÇÕES DO VOICE SYNTHESIZER (UI PREMIUM ABSOLUTA)
+// FUNÇÕES DO VOICE SYNTHESIZER (UPGRADE PREMIUM)
 // ==========================================
+
+// NOVO: Cálculo de Custo Dinâmico (Com Debounce)
+function recalcularCustoVoz() {
+    clearTimeout(timerDebounceCusto);
+    
+    timerDebounceCusto = setTimeout(() => {
+        const inputTexto = document.getElementById('texto_voz');
+        if(!inputTexto) return;
+        
+        const texto = inputTexto.value;
+        const tamanho = texto.length;
+        const btnTxt = document.getElementById('txt_btn_voz');
+        const contador = document.getElementById('contador_caracteres_voz');
+        
+        const vozObj = vozesData.find(v => v.shortName === vozSelecionada);
+        const isPremium = vozObj && vozObj.tipo === 'premium';
+        
+        if(contador) {
+            if(isPremium) {
+                contador.innerText = `${tamanho} / 4500 (Premium)`;
+                if(tamanho > 4500) {
+                    contador.classList.replace('text-zinc-500', 'text-red-400');
+                    contador.classList.replace('border-zinc-700', 'border-red-500/50');
+                } else {
+                    contador.classList.replace('text-red-400', 'text-zinc-500');
+                    contador.classList.replace('border-red-500/50', 'border-zinc-700');
+                }
+            } else {
+                contador.innerText = `${tamanho} caracteres`;
+                contador.classList.replace('text-red-400', 'text-zinc-500');
+                contador.classList.replace('border-red-500/50', 'border-zinc-700');
+            }
+        }
+
+        if(btnTxt) {
+            if(!vozObj || !isPremium) {
+                btnTxt.innerHTML = `Sintetizar Voz Padrão (30 Coins)`;
+            } else {
+                let custo = Math.ceil((tamanho / 900.0) * 10);
+                if (custo < 1) custo = 1;
+                btnTxt.innerHTML = `Sintetizar Voz Premium (<span class="text-yellow-400 drop-shadow-md">${custo} Coins</span>)`;
+            }
+        }
+    }, 300); // 300ms de atraso
+}
+
 function renderizarListaVozes() {
     const container = document.getElementById('lista_vozes');
     if(!container) return;
@@ -111,22 +160,30 @@ function renderizarListaVozes() {
     
     vozesData.forEach(v => {
         let isSelected = v.shortName === vozSelecionada;
+        let isPremium = v.tipo === 'premium';
+
+        // Cores Dinâmicas baseadas no Tipo de Voz
+        let baseClass = isPremium ? "bg-amber-500/5 hover:border-amber-500/40" : "bg-[#09090b] hover:border-purple-500/40 hover:bg-purple-500/5";
         let cardClass = isSelected 
             ? "border-emerald-500 bg-emerald-500/10 shadow-[0_0_20px_rgba(16,185,129,0.15)]" 
-            : "border-zinc-800 bg-[#09090b] hover:border-purple-500/40 hover:bg-purple-500/5";
+            : `border-zinc-800 ${baseClass}`;
             
-        let iconClass = v.gender === 'Female' ? 'fa-face-smile-beam text-pink-400' : 'fa-user-astronaut text-blue-400';
-        let genderTag = v.gender === 'Female' 
-            ? '<span class="text-[10px] font-bold text-pink-400 bg-pink-500/10 px-2 py-0.5 rounded border border-pink-500/20">Feminino</span>'
-            : '<span class="text-[10px] font-bold text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20">Masculino</span>';
+        let iconClass = isPremium ? 'fa-gem text-amber-400' : (v.gender === 'Female' ? 'fa-face-smile-beam text-pink-400' : 'fa-user-astronaut text-blue-400');
+        
+        let tagsHtml = isPremium 
+            ? '<span class="text-[10px] font-bold text-yellow-400 bg-yellow-500/10 px-2 py-0.5 rounded border border-yellow-500/20"><i class="fa-solid fa-bolt"></i> Premium</span>'
+            : (v.gender === 'Female' 
+                ? '<span class="text-[10px] font-bold text-pink-400 bg-pink-500/10 px-2 py-0.5 rounded border border-pink-500/20">Feminino</span>'
+                : '<span class="text-[10px] font-bold text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20">Masculino</span>');
 
         let partes = v.shortName.split('-');
         let nomeDisplay = v.shortName.replace(/Neural/ig, '').replace(/Multilingual/ig, '').replace(/V2/ig, '').trim(); 
         
-        if (partes.length >= 3) {
+        if (isPremium) {
+            nomeDisplay = v.name; // Usa o nome direto da IA Premium
+        } else if (partes.length >= 3) {
             let idiomaCodigo = partes[0].toLowerCase();
             let regiaoCodigo = partes[1].toUpperCase();
-            
             let nomeAtor = partes.slice(2).join(' ');
             nomeAtor = nomeAtor.replace(/Neural/ig, '').replace(/Multilingual/ig, '').replace(/V2/ig, '').trim();
             
@@ -135,7 +192,6 @@ function renderizarListaVozes() {
                 'it': 'Italiano', 'de': 'Alemão', 'ja': 'Japonês', 'ko': 'Coreano',
                 'zh': 'Chinês', 'ru': 'Russo', 'nl': 'Holandês', 'tr': 'Turco', 'pl': 'Polonês'
             };
-            
             let idiomaDisplay = mapaIdiomas[idiomaCodigo] || idiomaCodigo.toUpperCase();
             nomeDisplay = `${nomeAtor} - ${idiomaDisplay} - ${regiaoCodigo}`;
         }
@@ -149,7 +205,7 @@ function renderizarListaVozes() {
                     <div>
                         <p class="text-base font-bold text-white group-hover:text-purple-300 transition-colors">${nomeDisplay}</p>
                         <div class="flex items-center gap-2 mt-1">
-                            ${genderTag}
+                            ${tagsHtml}
                         </div>
                     </div>
                 </div>
@@ -163,6 +219,7 @@ function renderizarListaVozes() {
 function selecionarVoz(sn) { 
     vozSelecionada = sn; 
     renderizarListaVozes(); 
+    recalcularCustoVoz(); // Atualiza o preço imediatamente ao trocar a voz
 }
 
 async function tocarPreview(event, shortName) {
@@ -194,23 +251,23 @@ async function tocarPreview(event, shortName) {
     } 
 }
 
-// -----------------------------------------------------
-// NOVA FUNÇÃO BLINDADA COM COBRANÇA E ATUALIZAÇÃO DE SALDO
-// -----------------------------------------------------
 async function gerarAudioCompleto() {
     const btn = document.getElementById('btn_gerar_voz');
-    const txtBtn = document.getElementById('txt_btn_voz') || btn.querySelector('span'); // Pega o span correto
+    const txtBtn = document.getElementById('txt_btn_voz');
     const texto = document.getElementById('texto_voz').value;
     const playerContainer = document.getElementById('player_container');
     
     if(!texto.trim()) return alert("Digite um texto antes de sintetizar!");
 
+    // Guarda o texto original do botão para voltar depois
+    const textoBotaoOriginal = txtBtn.innerHTML;
+
     btn.disabled = true;
     btn.classList.add('opacity-70', 'cursor-not-allowed');
-    if (txtBtn) txtBtn.innerHTML = `Gravando na Nuvem... <i class="fa-solid fa-circle-notch fa-spin ml-2"></i>`;
+    txtBtn.innerHTML = `Gravando na Nuvem... <i class="fa-solid fa-circle-notch fa-spin ml-2"></i>`;
     
     playerContainer.classList.remove('hidden');
-    playerContainer.innerHTML = `<p class="text-purple-400 animate-pulse text-center font-bold text-sm"><i class="fa-solid fa-microphone-lines fa-fade mr-2"></i> O estúdio neural está gravando a sua locução... (-30 Coins)</p>`;
+    playerContainer.innerHTML = `<p class="text-purple-400 animate-pulse text-center font-bold text-sm"><i class="fa-solid fa-microphone-lines fa-fade mr-2"></i> O estúdio neural está gravando a sua locução...</p>`;
 
     const payload = { 
         texto: texto, 
@@ -235,9 +292,6 @@ async function gerarAudioCompleto() {
         
         const dados = await res.json();
 
-        // ==========================================
-        // MAGIA DO FRONT-END: Atualiza o Saldo Dinâmico
-        // ==========================================
         if(dados.novo_saldo !== undefined) {
             const paineisDeCoins = document.querySelectorAll('.fa-coins');
             paineisDeCoins.forEach(icone => {
@@ -245,14 +299,11 @@ async function gerarAudioCompleto() {
                 if(elementoPai) {
                     const textoSaldo = dados.novo_saldo.toLocaleString('pt-BR');
                     elementoPai.innerHTML = `<i class="fa-solid fa-coins"></i> ${textoSaldo} coins`;
-                    
-                    // Pisca em roxo para indicar a ação do Voice Synth
                     elementoPai.classList.add('text-purple-400', 'scale-110');
                     setTimeout(() => elementoPai.classList.remove('text-purple-400', 'scale-110'), 500);
                 }
             });
         }
-        // ==========================================
 
         playerContainer.innerHTML = `
             <div class="flex items-center gap-2 mb-3">
@@ -264,14 +315,14 @@ async function gerarAudioCompleto() {
             </audio>
         `;
     } catch (e) {
-        // Tratamento especial para saldo insuficiente
         const isCoinError = e.message.includes('Coins insuficientes');
         const erroClass = isCoinError ? 'text-yellow-400 bg-yellow-500/10 border-yellow-500/20' : 'text-red-400 bg-red-500/10 border-red-500/20';
         playerContainer.innerHTML = `<div class="${erroClass} border p-4 rounded-lg text-center font-bold text-sm"><i class="fa-solid fa-triangle-exclamation mb-2 text-2xl block"></i> ${e.message}</div>`;
     } finally {
         btn.disabled = false;
         btn.classList.remove('opacity-70', 'cursor-not-allowed');
-        if (txtBtn) txtBtn.innerText = "Sintetizar Voz Neural (30 Coins)";
+        // Restaura o valor correto do botão usando nossa função inteligente
+        recalcularCustoVoz();
     }
 }
 
