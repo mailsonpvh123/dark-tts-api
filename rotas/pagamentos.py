@@ -1,4 +1,5 @@
 import mercadopago
+import os
 from fastapi import APIRouter, HTTPException, Depends, Request
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -11,13 +12,16 @@ from auth import get_usuario_atual
 router = APIRouter(prefix="/api/v1/pagamentos", tags=["Pagamentos"])
 
 # ==========================================
-# CONFIGURAÇÕES DO MERCADO PAGO
+# CONFIGURAÇÕES DO MERCADO PAGO (VIA .ENV)
 # ==========================================
-MP_ACCESS_TOKEN = "APP_USR-3763574332833219-080715-441c2d79367de336c403fd1c6ab2f82a-1220264860"
-DOMINIO_WEBHOOK = "https://suite.zappclube.com.br" # Coloque o seu domínio real aqui com HTTPS
+MP_ACCESS_TOKEN = os.environ.get("MP_ACCESS_TOKEN")
+DOMINIO_WEBHOOK = os.environ.get("DOMINIO_WEBHOOK")
 
-sdk = mercadopago.SDK(MP_ACCESS_TOKEN)
-
+if MP_ACCESS_TOKEN:
+    sdk = mercadopago.SDK(MP_ACCESS_TOKEN)
+else:
+    print("⚠️ AVISO: MP_ACCESS_TOKEN não encontrado nas variáveis de ambiente!")
+    sdk = None
 # ==========================================
 # TABELA DE PREÇOS E PACOTES
 # ==========================================
