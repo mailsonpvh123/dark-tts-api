@@ -16,8 +16,8 @@ class ParaphraseRequest(BaseModel):
     texto: str
     tom: str = "Sarcástico e Ácido"
     idioma: str = "Português (Brasil)"
-    modo: str = "padrao"         # Novo: 'padrao' ou 'reddit'
-    gancho_exato: str = ""       # Novo: Título exato para iniciar o roteiro
+    modo: str = "padrao"         
+    gancho_exato: str = ""       
 
 def ler_prompt_arquivo(nome_arquivo: str) -> str:
     """Lê o conteúdo de um arquivo de prompt na pasta 'prompts'."""
@@ -29,7 +29,10 @@ def ler_prompt_arquivo(nome_arquivo: str) -> str:
         print(f"⚠️ Aviso: Arquivo de prompt {nome_arquivo} não encontrado. Usando fallback. Erro: {e}")
         return "Você é um roteirista profissional. Reescreva o texto mantendo a essência, mas com alta originalidade e formatação limpa."
 
-@router.post("/")
+# =========================================================
+# A CORREÇÃO MÁGICA: Rota sem a barra (de "/" para "")
+# =========================================================
+@router.post("")
 async def gerar_parafraze(
     req: ParaphraseRequest,
     db: Session = Depends(get_db),
@@ -42,7 +45,7 @@ async def gerar_parafraze(
     if not texto_original:
         raise HTTPException(status_code=400, detail="O texto original não pode estar vazio.")
 
-    custo_operacao = 15
+    custo_operacao = 25 # Ajustado para 25 Coins conforme a sua interface visual
 
     if usuario.coins < custo_operacao:
         raise HTTPException(status_code=402, detail=f"Coins insuficientes! Você precisa de {custo_operacao} coins para reescrever.")
@@ -62,7 +65,6 @@ async def gerar_parafraze(
             instrucao_sistema = ler_prompt_arquivo("reddit_mode.txt")
         else:
             # Caso o usuário esteja usando a ferramenta para roteiros normais
-            # Você pode criar um 'padrao_mode.txt' depois, por enquanto deixamos um texto base
             instrucao_sistema = (
                 "Você é um roteirista de elite. Reescreva o texto garantindo 100% de originalidade "
                 "para evitar detecção de plágio, mas mantendo a essência e os fatos. "
