@@ -44,7 +44,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             if(dados.status === "erro") throw new Error(dados.mensagem);
             
             vozesData = dados.vozes || dados;
-            alternarAbaVozes('padrao'); // Inicia renderizando a aba Padrão
+            alternarAbaVozes('padrao'); 
         } catch (error) { 
             console.log("Erro TTS:", error);
             document.getElementById('lista_vozes').innerHTML = `
@@ -69,20 +69,17 @@ function despacharParaVoice(idCampoOrigem) {
 function alternarAbaVozes(tipo) {
     abaVozAtiva = tipo;
     
-    // Controle Visual dos Botões das Abas
     const btnPadrao = document.getElementById('aba_btn_padrao');
     const btnPremium = document.getElementById('aba_btn_premium');
     
     if (tipo === 'padrao') {
         btnPadrao.className = "flex-1 py-2 text-xs font-bold rounded-md bg-zinc-800 text-white shadow-sm transition-all";
         btnPremium.className = "flex-1 py-2 text-xs font-bold rounded-md text-zinc-500 hover:text-white transition-all";
-        // Auto-seleciona a primeira voz padrão
         const primeiraPadrao = vozesData.find(v => v.tipo === 'padrao');
         if(primeiraPadrao) selecionarVoz(primeiraPadrao.shortName);
     } else {
         btnPremium.className = "flex-1 py-2 text-xs font-bold rounded-md bg-zinc-800 text-yellow-500 shadow-sm transition-all";
         btnPadrao.className = "flex-1 py-2 text-xs font-bold rounded-md text-zinc-500 hover:text-white transition-all";
-        // Auto-seleciona a primeira voz premium (Puck)
         const primeiraPremium = vozesData.find(v => v.tipo === 'premium');
         if(primeiraPremium) selecionarVoz(primeiraPremium.shortName);
     }
@@ -95,7 +92,6 @@ function renderizarListaVozes() {
     if(!container) return;
     container.innerHTML = '';
     
-    // Filtra vozes pela aba atual
     const vozesFiltradas = vozesData.filter(v => v.tipo === abaVozAtiva);
     
     vozesFiltradas.forEach(v => {
@@ -150,7 +146,6 @@ function renderizarListaVozes() {
 function selecionarVoz(sn) { 
     vozSelecionada = sn; 
     
-    // Mágica da Interface: Esconde e Mostra os painéis corretos
     const painelEdge = document.getElementById('controles_edge');
     const painelGemini = document.getElementById('controles_gemini');
     
@@ -354,10 +349,7 @@ async function gerarAudioCompleto() {
 // FUNÇÕES UTILITÁRIAS (PARAPHRASER / TRANSMUTER)
 // ==========================================
 function contarPalavrasLocal(texto) {
-    if (!texto || texto.trim() === "") {
-        return 0;
-    }
-    // Divide o texto por espaços e ignora as strings vazias, devolvendo a quantidade exata
+    if (!texto || texto.trim() === "") return 0;
     return texto.trim().split(/\s+/).length;
 }
 
@@ -367,24 +359,21 @@ async function transmutarTexto() {
     
     const textoOrig = inputTexto.value;
     
-    // Tentando buscar os valores da interface de forma segura com base nos prints
     const elEstrategia = document.getElementById('estrategia_escrita');
-    // Verifica se a estratégia selecionada contém a palavra "reddit", caso contrário usa "padrao"
     const modoSelecionado = elEstrategia && elEstrategia.value.toLowerCase().includes('reddit') ? 'reddit' : 'padrao';
     
-    const elGancho = document.getElementById('nome_canal'); // Na print, o campo se chama "Nome do Canal" onde colamos o gancho exato
+    const elGancho = document.getElementById('nome_canal'); 
     const tituloGancho = elGancho ? elGancho.value : "";
     
     if (!textoOrig.trim()) return alert("Cole o texto original primeiro!");
 
     const painelResultado = document.getElementById('texto_transmutado');
-    // Mostra o spinner de carregamento sem destruir a classe
     painelResultado.innerHTML = `<p class="text-pink-400 animate-pulse font-bold text-sm"><i class="fa-solid fa-circle-notch fa-spin mr-2"></i> Transmutando com Gemini...</p>`;
 
     try {
         const payload = {
             texto: textoOrig,
-            tom: "Sarcástico e Ácido", // Fixo por enquanto, ou pode ser lido de outro campo no futuro
+            tom: "Sarcástico e Ácido",
             idioma: "Português (Brasil)",
             modo: modoSelecionado,
             gancho_exato: tituloGancho
@@ -397,19 +386,25 @@ async function transmutarTexto() {
         });
 
         const dados = await res.json();
+        console.log("Resposta recebida da API:", dados); // Para debugarmos qualquer problema futuro
 
         if (!res.ok) throw new Error(dados.detail || "Erro no servidor.");
 
-        // SUCESSO: Insere o texto gerado na caixa
-        painelResultado.innerHTML = dados.texto_parafrazedo;
+        // ARMADURA DE LEITURA: Busca o texto não importando como o backend tenha digitado
+        const textoGerado = dados.texto_parafrazedo || dados.texto_parafraseado || dados.texto || dados.resultado || dados.texto_transmutado;
+
+        if (!textoGerado) {
+            throw new Error("A IA gerou o texto, mas o Front-end não conseguiu encontrar a variável no pacote de dados.");
+        }
+
+        // SUCESSO ABSOLUTO
+        painelResultado.innerHTML = textoGerado;
         
-        // Atualiza a badge do contador de palavras
         const contadorRes = document.querySelector('span:contains("palavras")') || document.getElementById('contador_resultado');
         if(contadorRes) {
-            contadorRes.innerText = contarPalavrasLocal(dados.texto_parafrazedo) + " palavras";
+            contadorRes.innerText = contarPalavrasLocal(textoGerado) + " palavras";
         }
         
-        // Atualiza as moedas no menu lateral globalmente
         if(dados.novo_saldo !== undefined) {
             const paineisDeCoins = document.querySelectorAll('.fa-coins');
             paineisDeCoins.forEach(icone => {
