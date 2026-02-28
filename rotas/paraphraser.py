@@ -3,11 +3,9 @@ from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-# IMPORT DA SDK OFICIAL DO GEMINI
 from google import genai
 from google.genai import types
 
-# Nossos imports internos
 import models
 from database import get_db
 from auth import get_usuario_atual
@@ -18,6 +16,18 @@ class ParaphraseRequest(BaseModel):
     texto: str
     tom: str = "Sarcástico e Ácido"
     idioma: str = "Português (Brasil)"
+    modo: str = "padrao"         # Novo: 'padrao' ou 'reddit'
+    gancho_exato: str = ""       # Novo: Título exato para iniciar o roteiro
+
+def ler_prompt_arquivo(nome_arquivo: str) -> str:
+    """Lê o conteúdo de um arquivo de prompt na pasta 'prompts'."""
+    caminho = os.path.join(os.getcwd(), "prompts", nome_arquivo)
+    try:
+        with open(caminho, "r", encoding="utf-8") as file:
+            return file.read()
+    except Exception as e:
+        print(f"⚠️ Aviso: Arquivo de prompt {nome_arquivo} não encontrado. Usando fallback. Erro: {e}")
+        return "Você é um roteirista profissional. Reescreva o texto mantendo a essência, mas com alta originalidade e formatação limpa."
 
 @router.post("/")
 async def gerar_parafraze(
@@ -32,13 +42,11 @@ async def gerar_parafraze(
     if not texto_original:
         raise HTTPException(status_code=400, detail="O texto original não pode estar vazio.")
 
-    # Custo fixo para a ferramenta de reescrita
     custo_operacao = 15
 
     if usuario.coins < custo_operacao:
         raise HTTPException(status_code=402, detail=f"Coins insuficientes! Você precisa de {custo_operacao} coins para reescrever.")
 
-    # Débito antecipado
     usuario.coins -= custo_operacao
     db.commit()
 
@@ -49,37 +57,47 @@ async def gerar_parafraze(
 
         client = genai.Client(api_key=api_key)
 
-        # Instrução de Sistema: Transforma a IA num Copywriter de Elite
-        instrucao_sistema = (
-            "Você é um roteirista de elite especializado em vídeos curtos (TikTok/Shorts) e longos para o YouTube. "
-            "Sua missão é reescrever o texto fornecido garantindo 100% de originalidade para evitar qualquer detecção de plágio, "
-            "mas mantendo a essência, os fatos e a informação do conteúdo original. "
-            "Adapte o vocabulário para ser lido em voz alta de forma natural por um locutor (evite palavras robóticas ou excessivamente formais, a não ser que o tom exija)."
-        )
-        
-        # O Prompt de comando do usuário
-        prompt = (
-            f"Reescreva o texto abaixo no idioma '{req.idioma}'.\n"
-            f"Aplique estritamente um tom de voz: {req.tom}.\n\n"
-            f"Texto original:\n{texto_original}"
-        )
+        # 1. Carrega o System Prompt dinamicamente do arquivo correto
+        if req.modo == "reddit":
+            instrucao_sistema = ler_prompt_arquivo("reddit_mode.txt")
+        else:
+            # Caso o usuário esteja usando a ferramenta para roteiros normais
+            # Você pode criar um 'padrao_mode.txt' depois, por enquanto deixamos um texto base
+            instrucao_sistema = (
+                "Você é um roteirista de elite. Reescreva o texto garantindo 100% de originalidade "
+                "para evitar detecção de plágio, mas mantendo a essência e os fatos. "
+                "Adapte o vocabulário para ser lido em voz alta de forma natural por um locutor."
+            )
 
+        # 2. Constrói o Prompt de Comando do Usuário
+        prompt_linhas = []
+        prompt_linhas.append(f"Reescreva e adapte o texto abaixo no idioma '{req.idioma}'.")
+        prompt_linhas.append(f"Aplique estritamente o tom de voz: {req.tom}.")
+        
+        # Injeta o Gancho Exato, se o usuário forneceu
+        if req.gancho_exato.strip():
+            prompt_linhas.append(f"\nATENÇÃO: Inicie o roteiro OBRIGATORIAMENTE com esta exata frase/título: \"{req.gancho_exato.strip()}\". Não mude nenhuma palavra deste gancho inicial.")
+            
+        prompt_linhas.append(f"\nTexto original:\n{texto_original}")
+        
+        prompt_final = "\n".join(prompt_linhas)
+
+        # 3. Dispara para o Gemini
         response = client.models.generate_content(
             model="gemini-2.5-flash",
-            contents=prompt,
+            contents=prompt_final,
             config=types.GenerateContentConfig(
                 system_instruction=instrucao_sistema,
-                temperature=0.8 # 0.8 garante criatividade suficiente para fugir do plágio
+                temperature=0.7 
             )
         )
         
         texto_gerado = response.text
 
-        # Salva no histórico
         novo_historico = models.Historico(
             usuario_id=usuario.id,
-            ferramenta="Paraphraser",
-            input_usuario=f"Tom: {req.tom} | Idioma: {req.idioma}\nTexto original: {texto_original[:100]}...",
+            ferramenta=f"Paraphraser ({req.modo.upper()})",
+            input_usuario=f"Tom: {req.tom} | Gancho: {req.gancho_exato}\nTexto: {texto_original[:100]}...",
             resultado=texto_gerado[:150] + "...", 
             custo_coins=custo_operacao
         )
@@ -93,7 +111,6 @@ async def gerar_parafraze(
         }
 
     except Exception as e:
-        # ROLLBACK: Devolve o dinheiro se der erro
         usuario.coins += custo_operacao
         db.commit()
         print(f"❌ Erro no Paraphraser: {e}")
