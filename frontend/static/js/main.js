@@ -241,7 +241,7 @@ function ajustarTemperatura(delta) {
 }
 
 // ==========================================
-// INTEGRAÇÃO COM A API (GERAÇÃO)
+// INTEGRAÇÃO COM A API (GERAÇÃO DE VOZ)
 // ==========================================
 async function tocarPreview(event, shortName) {
     event.stopPropagation();
@@ -293,7 +293,6 @@ async function gerarAudioCompleto() {
     playerContainer.classList.remove('hidden');
     playerContainer.innerHTML = `<p class="text-purple-400 animate-pulse text-center font-bold text-sm"><i class="fa-solid fa-microphone-lines fa-fade mr-2"></i> O estúdio neural está gravando a sua locução...</p>`;
 
-    // Coleta todos os parâmetros de forma inteligente
     const payload = { 
         texto: texto, 
         voz: vozSelecionada, 
@@ -348,5 +347,82 @@ async function gerarAudioCompleto() {
         btn.disabled = false;
         btn.classList.remove('opacity-70', 'cursor-not-allowed');
         recalcularCustoVoz();
+    }
+}
+
+// ==========================================
+// FUNÇÕES UTILITÁRIAS (PARAPHRASER / TRANSMUTER)
+// ==========================================
+function contarPalavrasLocal(texto) {
+    if (!texto || texto.trim() === "") {
+        return 0;
+    }
+    // Divide o texto por espaços e ignora as strings vazias, devolvendo a quantidade exata
+    return texto.trim().split(/\s+/).length;
+}
+
+async function transmutarTexto() {
+    const inputTexto = document.getElementById('texto_original');
+    if(!inputTexto) return;
+    
+    const textoOrig = inputTexto.value;
+    
+    // Tentando buscar os valores da interface de forma segura com base nos prints
+    const elEstrategia = document.getElementById('estrategia_escrita');
+    // Verifica se a estratégia selecionada contém a palavra "reddit", caso contrário usa "padrao"
+    const modoSelecionado = elEstrategia && elEstrategia.value.toLowerCase().includes('reddit') ? 'reddit' : 'padrao';
+    
+    const elGancho = document.getElementById('nome_canal'); // Na print, o campo se chama "Nome do Canal" onde colamos o gancho exato
+    const tituloGancho = elGancho ? elGancho.value : "";
+    
+    if (!textoOrig.trim()) return alert("Cole o texto original primeiro!");
+
+    const painelResultado = document.getElementById('texto_transmutado');
+    // Mostra o spinner de carregamento sem destruir a classe
+    painelResultado.innerHTML = `<p class="text-pink-400 animate-pulse font-bold text-sm"><i class="fa-solid fa-circle-notch fa-spin mr-2"></i> Transmutando com Gemini...</p>`;
+
+    try {
+        const payload = {
+            texto: textoOrig,
+            tom: "Sarcástico e Ácido", // Fixo por enquanto, ou pode ser lido de outro campo no futuro
+            idioma: "Português (Brasil)",
+            modo: modoSelecionado,
+            gancho_exato: tituloGancho
+        };
+
+        const res = await fetch('/api/v1/paraphraser', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        const dados = await res.json();
+
+        if (!res.ok) throw new Error(dados.detail || "Erro no servidor.");
+
+        // SUCESSO: Insere o texto gerado na caixa
+        painelResultado.innerHTML = dados.texto_parafrazedo;
+        
+        // Atualiza a badge do contador de palavras
+        const contadorRes = document.querySelector('span:contains("palavras")') || document.getElementById('contador_resultado');
+        if(contadorRes) {
+            contadorRes.innerText = contarPalavrasLocal(dados.texto_parafrazedo) + " palavras";
+        }
+        
+        // Atualiza as moedas no menu lateral globalmente
+        if(dados.novo_saldo !== undefined) {
+            const paineisDeCoins = document.querySelectorAll('.fa-coins');
+            paineisDeCoins.forEach(icone => {
+                const elementoPai = icone.closest('p'); 
+                if(elementoPai) {
+                    elementoPai.innerHTML = `<i class="fa-solid fa-coins"></i> ${dados.novo_saldo.toLocaleString('pt-BR')} coins`;
+                    elementoPai.classList.add('text-pink-400', 'scale-110');
+                    setTimeout(() => elementoPai.classList.remove('text-pink-400', 'scale-110'), 500);
+                }
+            });
+        }
+
+    } catch (e) {
+        painelResultado.innerHTML = `<div class="text-red-400 bg-red-500/10 border border-red-500/20 p-4 rounded-lg text-sm"><i class="fa-solid fa-triangle-exclamation mr-2"></i> Erro Técnico: ${e.message}</div>`;
     }
 }
