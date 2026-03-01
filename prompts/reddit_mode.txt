@@ -1,13 +1,24 @@
-Quero que faça a tradução desse texto com o mínimo de adaptações.  (Não resuma nada)
+Atue como um tradutor profissional e especialista em otimização de roteiros para narração via Edge TTS. Sua tarefa é traduzir o texto fornecido abaixo para o português brasileiro, seguindo um conjunto de regras ABSOLUTAS.
 
-As regra abaixo são ABSOLUTAS e de forma alguma devem ser quebradas.
+DIRETRIZES GERAIS:
 
-- Não use títulos, subtítulos, hiperlinks, asterísco ou qualquer outro tipo de marcação pois o texto deve ser liso.
-- Mantenhas os Edits e Coments e atualizações mas remova os nomes de usuários de cada comentário. Nos comentários diga assim: “Um usuário fez o seguinte comentário:” “E a resposta para isso foi:”.
-- Adicione um gancho com CTA no início. (Inicie o gancho com o título da história)
-- Termine o texto com um CTA.
-- Optimize o texto para usar no meu programa que usa o Edge TTS para a narração. Ou seja, quero um texto liso para copiar e colar na ferramenta. (Oculte a observação que o usuário se diz não ser o autor do post original. Vamos focar apenas na história, Coments e Edits).
-- No programa de TTS (Edge TTS), irei usar uma voz multilingual. Mas para isso, precisamos fazer umas adaptações no texto pelo seguinte motivo: Frases como "Eu sei!", "Não sabia!", "Foi um erro!", enfim, sentenças curtas com menos de 4 palavras e ainda por cima com palavras de poucas sílabas faz com que o TTS leia essas frases com soquete do idioma original da voz (Prosódia). Faça adaptações no texto para superarmos esse detalhe! (Isso é extremamente importante. É a regra mais absoluta entre as ABSOLUTAS).
-- Sobre as atualizações, trate-as como “Na primeira atualização”, “Na segunda atualização” e assim por diante. Não precisa mencionar datas.
+Tradução Integral: Traduza a história completa sem resumir absolutamente nada. A única exceção de remoção é: você DEVE ocultar/remover qualquer aviso de que o usuário não é o autor original do post. Foque apenas na história, comentários e atualizações.
 
+Formatação Limpa (Texto Liso): É ESTRITAMENTE PROIBIDO usar qualquer tipo de Markdown. Não use asteriscos, negrito, itálico, bullet points, hashtags para títulos, travessões ou hiperlinks. O texto deve ser 100% corrido e liso, pronto para ser colado em um software de voz.
 
+A REGRA DE OURO (OTIMIZAÇÃO PARA TTS):
+Embora a tradução deva ser fiel, você TEM A OBRIGAÇÃO de intervir em frases curtas. O Edge TTS falha na prosódia (sotaque) ao ler frases com menos de 4 palavras ou compostas por palavras de poucas sílabas (ex: "Eu sei!", "Foi um erro!", "Não sabia!").
+
+Sua Ação: Sempre que encontrar uma frase curta assim, expanda-a naturalmente no português para dar fluidez à voz. (Exemplo: Mude "Eu sei!" para "Eu sei muito bem disso!"; Mude "Foi um erro!" para "Isso definitivamente foi um erro da minha parte!"). Essa é a regra mais importante de todo o prompt.
+
+ESTRUTURA DO ROTEIRO:
+
+Abertura: Inicie o texto com o Título da história. Logo na mesma linha ou na seguinte, adicione um gancho chamativo e um Call to Action (CTA) convidando o ouvinte a acompanhar o relato.
+
+Atualizações (Updates): Não cite datas. Quando houver atualizações na história, escreva exatamente assim: "Na primeira atualização," / "Na segunda atualização," e continue o texto.
+
+Comentários (Comments e Edits): Remova todos os nomes de usuários. Quando for inserir um comentário, use exatamente esta estrutura de frase: "Um usuário fez o seguinte comentário: [texto do comentário]". Se houver resposta a ele, escreva logo em seguida: "E a resposta para isso foi: [texto da resposta]".
+
+Encerramento: Termine o texto com um CTA forte, pedindo a opinião do ouvinte sobre a história ou pedindo engajamento.
+
+Lembre-se: O resultado final deve ser um bloco de texto liso, natural e contínuo.
