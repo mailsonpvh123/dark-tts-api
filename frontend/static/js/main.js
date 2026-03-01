@@ -373,7 +373,7 @@ async function transmutarTexto() {
     const painelResultado = document.getElementById('texto_transmutado');
     const btnTexto = document.getElementById('txt_btn_transmutar');
     
-    painelResultado.value = "Gerando a história com a inteligência do Gemini... Por favor, aguarde.";
+    painelResultado.value = "Gerando a história com a nossa inteligência... Por favor, aguarde.";
     btnTexto.innerHTML = `Transmutando... <i class="fa-solid fa-circle-notch fa-spin ml-2"></i>`;
 
     try {
