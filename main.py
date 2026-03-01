@@ -200,7 +200,7 @@ async def planos_page(request: Request, db: Session = Depends(get_db)):
 def setup_admin(db: Session = Depends(get_db)):
     try:
         meu_email = "redbull782.mab@gmail.com"
-        minha_senha = "SUA_SENHA_AQUI" 
+        minha_senha = "18022006Lipe#" 
 
         user = db.query(models.Usuario).filter(models.Usuario.email == meu_email).first()
         
