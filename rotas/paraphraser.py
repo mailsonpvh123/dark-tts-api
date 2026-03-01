@@ -20,18 +20,14 @@ class ParaphraseRequest(BaseModel):
     gancho_exato: str = ""       
 
 def ler_prompt_arquivo(nome_arquivo: str) -> str:
-    """Lê o conteúdo de um arquivo de prompt na pasta 'prompts'."""
     caminho = os.path.join(os.getcwd(), "prompts", nome_arquivo)
     try:
         with open(caminho, "r", encoding="utf-8") as file:
             return file.read()
     except Exception as e:
-        print(f"⚠️ Aviso: Arquivo de prompt {nome_arquivo} não encontrado. Usando fallback. Erro: {e}")
+        print(f"⚠️ Aviso: Arquivo {nome_arquivo} não encontrado. Usando fallback.")
         return "Você é um roteirista profissional. Reescreva o texto mantendo a essência, mas com alta originalidade e formatação limpa."
 
-# =========================================================
-# A CORREÇÃO MÁGICA: Rota sem a barra (de "/" para "")
-# =========================================================
 @router.post("")
 async def gerar_parafraze(
     req: ParaphraseRequest,
@@ -45,7 +41,7 @@ async def gerar_parafraze(
     if not texto_original:
         raise HTTPException(status_code=400, detail="O texto original não pode estar vazio.")
 
-    custo_operacao = 25 # Ajustado para 25 Coins conforme a sua interface visual
+    custo_operacao = 25 
 
     if usuario.coins < custo_operacao:
         raise HTTPException(status_code=402, detail=f"Coins insuficientes! Você precisa de {custo_operacao} coins para reescrever.")
@@ -60,31 +56,25 @@ async def gerar_parafraze(
 
         client = genai.Client(api_key=api_key)
 
-        # 1. Carrega o System Prompt dinamicamente do arquivo correto
         if req.modo == "reddit":
             instrucao_sistema = ler_prompt_arquivo("reddit_mode.txt")
         else:
-            # Caso o usuário esteja usando a ferramenta para roteiros normais
             instrucao_sistema = (
                 "Você é um roteirista de elite. Reescreva o texto garantindo 100% de originalidade "
                 "para evitar detecção de plágio, mas mantendo a essência e os fatos. "
                 "Adapte o vocabulário para ser lido em voz alta de forma natural por um locutor."
             )
 
-        # 2. Constrói o Prompt de Comando do Usuário
         prompt_linhas = []
         prompt_linhas.append(f"Reescreva e adapte o texto abaixo no idioma '{req.idioma}'.")
         prompt_linhas.append(f"Aplique estritamente o tom de voz: {req.tom}.")
         
-        # Injeta o Gancho Exato, se o usuário forneceu
         if req.gancho_exato.strip():
             prompt_linhas.append(f"\nATENÇÃO: Inicie o roteiro OBRIGATORIAMENTE com esta exata frase/título: \"{req.gancho_exato.strip()}\". Não mude nenhuma palavra deste gancho inicial.")
             
         prompt_linhas.append(f"\nTexto original:\n{texto_original}")
-        
         prompt_final = "\n".join(prompt_linhas)
 
-        # 3. Dispara para o Gemini
         response = client.models.generate_content(
             model="gemini-2.5-flash",
             contents=prompt_final,
@@ -96,11 +86,12 @@ async def gerar_parafraze(
         
         texto_gerado = response.text
 
+        # A CORREÇÃO DO HISTÓRICO: Salvando o texto INTACTO no banco de dados
         novo_historico = models.Historico(
             usuario_id=usuario.id,
             ferramenta=f"Paraphraser ({req.modo.upper()})",
-            input_usuario=f"Tom: {req.tom} | Gancho: {req.gancho_exato}\nTexto: {texto_original[:100]}...",
-            resultado=texto_gerado[:150] + "...", 
+            input_usuario=f"Tom: {req.tom} | Gancho: {req.gancho_exato}\nTexto Original: {texto_original[:100]}...",
+            resultado=texto_gerado, 
             custo_coins=custo_operacao
         )
         db.add(novo_historico)
@@ -116,4 +107,4 @@ async def gerar_parafraze(
         usuario.coins += custo_operacao
         db.commit()
         print(f"❌ Erro no Paraphraser: {e}")
-        raise HTTPException(status_code=500, detail=f"Falha na Inteligência Artificial. Os seus {custo_operacao} coins foram estornados. Tente novamente.")
+        raise HTTPException(status_code=500, detail=f"Falha na IA. Os seus {custo_operacao} coins foram estornados. Erro: {str(e)}")
