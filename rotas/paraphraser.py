@@ -18,6 +18,7 @@ class ParaphraseRequest(BaseModel):
     idioma: str = "Português (Brasil)"
     modo: str = "padrao"         
     gancho_exato: str = ""       
+    nome_canal: str = ""         
 
 def ler_prompt_arquivo(nome_arquivo: str) -> str:
     caminho = os.path.join(os.getcwd(), "prompts", nome_arquivo)
@@ -69,6 +70,9 @@ async def gerar_parafraze(
         prompt_linhas.append(f"Reescreva e adapte o texto abaixo no idioma '{req.idioma}'.")
         prompt_linhas.append(f"Aplique estritamente o tom de voz: {req.tom}.")
         
+        if req.nome_canal.strip():
+            prompt_linhas.append(f"O nome do canal é '{req.nome_canal.strip()}'. Adapte os CTAs de introdução e encerramento citando este nome de forma orgânica.")
+
         if req.gancho_exato.strip():
             prompt_linhas.append(f"\nATENÇÃO: Inicie o roteiro OBRIGATORIAMENTE com esta exata frase/título: \"{req.gancho_exato.strip()}\". Não mude nenhuma palavra deste gancho inicial.")
             
@@ -86,11 +90,10 @@ async def gerar_parafraze(
         
         texto_gerado = response.text
 
-        # A CORREÇÃO DO HISTÓRICO: Salvando o texto INTACTO no banco de dados
         novo_historico = models.Historico(
             usuario_id=usuario.id,
             ferramenta=f"Paraphraser ({req.modo.upper()})",
-            input_usuario=f"Tom: {req.tom} | Gancho: {req.gancho_exato}\nTexto Original: {texto_original[:100]}...",
+            input_usuario=f"Canal: {req.nome_canal} | Gancho: {req.gancho_exato}\nTexto Original: {texto_original[:100]}...",
             resultado=texto_gerado, 
             custo_coins=custo_operacao
         )
