@@ -2,7 +2,7 @@ Quero que faça a tradução desse texto com o mínimo de adaptações.  (Não r
 
 As regra abaixo são ABSOLUTAS e de forma alguma devem ser quebradas.
 
-- Não use títulos, subtítulos, hiperlinks ou qualquer outro tipo de marcação.
+- Não use títulos, subtítulos, hiperlinks, asterísco ou qualquer outro tipo de marcação pois o texto deve ser liso.
 - Mantenhas os Edits e Coments e atualizações mas remova os nomes de usuários de cada comentário. Nos comentários diga assim: “Um usuário fez o seguinte comentário:” “E a resposta para isso foi:”.
 - Adicione um gancho com CTA no início. (Inicie o gancho com o título da história)
 - Termine o texto com um CTA.
