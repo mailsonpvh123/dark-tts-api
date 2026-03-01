@@ -31,17 +31,21 @@
             
             <textarea id="texto_original" oninput="document.getElementById('contador_original').innerText = contarPalavrasLocal(this.value) + ' palavras'" class="w-full flex-1 min-h-[250px] bg-[#09090b] border border-zinc-700/80 rounded-xl p-4 text-zinc-200 focus:outline-none focus:border-pink-500 transition-all resize-none shadow-inner text-sm custom-scrollbar relative z-10" placeholder="Cole o roteiro, artigo ou arraste e solte um arquivo .TXT aqui..."></textarea>
             
-            <div class="grid grid-cols-2 gap-4 mt-4 relative z-10">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 relative z-10">
                 <div>
-                    <label class="text-xs font-bold text-zinc-400 uppercase tracking-wider block mb-2">Estratégia (Modo)</label>
+                    <label class="text-[11px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Estratégia (Modo)</label>
                     <select id="estrategia_escrita" class="w-full bg-[#09090b] border border-zinc-700 rounded-lg p-3 text-zinc-200 focus:outline-none focus:border-pink-500 text-sm appearance-none">
-                        <option value="padrao">Roteiro Padrão (YouTube)</option>
-                        <option value="reddit">Tradução/Adaptação Gringa (Reddit)</option>
+                        <option value="padrao">Roteiro Padrão</option>
+                        <option value="reddit">Modo Reddit (Adaptação)</option>
                     </select>
                 </div>
                 <div>
-                    <label class="text-xs font-bold text-zinc-400 uppercase tracking-wider block mb-2">Gancho Exato (Título)</label>
-                    <input type="text" id="nome_canal" class="w-full bg-[#09090b] border border-zinc-700 rounded-lg p-3 text-zinc-200 focus:outline-none focus:border-pink-500 text-sm placeholder:text-zinc-600" placeholder="Cole o título perfeito aqui...">
+                    <label class="text-[11px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Nome do Canal</label>
+                    <input type="text" id="nome_canal" class="w-full bg-[#09090b] border border-zinc-700 rounded-lg p-3 text-zinc-200 focus:outline-none focus:border-pink-500 text-sm placeholder:text-zinc-600" placeholder="Ex: Porão do Reddit">
+                </div>
+                <div>
+                    <label class="text-[11px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Gancho (Opcional)</label>
+                    <input type="text" id="gancho_exato" class="w-full bg-[#09090b] border border-zinc-700 rounded-lg p-3 text-zinc-200 focus:outline-none focus:border-pink-500 text-sm placeholder:text-zinc-600" placeholder="Título exato da imagem...">
                 </div>
             </div>
 
@@ -100,13 +104,10 @@
             }
         };
         reader.readAsText(file);
-        
-        event.target.value = ''; // Limpa o input para permitir selecionar o mesmo arquivo depois
+        event.target.value = '';
     }
 
-    // Drag and Drop (Arrastar e soltar)
     const dropZone = document.getElementById('texto_original');
-    
     dropZone.addEventListener('dragover', (e) => {
         e.preventDefault();
         dropZone.classList.add('border-pink-500', 'bg-pink-500/5');
