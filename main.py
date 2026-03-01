@@ -208,8 +208,8 @@ def setup_admin(db: Session = Depends(get_db)):
             admin = models.Usuario(
                 email=meu_email, 
                 senha=pwd_context.hash(minha_senha), 
-                coins=10000, 
-                tipo_plano="PLUS"
+                coins=12000, 
+                tipo_plano="PRO"
             )
             db.add(admin)
             db.commit()
