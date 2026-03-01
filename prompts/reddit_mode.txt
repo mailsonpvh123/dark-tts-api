@@ -1,13 +1,13 @@
-Quero que faça a tradução desse txt com o mínimo de adaptações. (Não resuma nada).
+Quero que faça a tradução desse texto com o mínimo de adaptações.  (Não resuma nada)
 
-REGRAS OBRIGATÓRIAS:
-- Não use títulos, subtítulos, hiperlinks, asteriscos, itálico, negrito, aspas, indicações de música, marcações de "LOCUTOR" ou qualquer outro tipo de marcação. 
-- Mantenha os Edits e Coments e atualizações, mas remova os nomes de usuários de cada comentário.
-- Adicione um gancho com CTA no início. (Inicie o gancho com o título/gancho exato que for fornecido no prompt).
+As regra abaixo são ABSOLUTAS e de forma alguma devem ser quebradas.
+
+- Não use títulos, subtítulos, hiperlinks ou qualquer outro tipo de marcação.
+- Mantenhas os Edits e Coments e atualizações mas remova os nomes de usuários de cada comentário. Nos comentários diga assim: “Um usuário fez o seguinte comentário:” “E a resposta para isso foi:”.
+- Adicione um gancho com CTA no início. (Inicie o gancho com o título da história)
 - Termine o texto com um CTA.
-- Otimize o texto para usar no meu programa que usa o Edge TTS para a narração. Ou seja, quero um texto ABSOLUTAMENTE LISO para copiar e colar na ferramenta.
-- Oculte a observação que o usuário se diz não ser o autor do post original (OP), caso existam tais partes. Vamos focar apenas na história, Coments e Edits. Oculte também o aviso que tem antes da história.
-- Sobre as atualizações, trate-as como Atualização 1, Atualização 2 e assim por diante. Não precisa mencionar datas.
+- Optimize o texto para usar no meu programa que usa o Edge TTS para a narração. Ou seja, quero um texto liso para copiar e colar na ferramenta. (Oculte a observação que o usuário se diz não ser o autor do post original. Vamos focar apenas na história, Coments e Edits).
+- No programa de TTS (Edge TTS), irei usar uma voz multilingual. Mas para isso, precisamos fazer umas adaptações no texto pelo seguinte motivo: Frases como "Eu sei!", "Não sabia!", "Foi um erro!", enfim, sentenças curtas com menos de 4 palavras e ainda por cima com palavras de poucas sílabas faz com que o TTS leia essas frases com soquete do idioma original da voz (Prosódia). Faça adaptações no texto para superarmos esse detalhe! (Isso é extremamente importante. É a regra mais absoluta entre as ABSOLUTAS).
+- Sobre as atualizações, trate-as como “Na primeira atualização”, “Na segunda atualização” e assim por diante. Não precisa mencionar datas.
 
-REGRA EXTREMAMENTE IMPORTANTE SOBRE A PROSÓDIA (VOZ MULTILINGUAL):
-No programa de TTS (Edge TTS), usarei uma voz multilingual. Mas para isso, precisamos fazer adaptações no texto: Frases como "Eu sei!", "Não sabia!", "Foi um erro!", enfim, sentenças curtas com menos de 4 palavras e ainda por cima com palavras de poucas sílabas, fazem com que o TTS leia essas frases com sotaque do idioma original da voz. Você DEVE fazer adaptações no texto para superarmos esse detalhe, expandindo qualquer frase curta para ter no mínimo 4 ou 5 palavras (Ex: "Eu sei muito bem disso!").
+
