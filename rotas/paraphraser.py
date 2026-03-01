@@ -60,11 +60,7 @@ async def gerar_parafraze(
         if req.modo == "reddit":
             instrucao_sistema = ler_prompt_arquivo("reddit_mode.txt")
         else:
-            instrucao_sistema = (
-                "Você é um roteirista de elite. Reescreva o texto garantindo 100% de originalidade "
-                "para evitar detecção de plágio, mas mantendo a essência e os fatos. "
-                "Adapte o vocabulário para ser lido em voz alta de forma natural por um locutor."
-            )
+            instrucao_sistema = ler_prompt_arquivo("padrao_mode.txt")
 
         prompt_linhas = []
         prompt_linhas.append(f"Reescreva e adapte o texto abaixo no idioma '{req.idioma}'.")
