@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block content %}
-<section id="aba_reescritor" class="aba-conteudo block">
+<section id="aba_paraphraser" class="aba-conteudo block">
     <div class="mb-8 relative z-10">
         <div class="flex items-center gap-3 mb-2">
             <div class="w-10 h-10 rounded-lg bg-pink-500/10 flex items-center justify-center border border-pink-500/20">
@@ -12,227 +12,72 @@
         <p class="text-zinc-400">Reescreva textos blindando contra plágio e mantendo a retenção em alta.</p>
     </div>
 
-    <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        <div class="space-y-6 flex flex-col">
-            <div class="bg-[#18181b] border border-zinc-800/80 rounded-xl p-6 shadow-2xl flex-1 flex flex-col relative overflow-hidden">
-                <div class="absolute -top-20 -left-20 w-40 h-40 bg-pink-500/10 rounded-full blur-[60px] pointer-events-none"></div>
-                
-                <div class="flex items-center justify-between mb-4 pb-4 border-b border-zinc-800/80 relative z-10">
-                    <h2 class="text-base font-semibold text-white flex items-center gap-2">
-                        <i class="fa-solid fa-file-lines text-pink-500"></i> Texto Original
-                    </h2>
-                    
-                    <div class="flex items-center gap-3">
-                        <input type="file" id="arquivo_txt_paraphraser" accept=".txt" class="hidden" onchange="lerArquivoTXT(event)">
-                        <button onclick="document.getElementById('arquivo_txt_paraphraser').click()" class="text-xs bg-zinc-800 hover:bg-pink-600 text-zinc-300 hover:text-white px-3 py-1.5 rounded-lg flex items-center gap-2 transition-colors border border-zinc-700 hover:border-pink-500 shadow-inner group">
-                            <i class="fa-solid fa-file-arrow-up group-hover:-translate-y-0.5 transition-transform"></i> Carregar .TXT
-                        </button>
-                        <span id="contador_palavras_in" class="text-xs font-bold text-zinc-500 bg-zinc-800/50 px-3 py-1.5 rounded-lg border border-zinc-700">0 palavras</span>
-                    </div>
-                </div>
-                
-                <textarea id="paraphraser_conteudo" oninput="salvarEstado('paraphraser_conteudo'); contarPalavrasLocal('paraphraser_conteudo', 'contador_palavras_in')" class="w-full flex-1 bg-[#09090b] border border-zinc-700/80 rounded-lg p-5 text-zinc-200 focus:outline-none focus:border-pink-500 transition-colors resize-none shadow-inner leading-relaxed custom-scrollbar relative z-10" placeholder="Cole aqui o roteiro ou ARRASTE UM ARQUIVO .TXT para esta caixa..."></textarea>
-                
-                <div class="grid grid-cols-2 gap-4 mt-5 relative z-10">
-                    <div>
-                        <label class="block text-sm font-medium text-zinc-400 mb-1.5">Estratégia de Escrita</label>
-                        <select id="paraphraser_modo" onchange="salvarEstado('paraphraser_modo')" class="w-full bg-[#09090b] border border-zinc-700/80 rounded-lg px-4 py-2.5 text-zinc-200 focus:outline-none focus:border-pink-500 transition-colors appearance-none shadow-inner cursor-pointer">
-                            <option value="reddit">Tradução/Adaptação Gringa (Foco em Relato)</option>
-                            <option value="zero_plagio">Zero Plágio (Reescrita Profunda para YT)</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-zinc-400 mb-1.5">Nome do Canal <span class="text-pink-500">*</span></label>
-                        <input type="text" id="paraphraser_canal" oninput="salvarEstado('paraphraser_canal')" class="w-full bg-[#09090b] border border-zinc-700/80 rounded-lg px-4 py-2.5 text-zinc-200 focus:outline-none focus:border-pink-500 transition-colors shadow-inner" placeholder="Ex: Porão do Reddit">
-                    </div>
-                </div>
-                
-                <div class="flex gap-3 mt-6 relative z-10">
-                    <button id="btn_gerar_paraphraser" onclick="chamarParaphraser()" class="flex-1 bg-pink-700 hover:bg-pink-600 text-white font-bold py-3.5 px-4 rounded-lg shadow-[0_0_15px_rgba(190,24,93,0.4)] transition-all flex items-center justify-center gap-2 group border border-pink-500/50">
-                        <i class="fa-solid fa-wand-magic-sparkles group-hover:scale-110 transition-transform"></i> <span id="txt_btn_paraphraser">Transmutar Texto (25 Coins)</span>
-                    </button>
-                    <button onclick="limparParaphraser()" class="bg-zinc-800 hover:bg-red-500/20 text-zinc-400 hover:text-red-400 border border-zinc-700 hover:border-red-500/50 font-bold py-3 px-4 rounded-lg transition-all flex items-center justify-center group" title="Limpar Tela">
-                        <i class="fa-solid fa-trash-can group-hover:scale-110 transition-transform"></i>
-                    </button>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="bg-[#18181b] border border-zinc-800/80 rounded-xl p-6 shadow-2xl relative overflow-hidden flex flex-col h-full">
+            <div class="absolute -top-20 -left-20 w-40 h-40 bg-pink-500/10 rounded-full blur-[60px] pointer-events-none"></div>
+            
+            <div class="flex justify-between items-center mb-4 relative z-10">
+                <h2 class="text-base font-semibold text-white flex items-center gap-2">
+                    <i class="fa-regular fa-file-lines text-pink-500"></i> Texto Original
+                </h2>
+                <div class="flex items-center gap-2">
+                    <span id="contador_original" class="text-xs font-bold text-zinc-500 bg-zinc-800/50 px-2 py-1 rounded border border-zinc-700">0 palavras</span>
                 </div>
             </div>
+            
+            <textarea id="texto_original" oninput="document.getElementById('contador_original').innerText = contarPalavrasLocal(this.value) + ' palavras'" class="w-full flex-1 min-h-[250px] bg-[#09090b] border border-zinc-700/80 rounded-xl p-4 text-zinc-200 focus:outline-none focus:border-pink-500 transition-colors resize-none shadow-inner text-sm custom-scrollbar relative z-10" placeholder="Cole o roteiro, artigo ou história aqui..."></textarea>
+            
+            <div class="grid grid-cols-2 gap-4 mt-4 relative z-10">
+                <div>
+                    <label class="text-xs font-bold text-zinc-400 uppercase tracking-wider block mb-2">Estratégia (Modo)</label>
+                    <select id="estrategia_escrita" class="w-full bg-[#09090b] border border-zinc-700 rounded-lg p-3 text-zinc-200 focus:outline-none focus:border-pink-500 text-sm appearance-none">
+                        <option value="padrao">Roteiro Padrão (YouTube)</option>
+                        <option value="reddit">Tradução/Adaptação Gringa (Reddit)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-zinc-400 uppercase tracking-wider block mb-2">Gancho Exato (Título)</label>
+                    <input type="text" id="nome_canal" class="w-full bg-[#09090b] border border-zinc-700 rounded-lg p-3 text-zinc-200 focus:outline-none focus:border-pink-500 text-sm placeholder:text-zinc-600" placeholder="Cole o título perfeito aqui...">
+                </div>
+            </div>
+
+            <button id="btn_transmutar" onclick="transmutarTexto()" class="w-full mt-6 bg-pink-600 hover:bg-pink-500 text-white font-bold py-4 px-4 rounded-xl shadow-[0_0_20px_rgba(236,72,153,0.3)] transition-all flex items-center justify-center gap-2 group border border-pink-500/50 relative z-10">
+                <i class="fa-solid fa-wand-magic-sparkles group-hover:scale-110 transition-transform"></i> <span id="txt_btn_transmutar">Transmutar Texto (25 Coins)</span>
+            </button>
         </div>
 
-        <div class="space-y-6 flex flex-col">
-            <div class="bg-[#18181b] border border-zinc-800/80 rounded-xl p-6 shadow-2xl flex-1 flex flex-col relative overflow-hidden">
-                <div class="absolute -bottom-20 -right-20 w-40 h-40 bg-pink-500/5 rounded-full blur-[60px] pointer-events-none"></div>
-                
-                <div class="flex items-center justify-between mb-4 pb-4 border-b border-zinc-800/80 relative z-10">
-                    <h2 class="text-lg font-semibold text-white flex items-center gap-2">
-                        <i class="fa-solid fa-file-signature text-pink-500"></i> Texto Transmutado
-                    </h2>
-                    <div class="flex items-center gap-3">
-                        <span id="contador_palavras_out" class="text-xs font-bold text-zinc-500 bg-zinc-800/50 px-3 py-1.5 rounded-lg border border-zinc-700">0 palavras</span>
-                        
-                        <button onclick="enviarParaphraserParaVoice()" class="text-purple-400 hover:text-white transition-colors text-xs font-bold uppercase tracking-wider flex items-center gap-2 bg-purple-500/10 px-3 py-1.5 rounded-lg border border-purple-500/20 hover:bg-purple-600">
-                            <i class="fa-solid fa-share-nodes"></i> Enviar p/ Voice Synth
-                        </button>
-                    </div>
-                </div>
-                
-                <div class="relative flex-1 flex flex-col z-10">
-                    <div id="loading_paraphraser" class="hidden absolute inset-0 bg-[#121214]/90 backdrop-blur-sm rounded-lg flex flex-col items-center justify-center z-20 border border-pink-500/20">
-                        <i class="fa-solid fa-brain fa-fade text-4xl text-pink-500 mb-4 drop-shadow-[0_0_10px_rgba(190,24,93,0.6)]"></i>
-                        <p class="text-zinc-300 text-sm font-bold animate-pulse">Transmutando palavras... (-25 Coins)</p>
-                        <p class="text-zinc-500 text-xs mt-2">Adaptando cadência para a voz neural.</p>
-                    </div>
-                    
-                    <textarea id="paraphraser_resultado" oninput="salvarEstado('paraphraser_resultado'); contarPalavrasLocal('paraphraser_resultado', 'contador_palavras_out')" class="w-full flex-1 bg-[#121214] border border-zinc-700/50 rounded-lg p-5 text-zinc-300 focus:outline-none focus:border-pink-500/50 transition-colors resize-none shadow-inner leading-relaxed custom-scrollbar relative z-10" placeholder="O resultado livre de plágio e otimizado para o TTS aparecerá aqui..."></textarea>
+        <div class="bg-[#18181b] border border-zinc-800/80 rounded-xl p-6 shadow-2xl relative overflow-hidden flex flex-col h-full">
+            <div class="absolute -bottom-20 -right-20 w-40 h-40 bg-pink-500/5 rounded-full blur-[60px] pointer-events-none"></div>
+            
+            <div class="flex justify-between items-center mb-4 relative z-10">
+                <h2 class="text-base font-semibold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-file-signature text-pink-500"></i> Texto Transmutado
+                </h2>
+                <div class="flex items-center gap-2">
+                    <span id="contador_resultado" class="text-xs font-bold text-zinc-500 bg-zinc-800/50 px-2 py-1 rounded border border-zinc-700">0 palavras</span>
+                    <button onclick="copiarTextoTransmutado()" class="bg-zinc-800 hover:bg-emerald-600 text-zinc-300 hover:text-white px-3 py-1.5 rounded-lg text-xs font-bold border border-zinc-700 transition-colors flex items-center gap-2" title="Copiar Roteiro">
+                        <i id="icone_copiar" class="fa-regular fa-copy"></i>
+                    </button>
+                    <button onclick="despacharParaVoice('texto_transmutado')" class="bg-purple-600/20 hover:bg-purple-600 text-purple-400 hover:text-white border border-purple-500/30 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-2">
+                        <i class="fa-solid fa-share-nodes"></i> ENVIAR P/ VOICE
+                    </button>
                 </div>
             </div>
+            
+            <textarea id="texto_transmutado" class="w-full flex-1 min-h-[350px] bg-[#09090b] border border-zinc-700/80 rounded-xl p-4 text-zinc-200 focus:outline-none focus:border-pink-500 transition-colors resize-none shadow-inner text-sm leading-relaxed custom-scrollbar relative z-10" placeholder="Seu roteiro blindado e altamente retentivo aparecerá aqui..."></textarea>
         </div>
     </div>
 </section>
 
 <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        const campos = ['paraphraser_conteudo', 'paraphraser_modo', 'paraphraser_canal', 'paraphraser_resultado'];
-        campos.forEach(id => {
-            const el = document.getElementById(id);
-            if(el && sessionStorage.getItem(id)) {
-                el.value = sessionStorage.getItem(id);
-            }
+    function copiarTextoTransmutado() {
+        const texto = document.getElementById('texto_transmutado').value;
+        if(!texto) return;
+        navigator.clipboard.writeText(texto).then(() => {
+            const icone = document.getElementById('icone_copiar');
+            icone.className = "fa-solid fa-check text-emerald-400";
+            setTimeout(() => { icone.className = "fa-regular fa-copy text-zinc-300"; }, 2000);
         });
-        contarPalavrasLocal('paraphraser_conteudo', 'contador_palavras_in');
-        contarPalavrasLocal('paraphraser_resultado', 'contador_palavras_out');
-        
-        configurarDropzoneTXT();
-    });
-
-    function salvarEstado(id) {
-        sessionStorage.setItem(id, document.getElementById(id).value);
-    }
-
-    function limparParaphraser() {
-        const campos = ['paraphraser_conteudo', 'paraphraser_modo', 'paraphraser_canal', 'paraphraser_resultado'];
-        campos.forEach(id => {
-            const el = document.getElementById(id);
-            if(el) { el.value = ''; sessionStorage.removeItem(id); }
-        });
-        contarPalavrasLocal('paraphraser_conteudo', 'contador_palavras_in');
-        contarPalavrasLocal('paraphraser_resultado', 'contador_palavras_out');
-    }
-
-    function lerArquivoTXT(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            document.getElementById('paraphraser_conteudo').value = e.target.result;
-            salvarEstado('paraphraser_conteudo');
-            contarPalavrasLocal('paraphraser_conteudo', 'contador_palavras_in');
-        };
-        reader.readAsText(file);
-    }
-
-    function configurarDropzoneTXT() {
-        const dropzoneTxt = document.getElementById('paraphraser_conteudo');
-        if(!dropzoneTxt) return;
-
-        dropzoneTxt.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            dropzoneTxt.classList.add('border-pink-500', 'bg-pink-500/5');
-        });
-
-        dropzoneTxt.addEventListener('dragleave', (e) => {
-            e.preventDefault();
-            dropzoneTxt.classList.remove('border-pink-500', 'bg-pink-500/5');
-        });
-
-        dropzoneTxt.addEventListener('drop', (e) => {
-            e.preventDefault();
-            dropzoneTxt.classList.remove('border-pink-500', 'bg-pink-500/5');
-            const file = e.dataTransfer.files[0];
-            
-            if (file && (file.type === "text/plain" || file.name.endsWith('.txt'))) {
-                const reader = new FileReader();
-                reader.onload = function(event) {
-                    dropzoneTxt.value = event.target.result;
-                    salvarEstado('paraphraser_conteudo');
-                    contarPalavrasLocal('paraphraser_conteudo', 'contador_palavras_in');
-                };
-                reader.readAsText(file);
-            } else {
-                alert("Formato inválido! Por favor, arraste apenas arquivos de texto (.TXT).");
-            }
-        });
-    }
-
-    async function chamarParaphraser() {
-        const btn = document.getElementById('btn_gerar_paraphraser');
-        const btnTexto = document.getElementById('txt_btn_paraphraser');
-        const overlay = document.getElementById('loading_paraphraser');
-        const textAreaResultado = document.getElementById('paraphraser_resultado');
-        
-        const conteudo = document.getElementById('paraphraser_conteudo').value;
-        const modo = document.getElementById('paraphraser_modo').value;
-        const canal = document.getElementById('paraphraser_canal').value;
-
-        if(!conteudo || !canal) return alert("Por favor, cole um texto e preencha o Nome do Canal.");
-
-        btn.disabled = true;
-        btn.classList.add('opacity-70', 'cursor-not-allowed');
-        btnTexto.innerHTML = `Transmutando... <i class="fa-solid fa-circle-notch fa-spin ml-1"></i>`;
-        overlay.classList.remove('hidden');
-
-        try {
-            const res = await fetch("/api/v1/paraphraser", {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ texto: conteudo, modo: modo, canal: canal })
-            });
-            
-            if(!res.ok) {
-                let erroReal = "Erro desconhecido do servidor.";
-                try {
-                    const dadosErro = await res.json();
-                    erroReal = dadosErro.detail || erroReal;
-                } catch(e) {}
-                throw new Error(erroReal);
-            }
-            
-            const dados = await res.json();
-            textAreaResultado.value = dados.texto_transmutado;
-
-            // ==========================================
-            // ATUALIZADOR DE SALDO EM TEMPO REAL
-            // ==========================================
-            if(dados.novo_saldo !== undefined) {
-                const paineisDeCoins = document.querySelectorAll('.fa-coins');
-                paineisDeCoins.forEach(icone => {
-                    const elementoPai = icone.closest('p'); 
-                    if(elementoPai) {
-                        const textoSaldo = dados.novo_saldo.toLocaleString('pt-BR');
-                        elementoPai.innerHTML = `<i class="fa-solid fa-coins"></i> ${textoSaldo} coins`;
-                        
-                        // Pisca em rosa para combinar com o Paraphraser
-                        elementoPai.classList.add('text-pink-400', 'scale-110');
-                        setTimeout(() => elementoPai.classList.remove('text-pink-400', 'scale-110'), 500);
-                    }
-                });
-            }
-            // ==========================================
-            
-            salvarEstado('paraphraser_resultado');
-            contarPalavrasLocal('paraphraser_resultado', 'contador_palavras_out');
-
-        } catch (error) {
-            if(error.message.includes('Coins insuficientes')) {
-                textAreaResultado.value = "⚠️ " + error.message;
-            } else {
-                textAreaResultado.value = "Erro Técnico: " + error.message;
-            }
-        } finally {
-            overlay.classList.add('hidden');
-            btn.disabled = false;
-            btn.classList.remove('opacity-70', 'cursor-not-allowed');
-            btnTexto.innerText = "Transmutar Texto (25 Coins)";
-        }
     }
 </script>
 {% endblock %}
