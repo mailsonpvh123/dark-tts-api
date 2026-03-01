@@ -21,11 +21,15 @@
                     <i class="fa-regular fa-file-lines text-pink-500"></i> Texto Original
                 </h2>
                 <div class="flex items-center gap-2">
+                    <button onclick="document.getElementById('arquivo_txt').click()" class="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-3 py-1.5 rounded-lg text-xs font-bold border border-zinc-700 transition-colors flex items-center gap-2">
+                        <i class="fa-solid fa-file-import"></i> Carregar .TXT
+                    </button>
+                    <input type="file" id="arquivo_txt" accept=".txt" class="hidden" onchange="lerArquivoTxt(event)">
                     <span id="contador_original" class="text-xs font-bold text-zinc-500 bg-zinc-800/50 px-2 py-1 rounded border border-zinc-700">0 palavras</span>
                 </div>
             </div>
             
-            <textarea id="texto_original" oninput="document.getElementById('contador_original').innerText = contarPalavrasLocal(this.value) + ' palavras'" class="w-full flex-1 min-h-[250px] bg-[#09090b] border border-zinc-700/80 rounded-xl p-4 text-zinc-200 focus:outline-none focus:border-pink-500 transition-colors resize-none shadow-inner text-sm custom-scrollbar relative z-10" placeholder="Cole o roteiro, artigo ou história aqui..."></textarea>
+            <textarea id="texto_original" oninput="document.getElementById('contador_original').innerText = contarPalavrasLocal(this.value) + ' palavras'" class="w-full flex-1 min-h-[250px] bg-[#09090b] border border-zinc-700/80 rounded-xl p-4 text-zinc-200 focus:outline-none focus:border-pink-500 transition-all resize-none shadow-inner text-sm custom-scrollbar relative z-10" placeholder="Cole o roteiro, artigo ou arraste e solte um arquivo .TXT aqui..."></textarea>
             
             <div class="grid grid-cols-2 gap-4 mt-4 relative z-10">
                 <div>
@@ -79,5 +83,59 @@
             setTimeout(() => { icone.className = "fa-regular fa-copy text-zinc-300"; }, 2000);
         });
     }
+
+    // ==========================================
+    // MÁGICA DE UPLOAD E DRAG & DROP
+    // ==========================================
+    function lerArquivoTxt(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const textarea = document.getElementById('texto_original');
+            textarea.value = e.target.result;
+            if(typeof contarPalavrasLocal === 'function') {
+                document.getElementById('contador_original').innerText = contarPalavrasLocal(e.target.result) + ' palavras';
+            }
+        };
+        reader.readAsText(file);
+        
+        event.target.value = ''; // Limpa o input para permitir selecionar o mesmo arquivo depois
+    }
+
+    // Drag and Drop (Arrastar e soltar)
+    const dropZone = document.getElementById('texto_original');
+    
+    dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.classList.add('border-pink-500', 'bg-pink-500/5');
+    });
+    
+    dropZone.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('border-pink-500', 'bg-pink-500/5');
+    });
+    
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('border-pink-500', 'bg-pink-500/5');
+        
+        if (e.dataTransfer.files.length > 0) {
+            const file = e.dataTransfer.files[0];
+            if (file.name.toLowerCase().endsWith('.txt')) {
+                const reader = new FileReader();
+                reader.onload = function(ev) {
+                    dropZone.value = ev.target.result;
+                    if(typeof contarPalavrasLocal === 'function') {
+                        document.getElementById('contador_original').innerText = contarPalavrasLocal(ev.target.result) + ' palavras';
+                    }
+                };
+                reader.readAsText(file);
+            } else {
+                alert('Apenas arquivos no formato .TXT são aceitos para extração rápida de texto.');
+            }
+        }
+    });
 </script>
 {% endblock %}
