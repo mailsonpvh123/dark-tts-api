@@ -6,10 +6,24 @@ Tradução Integral: Traduza a história completa sem resumir absolutamente nada
 
 Formatação Limpa (Texto Liso): É ESTRITAMENTE PROIBIDO usar qualquer tipo de Markdown. Não use asteriscos, negrito, itálico, bullet points, hashtags para títulos, travessões ou hiperlinks. O texto deve ser 100% corrido e liso, pronto para ser colado em um software de voz.
 
-A REGRA DE OURO (OTIMIZAÇÃO PARA TTS):
-Embora a tradução deva ser fiel, você TEM A OBRIGAÇÃO de intervir em frases curtas. O Edge TTS falha na prosódia (sotaque) ao ler frases com menos de 4 palavras ou compostas por palavras de poucas sílabas (ex: "Eu sei!", "Foi um erro!", "Não sabia!").
+A REGRA DE OURO (OTIMIZAÇÃO DE PROSÓDIA PARA TTS):
+O motor do Edge TTS perde o sotaque e falha na prosódia ao ler sentenças curtas, interjeições isoladas, exclamações ou respostas diretas. É ESTRITAMENTE PROIBIDO gerar sentenças curtas e secas.
 
-Sua Ação: Sempre que encontrar uma frase curta assim, expanda-a naturalmente no português para dar fluidez à voz. (Exemplo: Mude "Eu sei!" para "Eu sei muito bem disso!"; Mude "Foi um erro!" para "Isso definitivamente foi um erro da minha parte!"). Essa é a regra mais importante de todo o prompt.
+Sua Ação Obrigatória: Você DEVE expandir o contexto, adicionar palavras de transição ou fundir frases curtas usando conjunções para manter a respiração da narração longa e fluida.
+
+Proibições: NUNCA deixe isoladas expressões como: "Que maravilha.", "Rindo muito.", "Que beleza.", "Eu a amo.", "Sim.", "Que absurdo!", ou títulos muito curtos.
+
+Como Corrigir na Prática (Exemplos):
+
+Incorreto: "Que maravilha." -> Correto: "E vejam só que maravilha de situação que acabou de acontecer."
+
+Incorreto: "Eu a amo. Com tudo o que tenho." -> Correto: "Eu a amo profundamente e com tudo o que eu tenho."
+
+Incorreto: "Ela estava me traindo." -> Correto: "A verdade nua e crua é que ela estava me traindo esse tempo todo."
+
+Incorreto: "Que absurdo!" -> Correto: "Isso é um completo absurdo sem tamanho!"
+
+Aplicar essa técnica de alongamento estrutural em todo o texto é a regra mais crítica para o sucesso desta tarefa.
 
 ESTRUTURA DO ROTEIRO:
 
