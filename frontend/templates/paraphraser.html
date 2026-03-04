@@ -41,7 +41,7 @@
                 </div>
                 <div>
                     <label class="text-[11px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Nome do Canal</label>
-                    <input type="text" id="nome_canal" class="w-full bg-[#09090b] border border-zinc-700 rounded-lg p-3 text-zinc-200 focus:outline-none focus:border-pink-500 text-sm placeholder:text-zinc-600" placeholder="Ex: Porão do Reddit">
+                    <input type="text" id="nome_canal" class="w-full bg-[#09090b] border border-zinc-700 rounded-lg p-3 text-zinc-200 focus:outline-none focus:border-pink-500 text-sm placeholder:text-zinc-600">
                 </div>
                 <div>
                     <label class="text-[11px] font-bold text-zinc-400 uppercase tracking-wider block mb-2">Gancho (Opcional)</label>
@@ -49,9 +49,14 @@
                 </div>
             </div>
 
-            <button id="btn_transmutar" onclick="transmutarTexto()" class="w-full mt-6 bg-pink-600 hover:bg-pink-500 text-white font-bold py-4 px-4 rounded-xl shadow-[0_0_20px_rgba(236,72,153,0.3)] transition-all flex items-center justify-center gap-2 group border border-pink-500/50 relative z-10">
-                <i class="fa-solid fa-wand-magic-sparkles group-hover:scale-110 transition-transform"></i> <span id="txt_btn_transmutar">Transmutar Texto (25 Coins)</span>
-            </button>
+            <div class="flex items-center gap-3 mt-6 relative z-10">
+                <button id="btn_transmutar" onclick="transmutarTexto()" class="w-full flex-1 bg-pink-600 hover:bg-pink-500 text-white font-bold py-4 px-4 rounded-xl shadow-[0_0_20px_rgba(236,72,153,0.3)] transition-all flex items-center justify-center gap-2 group border border-pink-500/50">
+                    <i class="fa-solid fa-wand-magic-sparkles group-hover:scale-110 transition-transform"></i> <span id="txt_btn_transmutar">Transmutar Texto (25 Coins)</span>
+                </button>
+                <button onclick="limparParaphraser()" class="w-14 h-14 shrink-0 bg-[#09090b] hover:bg-red-500/20 text-zinc-500 hover:text-red-400 font-bold rounded-xl border border-zinc-700 hover:border-red-500/50 transition-all flex items-center justify-center shadow-inner" title="Limpar Textos e Cache">
+                    <i class="fa-regular fa-trash-can text-lg"></i>
+                </button>
+            </div>
         </div>
 
         <div class="bg-[#18181b] border border-zinc-800/80 rounded-xl p-6 shadow-2xl relative overflow-hidden flex flex-col h-full">
@@ -78,6 +83,57 @@
 </section>
 
 <script>
+    // ==========================================
+    // SISTEMA DE AUTO-SAVE (CACHE DO NAVEGADOR)
+    // ==========================================
+    document.addEventListener('DOMContentLoaded', () => {
+        const txtOriginal = document.getElementById('texto_original');
+        const txtResultado = document.getElementById('texto_transmutado');
+        const canal = document.getElementById('nome_canal');
+        const gancho = document.getElementById('gancho_exato');
+        const estrategia = document.getElementById('estrategia_escrita');
+
+        // 1. Restaura os dados se existirem no cache
+        if(localStorage.getItem('paraph_original')) {
+            txtOriginal.value = localStorage.getItem('paraph_original');
+            document.getElementById('contador_original').innerText = contarPalavrasLocal(txtOriginal.value) + ' palavras';
+        }
+        if(localStorage.getItem('paraph_resultado')) {
+            txtResultado.value = localStorage.getItem('paraph_resultado');
+            document.getElementById('contador_resultado').innerText = contarPalavrasLocal(txtResultado.value) + ' palavras';
+        }
+        if(localStorage.getItem('paraph_canal')) canal.value = localStorage.getItem('paraph_canal');
+        if(localStorage.getItem('paraph_gancho')) gancho.value = localStorage.getItem('paraph_gancho');
+        if(localStorage.getItem('paraph_estrategia')) estrategia.value = localStorage.getItem('paraph_estrategia');
+
+        // 2. Escuta cada digitação e salva em tempo real
+        txtOriginal.addEventListener('input', () => localStorage.setItem('paraph_original', txtOriginal.value));
+        txtResultado.addEventListener('input', () => localStorage.setItem('paraph_resultado', txtResultado.value));
+        canal.addEventListener('input', () => localStorage.setItem('paraph_canal', canal.value));
+        gancho.addEventListener('input', () => localStorage.setItem('paraph_gancho', gancho.value));
+        estrategia.addEventListener('change', () => localStorage.setItem('paraph_estrategia', estrategia.value));
+    });
+
+    function limparParaphraser() {
+        if(confirm("Deseja apagar os textos e esvaziar a área de trabalho?")) {
+            // Limpa a tela
+            document.getElementById('texto_original').value = '';
+            document.getElementById('texto_transmutado').value = '';
+            document.getElementById('gancho_exato').value = '';
+            
+            document.getElementById('contador_original').innerText = '0 palavras';
+            document.getElementById('contador_resultado').innerText = '0 palavras';
+            
+            // Limpa o cache (Mantemos apenas o Nome do Canal e a Estratégia para poupar tempo)
+            localStorage.removeItem('paraph_original');
+            localStorage.removeItem('paraph_resultado');
+            localStorage.removeItem('paraph_gancho');
+        }
+    }
+
+    // ==========================================
+    // UTILITÁRIOS DA INTERFACE
+    // ==========================================
     function copiarTextoTransmutado() {
         const texto = document.getElementById('texto_transmutado').value;
         if(!texto) return;
@@ -88,9 +144,6 @@
         });
     }
 
-    // ==========================================
-    // MÁGICA DE UPLOAD E DRAG & DROP
-    // ==========================================
     function lerArquivoTxt(event) {
         const file = event.target.files[0];
         if (!file) return;
@@ -102,6 +155,8 @@
             if(typeof contarPalavrasLocal === 'function') {
                 document.getElementById('contador_original').innerText = contarPalavrasLocal(e.target.result) + ' palavras';
             }
+            // Força o Auto-Save ao carregar o TXT
+            localStorage.setItem('paraph_original', e.target.result);
         };
         reader.readAsText(file);
         event.target.value = '';
@@ -131,6 +186,7 @@
                     if(typeof contarPalavrasLocal === 'function') {
                         document.getElementById('contador_original').innerText = contarPalavrasLocal(ev.target.result) + ' palavras';
                     }
+                    localStorage.setItem('paraph_original', ev.target.result);
                 };
                 reader.readAsText(file);
             } else {
