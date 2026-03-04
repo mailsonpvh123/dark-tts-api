@@ -361,7 +361,6 @@ async function transmutarTexto() {
     const elEstrategia = document.getElementById('estrategia_escrita');
     const modoSelecionado = elEstrategia && elEstrategia.value.toLowerCase().includes('reddit') ? 'reddit' : 'padrao';
     
-    // Agora recuperamos os dois campos corretamente
     const elCanal = document.getElementById('nome_canal'); 
     const nomeCanal = elCanal ? elCanal.value : "";
 
@@ -373,7 +372,7 @@ async function transmutarTexto() {
     const painelResultado = document.getElementById('texto_transmutado');
     const btnTexto = document.getElementById('txt_btn_transmutar');
     
-    painelResultado.value = "Gerando a história com a nossa inteligência... Por favor, aguarde.";
+    painelResultado.value = "Gerando a história com a inteligência do Gemini... Por favor, aguarde.";
     btnTexto.innerHTML = `Transmutando... <i class="fa-solid fa-circle-notch fa-spin ml-2"></i>`;
 
     try {
@@ -404,6 +403,9 @@ async function transmutarTexto() {
         }
 
         painelResultado.value = textoGerado;
+        
+        // AUTO-SAVE DO RESULTADO FINAL GERADO PELA IA
+        localStorage.setItem('paraph_resultado', textoGerado);
         
         const contadorRes = document.getElementById('contador_resultado');
         if(contadorRes) {
