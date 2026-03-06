@@ -84,7 +84,7 @@
 
 <script>
     // ==========================================
-    // SISTEMA DE AUTO-SAVE (CACHE DO NAVEGADOR)
+    // SISTEMA DE AUTO-SAVE E RECEPÇÃO DO MINER
     // ==========================================
     document.addEventListener('DOMContentLoaded', () => {
         const txtOriginal = document.getElementById('texto_original');
@@ -93,20 +93,38 @@
         const gancho = document.getElementById('gancho_exato');
         const estrategia = document.getElementById('estrategia_escrita');
 
-        // 1. Restaura os dados se existirem no cache
-        if(localStorage.getItem('paraph_original')) {
+        // 1. VERIFICA SE VEIO ALGO DO MINER (Correção do Bug 2)
+        const textoDoMiner = localStorage.getItem('texto_pendente_paraphraser');
+        
+        if (textoDoMiner) {
+            txtOriginal.value = textoDoMiner;
+            // Salva no Auto-Save para não perder se o usuário fechar a aba
+            localStorage.setItem('paraph_original', textoDoMiner); 
+            // Apaga a "encomenda" para não ficar colando toda vez que atualizar a página
+            localStorage.removeItem('texto_pendente_paraphraser'); 
+        } 
+        // 2. Se não veio do Miner, puxa o cache normal do Auto-Save
+        else if(localStorage.getItem('paraph_original')) {
             txtOriginal.value = localStorage.getItem('paraph_original');
+        }
+
+        // Atualiza o contador de palavras original se houver texto
+        if(txtOriginal.value && typeof contarPalavrasLocal === 'function') {
             document.getElementById('contador_original').innerText = contarPalavrasLocal(txtOriginal.value) + ' palavras';
         }
+
+        // Restaura o restante do cache
         if(localStorage.getItem('paraph_resultado')) {
             txtResultado.value = localStorage.getItem('paraph_resultado');
-            document.getElementById('contador_resultado').innerText = contarPalavrasLocal(txtResultado.value) + ' palavras';
+            if(typeof contarPalavrasLocal === 'function') {
+                document.getElementById('contador_resultado').innerText = contarPalavrasLocal(txtResultado.value) + ' palavras';
+            }
         }
         if(localStorage.getItem('paraph_canal')) canal.value = localStorage.getItem('paraph_canal');
         if(localStorage.getItem('paraph_gancho')) gancho.value = localStorage.getItem('paraph_gancho');
         if(localStorage.getItem('paraph_estrategia')) estrategia.value = localStorage.getItem('paraph_estrategia');
 
-        // 2. Escuta cada digitação e salva em tempo real
+        // Escuta cada digitação e salva em tempo real
         txtOriginal.addEventListener('input', () => localStorage.setItem('paraph_original', txtOriginal.value));
         txtResultado.addEventListener('input', () => localStorage.setItem('paraph_resultado', txtResultado.value));
         canal.addEventListener('input', () => localStorage.setItem('paraph_canal', canal.value));
@@ -115,6 +133,7 @@
     });
 
     function limparParaphraser() {
+// ... (mantenha o resto do código script exatamente igual)
         if(confirm("Deseja apagar os textos e esvaziar a área de trabalho?")) {
             // Limpa a tela
             document.getElementById('texto_original').value = '';
