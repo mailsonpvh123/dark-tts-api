@@ -48,47 +48,54 @@ def traduzir_para_pt(texto):
 # ==========================================
 def extrair_texto_da_url(url):
     """
-    Motor definitivo: Usa o Jina AI (Arma Secreta) para furar Cloudflare e Paywalls.
-    Se falhar, usa o Scraper Nativo com máscara do GoogleBot.
+    Descasca o link do Google, usa o Jina AI (Arma Secreta) e aplica Scraper Nativo como backup.
     """
     if not url or not url.startswith('http'):
         return ""
     
-    # --- ARMA SECRETA: API DO JINA AI READER ---
+    # 1. DESCASCAR O REDIRECT DO GOOGLE NEWS PRIMEIRO!
+    if "news.google" in url or "consent.google" in url:
+        try:
+            r_redir = requests.get(url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}, timeout=10, allow_redirects=True)
+            url_resolvida = r_redir.url
+            
+            # Se ainda estiver preso numa página intermediária do Google
+            if "consent.google" in url_resolvida or "news.google" in url_resolvida:
+                urls_encontradas = re.findall(r'(?i)href=["\'](https?://[^"\']+)["\']', r_redir.text)
+                for link in urls_encontradas:
+                    if "google.com" not in link and "gstatic.com" not in link:
+                        if not link.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.css', '.ico', '.js')):
+                            url_resolvida = link
+                            break
+            url = url_resolvida # Atualiza a URL para a verdadeira (Ex: bbc.com/noticia)
+        except:
+            pass 
+
+    # --- 2. ARMA SECRETA: API DO JINA AI READER COM A URL REAL ---
     try:
         headers_jina = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
-        # O Jina AI resolve os redirecionamentos do Google e quebra paywalls de jornais
-        r_jina = requests.get(f"https://r.jina.ai/{url}", headers=headers_jina, timeout=15)
+        r_jina = requests.get(f"https://r.jina.ai/{url}", headers=headers_jina, timeout=20)
         
-        if r_jina.status_code == 200 and len(r_jina.text) > 100:
+        if r_jina.status_code == 200 and len(r_jina.text) > 150:
             texto_limpo = r_jina.text
-            # Limpa o markdown (remove URLs de imagens e links) para não sujar o Paraphraser
+            # Limpeza de códigos visuais do Markdown para não poluir o Paraphraser
             texto_limpo = re.sub(r'!\[.*?\]\(.*?\)', '', texto_limpo) 
             texto_limpo = re.sub(r'\[(.*?)\]\(.*?\)', r'\1', texto_limpo)
-            return texto_limpo.strip()[:15000]
+            
+            # Trava anti-Cloudflare (Se o Jina também for barrado)
+            if "Enable JavaScript and cookies" not in texto_limpo and "Just a moment..." not in texto_limpo:
+                return texto_limpo.strip()[:15000]
     except Exception as e:
-        print(f"Jina AI falhou, acionando Plano B... Erro: {e}")
+        print(f"Jina AI falhou na URL. Acionando Plano B...")
 
-    # --- PLANO B: SCRAPER NATIVO (BEAUTIFULSOUP) ---
+    # --- 3. PLANO B: SCRAPER NATIVO (BEAUTIFULSOUP) ---
     try:
-        # Tenta resolver o link criptografado do Google News na marra
-        if "news.google" in url or "consent.google" in url:
-            try:
-                r_redir = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=10)
-                soup_redir = BeautifulSoup(r_redir.text, 'html.parser')
-                a_tag = soup_redir.find('a', href=True)
-                if a_tag and 'http' in a_tag['href'] and 'google.com' not in a_tag['href']:
-                    url = a_tag['href']
-            except:
-                pass
-
         headers = {
             'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
             'Referer': 'https://www.google.com/'
         }
         r = requests.get(url, headers=headers, timeout=15, allow_redirects=True)
         
-        # Bloqueia código alienígena (Imagens, PDFs)
         content_type = r.headers.get('Content-Type', '').lower()
         if 'text/html' not in content_type:
             return ""
@@ -99,7 +106,6 @@ def extrair_texto_da_url(url):
         for elemento in soup(["script", "style", "nav", "header", "footer", "aside", "form", "button", "iframe", "noscript"]):
             elemento.extract()
 
-        # Encontra a caixa de texto com mais parágrafos
         divs = soup.find_all(['article', 'main', 'div'])
         container = max(divs, key=lambda d: len(d.find_all('p'))) if divs else soup
         
@@ -110,6 +116,10 @@ def extrair_texto_da_url(url):
             texto_nativo = container.get_text(separator='\n', strip=True)
             linhas = [linha.strip() for linha in texto_nativo.split('\n') if len(linha.strip()) > 40]
             texto_nativo = "\n\n".join(linhas)
+
+        # Se cairmos no Captcha do Cloudflare, abortamos para não poluir
+        if "Enable JavaScript and cookies" in texto_nativo or "Just a moment..." in texto_nativo:
+            return "" 
 
         return texto_nativo[:15000]
     except Exception as e:
@@ -233,12 +243,13 @@ async def miner_news(req: MinerGenericRequest, db: Session = Depends(get_db), us
             titulo = item.find('title').text if item.find('title') is not None else 'Sem título'
             link = item.find('link').text if item.find('link') is not None else ''
             
-            # Limpando o resumo e evitando que ele seja apenas o título repetido
             desc_html = item.find('description').text if item.find('description') is not None else ''
             texto_resumo = re.sub(r'<[^>]+>', ' ', html.unescape(desc_html))
             texto_resumo = re.sub(r'\s+', ' ', texto_resumo).strip()
+            
+            # Se o resumo for inútil (ex: só o título repetido), trocamos por um aviso claro
             if len(texto_resumo) <= len(titulo) + 20: 
-                texto_resumo = "Resumo detalhado bloqueado pela fonte."
+                texto_resumo = "(Conteúdo oculto no RSS. Mineração profunda necessária.)"
             
             texto_completo_site = extrair_texto_da_url(link)
             
@@ -247,7 +258,7 @@ async def miner_news(req: MinerGenericRequest, db: Session = Depends(get_db), us
             
             if req.traduzir:
                 titulo = traduzir_para_pt(titulo)
-                if texto_resumo != "Resumo detalhado bloqueado pela fonte.":
+                if "(Conteúdo oculto" not in texto_resumo:
                     texto_resumo = traduzir_para_pt(texto_resumo)
                 texto_completo_site = traduzir_para_pt(texto_completo_site)
                 
