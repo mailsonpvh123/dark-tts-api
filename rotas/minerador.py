@@ -38,7 +38,6 @@ def traduzir_para_pt(texto):
     if not texto: return ""
     try:
         tradutor = GoogleTranslator(source='en', target='pt')
-        # Divide em blocos porque o Google Translator tem limite de caracteres por requisição
         blocos = [texto[i:i+4000] for i in range(0, len(texto), 4000)]
         return " ".join([tradutor.translate(b) for b in blocos])
     except:
@@ -49,33 +48,47 @@ def traduzir_para_pt(texto):
 # ==========================================
 def extrair_texto_da_url(url):
     """
-    Invade a URL fornecida, remove distrações (menus, ads) e extrai apenas o conteúdo da matéria.
+    Invade a URL fornecida, burla os redirects do Google News, remove distrações e extrai apenas o artigo.
     """
     if not url or not url.startswith('http'):
         return ""
     try:
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Accept-Language': 'en-US,en;q=0.9'
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Referer': 'https://www.google.com/'
         }
-        # Timeout curto para não travar a aplicação se o site estiver fora do ar
-        r = requests.get(url, headers=headers, timeout=8)
-        r.raise_for_status()
+        
+        r = requests.get(url, headers=headers, timeout=10, allow_redirects=True)
         soup = BeautifulSoup(r.text, 'html.parser')
 
-        # Destruindo o lixo (scripts, estilos, menus, rodapés, anúncios)
-        for elemento in soup(["script", "style", "nav", "header", "footer", "aside", "form", "button"]):
+        # BURLANDO O REDIRECT DO GOOGLE NEWS
+        if "news.google.com" in url or "consent.google.com" in r.url:
+            # O Google esconde o link real num botão ou âncora invisível. Vamos caçá-lo!
+            a_tag = soup.select_one('noscript a') or soup.find('a')
+            if a_tag and a_tag.has_attr('href'):
+                real_url = a_tag['href']
+                r = requests.get(real_url, headers=headers, timeout=12, allow_redirects=True)
+                soup = BeautifulSoup(r.text, 'html.parser')
+
+        # Destruindo o lixo do site original (menus, popups, rodapés, banners)
+        for elemento in soup(["script", "style", "nav", "header", "footer", "aside", "form", "button", "iframe", "noscript"]):
             elemento.extract()
 
-        # Pegando apenas os parágrafos reais do texto
-        paragrafos = soup.find_all('p')
-        texto_limpo = " ".join([p.get_text(separator=' ', strip=True) for p in paragrafos if len(p.get_text(strip=True)) > 20])
+        # Tentativa de focar no coração do artigo (<article> ou <main>)
+        container = soup.find('article') or soup.find('main') or soup
+        
+        # Pegando apenas os parágrafos reais (ignorando links soltos e legendas curtas)
+        paragrafos = container.find_all('p')
+        texto_limpo = " ".join([p.get_text(separator=' ', strip=True) for p in paragrafos if len(p.get_text(strip=True)) > 25])
 
-        # Fallback: Se o site não usar tags <p> direito, pegamos o texto do corpo inteiro
-        if len(texto_limpo) < 200:
-            texto_limpo = soup.get_text(separator=' ', strip=True)
+        # Fallback: Se o site for mal construído e não usar tags <p>, pegamos tudo que sobrou
+        if len(texto_limpo) < 300:
+            texto_limpo = container.get_text(separator=' ', strip=True)
+            
+        # Limpeza fina para deixar o texto lisinho
+        texto_limpo = re.sub(r'\s+', ' ', texto_limpo).strip()
 
-        # Limitando a 15.000 caracteres para evitar que artigos colossais explodam o Tradutor ou a API do Gemini depois
         return texto_limpo[:15000]
     except Exception as e:
         print(f"⚠️ Aviso: Falha ao extrair fundo da URL {url}. Detalhe: {e}")
@@ -148,7 +161,7 @@ async def miner_web(req: MinerGenericRequest, db: Session = Depends(get_db), usu
         soup = BeautifulSoup(r.text, 'html.parser')
         
         resultados = []
-        for a in soup.find_all('a', class_='result__snippet', limit=5): # Reduzido para 5 para não demorar tanto o scraping
+        for a in soup.find_all('a', class_='result__snippet', limit=5):
             texto_resumo = a.text.strip()
             href = a.get('href', '')
             title_elem = a.find_previous('h2', class_='result__title')
@@ -196,14 +209,14 @@ async def miner_news(req: MinerGenericRequest, db: Session = Depends(get_db), us
         root = ET.fromstring(r.text)
         resultados = []
         
-        for item in root.findall('.//item')[:5]: # Reduzido para 5 para evitar Timeout
+        for item in root.findall('.//item')[:5]:
             titulo = item.find('title').text if item.find('title') is not None else 'Sem título'
             link = item.find('link').text if item.find('link') is not None else ''
             desc_html = item.find('description').text if item.find('description') is not None else ''
             texto_resumo = re.sub(r'<[^>]+>', ' ', html.unescape(desc_html))
             texto_resumo = re.sub(r'\s+', ' ', texto_resumo).strip()
             
-            # MAGIA: Invade o link da notícia para ler tudo
+            # MAGIA: Invade o link da notícia (agora burlando o Google) para ler tudo
             texto_completo_site = extrair_texto_da_url(link)
             
             # Fallback
@@ -246,7 +259,6 @@ async def miner_wiki(req: MinerGenericRequest, db: Session = Depends(get_db), us
         for item in r_search.get('query', {}).get('search', [])[:5]:
             title = item['title']
             
-            # MAGIA WIKIPEDIA: Removida a trava '&exintro=1'. Agora ele puxa o artigo enciclopédico inteiro!
             url_extract = f"https://en.wikipedia.org/w/api.php?action=query&prop=extracts&explaintext=1&titles={urllib.parse.quote(title)}&format=json"
             r_ext = requests.get(url_extract, timeout=10).json()
             pages = r_ext.get('query', {}).get('pages', {})
@@ -255,7 +267,6 @@ async def miner_wiki(req: MinerGenericRequest, db: Session = Depends(get_db), us
                 texto_completo_wiki = page_data.get('extract', '')
                 if not texto_completo_wiki: continue
                 
-                # Resumo visual para o Card
                 texto_resumo = texto_completo_wiki[:250] + "..."
                 
                 if req.traduzir:
