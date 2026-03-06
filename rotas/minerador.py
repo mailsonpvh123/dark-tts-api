@@ -38,7 +38,6 @@ def traduzir_para_pt(texto):
     if not texto: return ""
     try:
         tradutor = GoogleTranslator(source='en', target='pt')
-        # Dividindo em blocos para não estourar o limite do tradutor em matérias gigantes
         blocos = [texto[i:i+4000] for i in range(0, len(texto), 4000)]
         return " ".join([tradutor.translate(b) for b in blocos])
     except:
@@ -49,67 +48,72 @@ def traduzir_para_pt(texto):
 # ==========================================
 def extrair_texto_da_url(url):
     """
-    Invade a URL, burla o Google News, quebra Paywalls com máscara de GoogleBot e extrai o artigo.
+    Motor definitivo: Usa o Jina AI (Arma Secreta) para furar Cloudflare e Paywalls.
+    Se falhar, usa o Scraper Nativo com máscara do GoogleBot.
     """
     if not url or not url.startswith('http'):
         return ""
+    
+    # --- ARMA SECRETA: API DO JINA AI READER ---
     try:
-        # HACK 1: Máscara de GoogleBot (Derruba Paywalls de jornais gigantes)
+        headers_jina = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+        # O Jina AI resolve os redirecionamentos do Google e quebra paywalls de jornais
+        r_jina = requests.get(f"https://r.jina.ai/{url}", headers=headers_jina, timeout=15)
+        
+        if r_jina.status_code == 200 and len(r_jina.text) > 100:
+            texto_limpo = r_jina.text
+            # Limpa o markdown (remove URLs de imagens e links) para não sujar o Paraphraser
+            texto_limpo = re.sub(r'!\[.*?\]\(.*?\)', '', texto_limpo) 
+            texto_limpo = re.sub(r'\[(.*?)\]\(.*?\)', r'\1', texto_limpo)
+            return texto_limpo.strip()[:15000]
+    except Exception as e:
+        print(f"Jina AI falhou, acionando Plano B... Erro: {e}")
+
+    # --- PLANO B: SCRAPER NATIVO (BEAUTIFULSOUP) ---
+    try:
+        # Tenta resolver o link criptografado do Google News na marra
+        if "news.google" in url or "consent.google" in url:
+            try:
+                r_redir = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=10)
+                soup_redir = BeautifulSoup(r_redir.text, 'html.parser')
+                a_tag = soup_redir.find('a', href=True)
+                if a_tag and 'http' in a_tag['href'] and 'google.com' not in a_tag['href']:
+                    url = a_tag['href']
+            except:
+                pass
+
         headers = {
             'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
             'Referer': 'https://www.google.com/'
         }
-        
-        # HACK 2: Quebrando o Escudo de Redirecionamento do Google News (Melhorado)
-        if "news.google" in url or "consent.google" in url:
-            try:
-                r_redir = requests.get(url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}, timeout=10, allow_redirects=True)
-                url = r_redir.url # Tenta pegar a URL final nativamente
-                
-                # Se ainda estiver preso no redirecionamento do Google, caça o link manualmente
-                if "consent.google" in url or "news.google" in url:
-                    urls_encontradas = re.findall(r'(?i)href=["\'](https?://[^"\']+)["\']', r_redir.text)
-                    for link in urls_encontradas:
-                        # Ignora links do Google e ARQUIVOS BINÁRIOS/IMAGENS (O Bug do código alienígena resolvido!)
-                        if "google.com" not in link and "gstatic.com" not in link:
-                            if not link.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.css', '.ico', '.js')):
-                                url = link
-                                break
-            except:
-                pass
-
-        # Invasão do site definitivo
         r = requests.get(url, headers=headers, timeout=15, allow_redirects=True)
-
-        # BLOQUEIO DE CÓDIGO ALIENÍGENA: Garante que estamos lendo um site e não uma imagem
+        
+        # Bloqueia código alienígena (Imagens, PDFs)
         content_type = r.headers.get('Content-Type', '').lower()
         if 'text/html' not in content_type:
-            return "" # Aborta se for um arquivo binário, imagem, etc.
+            return ""
 
+        r.encoding = r.apparent_encoding
         soup = BeautifulSoup(r.text, 'html.parser')
 
-        # Aniquilando o lixo visual (Menus, Rodapés, Anúncios, Pop-ups)
-        for elemento in soup(["script", "style", "nav", "header", "footer", "aside", "form", "button", "iframe", "noscript", "meta"]):
+        for elemento in soup(["script", "style", "nav", "header", "footer", "aside", "form", "button", "iframe", "noscript"]):
             elemento.extract()
 
-        # Caçando o coração da matéria
-        container = soup.find('article') or soup.find('main') or soup.find('div', class_=re.compile(r'(post|article|content|body|story)', re.I)) or soup
+        # Encontra a caixa de texto com mais parágrafos
+        divs = soup.find_all(['article', 'main', 'div'])
+        container = max(divs, key=lambda d: len(d.find_all('p'))) if divs else soup
         
-        # Extraindo Títulos e Parágrafos reais
-        paragrafos = container.find_all(['p', 'h1', 'h2', 'h3'])
-        texto_limpo = "\n\n".join([p.get_text(separator=' ', strip=True) for p in paragrafos if len(p.get_text(strip=True)) > 25])
+        paragrafos = container.find_all(['p', 'h2', 'h3'])
+        texto_nativo = "\n\n".join([p.get_text(separator=' ', strip=True) for p in paragrafos if len(p.get_text(strip=True)) > 25])
 
-        # Força Bruta: Se o site for péssimo e não usar parágrafos <p>, lemos tudo que sobrou filtrando frases soltas
-        if len(texto_limpo) < 300:
-            linhas = container.get_text(separator='\n', strip=True).split('\n')
-            texto_limpo = "\n\n".join([linha for linha in linhas if len(linha.strip()) > 50])
-            
-        # Limpeza final de espaços
-        texto_limpo = re.sub(r'\n{3,}', '\n\n', texto_limpo).strip()
+        if len(texto_nativo) < 300:
+            texto_nativo = container.get_text(separator='\n', strip=True)
+            linhas = [linha.strip() for linha in texto_nativo.split('\n') if len(linha.strip()) > 40]
+            texto_nativo = "\n\n".join(linhas)
 
-        return texto_limpo[:15000] # Limite para não explodir a API depois
+        return texto_nativo[:15000]
     except Exception as e:
-        print(f"⚠️ Aviso: Falha ao extrair fundo da URL {url}. Detalhe: {e}")
+        print(f"⚠️ Falha total ao extrair URL {url}. Detalhe: {e}")
         return ""
 
 # Custo Global do Minerador
@@ -185,10 +189,8 @@ async def miner_web(req: MinerGenericRequest, db: Session = Depends(get_db), usu
             title_elem = a.find_previous('h2', class_='result__title')
             titulo = title_elem.text.strip() if title_elem else 'Sem Título'
             
-            # MAGIA: Invade o link real para pegar a matéria inteira
             texto_completo_site = extrair_texto_da_url(href)
             
-            # Se o scraping falhou, usa o resumo do buscador como fallback
             if len(texto_completo_site) < 100:
                 texto_completo_site = texto_resumo
 
@@ -230,20 +232,23 @@ async def miner_news(req: MinerGenericRequest, db: Session = Depends(get_db), us
         for item in root.findall('.//item')[:5]:
             titulo = item.find('title').text if item.find('title') is not None else 'Sem título'
             link = item.find('link').text if item.find('link') is not None else ''
+            
+            # Limpando o resumo e evitando que ele seja apenas o título repetido
             desc_html = item.find('description').text if item.find('description') is not None else ''
             texto_resumo = re.sub(r'<[^>]+>', ' ', html.unescape(desc_html))
             texto_resumo = re.sub(r'\s+', ' ', texto_resumo).strip()
+            if len(texto_resumo) <= len(titulo) + 20: 
+                texto_resumo = "Resumo detalhado bloqueado pela fonte."
             
-            # MAGIA: Invade o link da notícia para ler tudo
             texto_completo_site = extrair_texto_da_url(link)
             
-            # Fallback
             if len(texto_completo_site) < 100:
                 texto_completo_site = texto_resumo
             
             if req.traduzir:
                 titulo = traduzir_para_pt(titulo)
-                texto_resumo = traduzir_para_pt(texto_resumo)
+                if texto_resumo != "Resumo detalhado bloqueado pela fonte.":
+                    texto_resumo = traduzir_para_pt(texto_resumo)
                 texto_completo_site = traduzir_para_pt(texto_completo_site)
                 
             resultados.append({
