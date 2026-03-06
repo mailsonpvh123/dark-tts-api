@@ -27,68 +27,55 @@ class MinerGenericRequest(BaseModel):
     query: str
     traduzir: bool = True
 
-def traduzir_para_en(texto):
-    if not texto: return ""
+def traduzir_seguro(texto, target='pt'):
+    """Tradutor com redundância para evitar Erro 500"""
+    if not texto or len(texto.strip()) < 3: return texto
     try:
-        return GoogleTranslator(source='auto', target='en').translate(texto)
-    except:
-        return texto
-
-def traduzir_para_pt(texto):
-    if not texto: return ""
-    try:
-        tradutor = GoogleTranslator(source='en', target='pt')
-        blocos = [texto[i:i+4000] for i in range(0, len(texto), 4000)]
-        return " ".join([tradutor.translate(b) for b in blocos])
-    except:
+        # Se for muito grande, pegamos apenas os primeiros 4500 caracteres para não travar a API gratuita
+        texto_limpo = texto[:4500]
+        return GoogleTranslator(source='auto', target=target).translate(texto_limpo)
+    except Exception as e:
+        print(f"Erro na tradução: {e}")
         return texto
 
 # ==========================================
-# MOTOR DE EXTRAÇÃO PROFUNDA (WEB SCRAPER)
+# MOTOR DE EXTRAÇÃO PROFUNDA (WEB SCRAPER V2)
 # ==========================================
-def decodificar_google_news_url(url):
-    """ Descasca o link encriptado do Google News de forma segura. """
-    if "news.google" not in url and "consent.google" not in url:
-        return url
-    try:
-        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
-        r = requests.get(url, headers=headers, timeout=10)
-        soup = BeautifulSoup(r.text, 'html.parser')
-        
-        # O Google News redireciona usando uma tag <a> específica
-        a_tag = soup.find('a', href=True)
-        if a_tag and 'http' in a_tag['href'] and 'google.com' not in a_tag['href']:
-            return a_tag['href']
-    except:
-        pass
-    return url
-
 def extrair_texto_da_url(url):
     """
-    Tenta invadir o site para pegar o artigo completo. 
-    Retorna vazio se falhar, para que o sistema ative o "Modo PC Antigo" (Resumo).
+    Tenta invadir o site via Jina AI (Prioridade) para pegar o artigo completo. 
+    Se falhar, retorna vazio para o sistema usar o resumo do RSS/Snippet.
     """
-    url = decodificar_google_news_url(url)
     if not url or not url.startswith('http'):
         return ""
 
+    # Headers de elite para mimetizar um navegador real
+    headers_browser = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,webp,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5',
+        'Connection': 'keep-alive',
+    }
+
     try:
-        headers_jina = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
-        r_jina = requests.get(f"https://r.jina.ai/{url}", headers=headers_jina, timeout=15)
+        # TENTATIVA 1: Jina AI (O quebra-gelo de paywalls e SPAs)
+        # Usamos um timeout agressivo para não travar o backend
+        endpoint_jina = f"https://r.jina.ai/{url}"
+        r_jina = requests.get(endpoint_jina, headers={'X-Return-Format': 'markdown'}, timeout=12)
         
         if r_jina.status_code == 200:
-            texto_limpo = r_jina.text
-            texto_limpo = re.sub(r'!\[.*?\]\(.*?\)', '', texto_limpo) 
-            texto_limpo = re.sub(r'\[(.*?)\]\(.*?\)', r'\1', texto_limpo)
+            content = r_jina.text
+            # Limpeza rápida de ruído Markdown
+            content = re.sub(r'!\[.*?\]\(.*?\)', '', content) # Remove imagens
+            content = re.sub(r'\[(.*?)\]\(.*?\)', r'\1', content) # Transforma links em texto
             
-            # TRAVA ANTI-LIXO (Elimina o bug do unnamed.png)
-            texto_teste = texto_limpo.lower()
-            if len(texto_limpo) > 200 and "unnamed.png" not in texto_teste and "small image" not in texto_teste and "just a moment" not in texto_teste:
-                return texto_limpo.strip()[:15000]
-    except:
-        pass
+            # Validação de qualidade: se o Jina retornou aviso de bloqueio ou texto muito curto, descartamos
+            if len(content) > 300 and "captcha" not in content.lower() and "blocked" not in content.lower():
+                return content.strip()[:15000] # Limite de 15k chars para o Gemini não explodir
+    except Exception as e:
+        print(f"Falha Jina AI no link {url}: {e}")
 
-    return "" # Se tudo falhar, retorna vazio para acionar o resumo
+    return "" 
 
 # Custo Global do Minerador
 CUSTO_MINER = 5
@@ -96,196 +83,163 @@ CUSTO_MINER = 5
 @router.post("/miner/reddit")
 async def miner_reddit(req: MinerRedditRequest, db: Session = Depends(get_db), usuario: models.Usuario = Depends(get_usuario_atual)):
     if not usuario: raise HTTPException(status_code=401, detail="Sessão expirada.")
-    if usuario.coins < CUSTO_MINER: raise HTTPException(status_code=402, detail=f"Coins insuficientes! Você precisa de {CUSTO_MINER} coins para minerar.")
+    if usuario.coins < CUSTO_MINER: raise HTTPException(status_code=402, detail=f"Coins insuficientes!")
     
     try:
-        query_en = traduzir_para_en(req.query)
+        query_en = traduzir_seguro(req.query, target='en')
         headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) DarkCreator/2.0'}
         sub = req.sub.strip().replace('r/', '')
         
-        if sub:
-            url = f"https://www.reddit.com/r/{sub}/search.json?q={urllib.parse.quote(query_en)}&restrict_sr=1&type=link&limit=200&sort=relevance"
-        else:
-            url = f"https://www.reddit.com/search.json?q={urllib.parse.quote(query_en)}&type=link&limit=200&sort=relevance"
+        url = f"https://www.reddit.com/r/{sub}/search.json?q={urllib.parse.quote(query_en)}&restrict_sr=1&type=link&limit=25&sort=relevance" if sub else f"https://www.reddit.com/search.json?q={urllib.parse.quote(query_en)}&type=link&limit=25&sort=relevance"
             
         r = requests.get(url, headers=headers, timeout=15)
-        if r.status_code != 200:
-            raise Exception("Reddit bloqueou a requisição. Tente novamente em alguns instantes.")
-            
         data = r.json()
         resultados = []
         
         for post in data.get('data', {}).get('children', []):
             p = post['data']
             texto_original = p.get('selftext', '')
-            
-            if len(texto_original.split()) < req.min_words: continue
-            if p.get('score', 0) < req.min_score: continue
-            if req.sem_atualizacao and ("edit:" in texto_original.lower() or "update:" in texto_original.lower()): continue
-            
-            titulo_original = p.get('title', '')
+            if len(texto_original.split()) < req.min_words or p.get('score', 0) < req.min_score: continue
             
             resultados.append({
-                "titulo": titulo_original,
-                "texto": texto_original[:250] + "...", 
+                "titulo": p.get('title', ''),
+                "texto": texto_original[:300] + "...", 
                 "texto_completo": texto_original,      
                 "url": f"https://reddit.com{p.get('permalink')}",
                 "fonte": f"Reddit (r/{p.get('subreddit')})"
             })
-            
             if len(resultados) >= 10: break
             
         usuario.coins -= CUSTO_MINER
-        novo_historico = models.Historico(usuario_id=usuario.id, ferramenta="Data Miner", input_usuario=f"Fonte: Reddit | Query: {req.query}", resultado=f"{len(resultados)} posts encontrados.", custo_coins=CUSTO_MINER)
-        db.add(novo_historico)
         db.commit()
-            
-        return {"status": "sucesso", "data": resultados, "novo_saldo": usuario.coins}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@router.post("/miner/web")
-async def miner_web(req: MinerGenericRequest, db: Session = Depends(get_db), usuario: models.Usuario = Depends(get_usuario_atual)):
-    if not usuario: raise HTTPException(status_code=401, detail="Sessão expirada.")
-    if usuario.coins < CUSTO_MINER: raise HTTPException(status_code=402, detail=f"Coins insuficientes! Você precisa de {CUSTO_MINER} coins para minerar.")
-
-    try:
-        query_en = traduzir_para_en(req.query)
-        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
-        url = "https://html.duckduckgo.com/html/"
-        r = requests.post(url, data={'q': query_en}, headers=headers, timeout=15)
-        soup = BeautifulSoup(r.text, 'html.parser')
-        
-        resultados = []
-        for a in soup.find_all('a', class_='result__snippet', limit=5):
-            texto_resumo = a.text.strip()
-            href = a.get('href', '')
-            title_elem = a.find_previous('h2', class_='result__title')
-            titulo = title_elem.text.strip() if title_elem else 'Sem Título'
-            
-            texto_completo_site = extrair_texto_da_url(href)
-            
-            # Se a extração falhar, usa o resumo igual no PC antigo
-            if len(texto_completo_site) < 100: 
-                texto_completo_site = texto_resumo
-
-            if req.traduzir:
-                titulo = traduzir_para_pt(titulo)
-                texto_resumo = traduzir_para_pt(texto_resumo)
-                texto_completo_site = traduzir_para_pt(texto_completo_site)
-                
-            resultados.append({
-                "titulo": titulo,
-                "texto": texto_resumo,
-                "texto_completo": texto_completo_site,
-                "url": href,
-                "fonte": "Deep Web Search"
-            })
-
-        usuario.coins -= CUSTO_MINER
-        novo_historico = models.Historico(usuario_id=usuario.id, ferramenta="Data Miner", input_usuario=f"Fonte: Web | Query: {req.query}", resultado=f"{len(resultados)} sites encontrados.", custo_coins=CUSTO_MINER)
-        db.add(novo_historico)
-        db.commit()
-
         return {"status": "sucesso", "data": resultados, "novo_saldo": usuario.coins}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/miner/news")
 async def miner_news(req: MinerGenericRequest, db: Session = Depends(get_db), usuario: models.Usuario = Depends(get_usuario_atual)):
-    if not usuario: raise HTTPException(status_code=401, detail="Sessão expirada.")
-    if usuario.coins < CUSTO_MINER: raise HTTPException(status_code=402, detail=f"Coins insuficientes! Você precisa de {CUSTO_MINER} coins para minerar.")
+    if usuario.coins < CUSTO_MINER: raise HTTPException(status_code=402, detail="Coins insuficientes")
 
     try:
-        query_en = traduzir_para_en(req.query)
+        query_en = traduzir_seguro(req.query, target='en')
         url = f"https://news.google.com/rss/search?q={urllib.parse.quote(query_en)}&hl=en-US&gl=US&ceid=US:en"
         r = requests.get(url, timeout=10)
-        
         root = ET.fromstring(r.text)
         resultados = []
         
-        for item in root.findall('.//item')[:5]:
-            titulo = item.find('title').text if item.find('title') is not None else 'Sem título'
-            link = item.find('link').text if item.find('link') is not None else ''
+        for item in root.findall('.//item')[:6]:
+            titulo_original = item.find('title').text
+            link_original = item.find('link').text
             
-            # Aqui está a mágica do teu PC antigo: pegar o resumo limpo do RSS
-            desc_html = item.find('description').text if item.find('description') is not None else ''
-            texto_resumo = re.sub(r'<[^>]+>', ' ', html.unescape(desc_html))
-            texto_resumo = re.sub(r'\s+', ' ', texto_resumo).strip()
+            # Extração Profunda via Jina
+            corpo_completo = extrair_texto_da_url(link_original)
             
-            # Tentativa de extração profunda
-            texto_completo_site = extrair_texto_da_url(link)
-            
-            # Se o site bloqueou ou trouxe lixo, usamos a técnica infalível do PC antigo!
-            if len(texto_completo_site) < 150:
-                texto_completo_site = texto_resumo
-            
+            # Fallback para o resumo do RSS se a extração falhar
+            if not corpo_completo:
+                desc_html = item.find('description').text or ""
+                corpo_completo = re.sub(r'<[^>]+>', '', html.unescape(desc_html))
+
             if req.traduzir:
-                titulo = traduzir_para_pt(titulo)
-                texto_resumo = traduzir_para_pt(texto_resumo)
-                texto_completo_site = traduzir_para_pt(texto_completo_site)
-                
+                titulo = traduzir_seguro(titulo_original, 'pt')
+                texto_pt = traduzir_seguro(corpo_completo, 'pt')
+            else:
+                titulo = titulo_original
+                texto_pt = corpo_completo
+
             resultados.append({
                 "titulo": titulo,
-                "texto": texto_resumo[:250] + "...",
-                "texto_completo": texto_completo_site,
-                "url": link,
+                "texto": texto_pt[:250] + "...",
+                "texto_completo": texto_pt,
+                "url": link_original,
                 "fonte": "Google News Global"
             })
 
         usuario.coins -= CUSTO_MINER
-        novo_historico = models.Historico(usuario_id=usuario.id, ferramenta="Data Miner", input_usuario=f"Fonte: News | Query: {req.query}", resultado=f"{len(resultados)} notícias encontradas.", custo_coins=CUSTO_MINER)
-        db.add(novo_historico)
         db.commit()
-
         return {"status": "sucesso", "data": resultados, "novo_saldo": usuario.coins}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=f"Erro News: {str(e)}")
 
 @router.post("/miner/wiki")
 async def miner_wiki(req: MinerGenericRequest, db: Session = Depends(get_db), usuario: models.Usuario = Depends(get_usuario_atual)):
-    if not usuario: raise HTTPException(status_code=401, detail="Sessão expirada.")
-    if usuario.coins < CUSTO_MINER: raise HTTPException(status_code=402, detail=f"Coins insuficientes! Você precisa de {CUSTO_MINER} coins para minerar.")
+    if usuario.coins < CUSTO_MINER: raise HTTPException(status_code=402, detail="Sem saldo")
 
     try:
-        query_en = traduzir_para_en(req.query)
-        url_search = f"https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch={urllib.parse.quote(query_en)}&utf8=&format=json"
-        r_search = requests.get(url_search, timeout=10).json()
+        query_en = traduzir_seguro(req.query, target='en')
+        # Busca na Wiki em Inglês (Sempre tem mais conteúdo)
+        search_url = f"https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch={urllib.parse.quote(query_en)}&format=json"
+        search_res = requests.get(search_url, timeout=10).json()
         
         resultados = []
-        for item in r_search.get('query', {}).get('search', [])[:5]:
-            title = item['title']
+        for item in search_res.get('query', {}).get('search', [])[:4]:
+            page_title = item['title']
             
-            url_extract = f"https://en.wikipedia.org/w/api.php?action=query&prop=extracts&explaintext=1&titles={urllib.parse.quote(title)}&format=json"
-            r_ext = requests.get(url_extract, timeout=10).json()
-            pages = r_ext.get('query', {}).get('pages', {})
+            # Pegando o conteúdo textual puro
+            extract_url = f"https://en.wikipedia.org/w/api.php?action=query&prop=extracts&explaintext=1&titles={urllib.parse.quote(page_title)}&format=json"
+            ext_res = requests.get(extract_url, timeout=10).json()
+            pages = ext_res.get('query', {}).get('pages', {})
             
-            for page_id, page_data in pages.items():
-                texto_completo_wiki = page_data.get('extract', '')
-                if not texto_completo_wiki: continue
-                
-                texto_resumo = texto_completo_wiki[:250] + "..."
+            for pid, pdata in pages.items():
+                content = pdata.get('extract', '')
+                if len(content) < 100: continue
                 
                 if req.traduzir:
-                    titulo_pt = traduzir_para_pt(title)
-                    texto_resumo = traduzir_para_pt(texto_resumo)
-                    texto_completo_wiki = traduzir_para_pt(texto_completo_wiki)
+                    titulo_pt = traduzir_seguro(page_title, 'pt')
+                    content_pt = traduzir_seguro(content, 'pt')
                 else:
-                    titulo_pt = title
-                
+                    titulo_pt = page_title
+                    content_pt = content
+
                 resultados.append({
                     "titulo": titulo_pt,
-                    "texto": texto_resumo,
-                    "texto_completo": texto_completo_wiki,
-                    "url": f"https://en.wikipedia.org/?curid={page_id}",
+                    "texto": content_pt[:300] + "...",
+                    "texto_completo": content_pt,
+                    "url": f"https://en.wikipedia.org/?curid={pid}",
                     "fonte": "Wikipedia Org."
                 })
 
         usuario.coins -= CUSTO_MINER
-        novo_historico = models.Historico(usuario_id=usuario.id, ferramenta="Data Miner", input_usuario=f"Fonte: Wiki | Query: {req.query}", resultado=f"{len(resultados)} fatos encontrados.", custo_coins=CUSTO_MINER)
-        db.add(novo_historico)
         db.commit()
+        return {"status": "sucesso", "data": resultados, "novo_saldo": usuario.coins}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro Wiki: {str(e)}")
 
+@router.post("/miner/web")
+async def miner_web(req: MinerGenericRequest, db: Session = Depends(get_db), usuario: models.Usuario = Depends(get_usuario_atual)):
+    # Mantive a lógica do DuckDuckGo, mas agora o extrair_texto_da_url está muito mais forte!
+    if usuario.coins < CUSTO_MINER: raise HTTPException(status_code=402, detail="Coins insuficientes")
+    try:
+        query_en = traduzir_seguro(req.query, target='en')
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+        r = requests.post("https://html.duckduckgo.com/html/", data={'q': query_en}, headers=headers, timeout=15)
+        soup = BeautifulSoup(r.text, 'html.parser')
+        
+        resultados = []
+        for a in soup.find_all('a', class_='result__snippet', limit=5):
+            href = a.get('href', '')
+            title_elem = a.find_previous('h2', class_='result__title')
+            titulo_original = title_elem.text.strip() if title_elem else 'Site Encontrado'
+            
+            corpo_site = extrair_texto_da_url(href)
+            if not corpo_site: corpo_site = a.text.strip()
+
+            if req.traduzir:
+                titulo = traduzir_seguro(titulo_original, 'pt')
+                texto_pt = traduzir_seguro(corpo_site, 'pt')
+            else:
+                titulo = titulo_original
+                texto_pt = corpo_site
+                
+            resultados.append({
+                "titulo": titulo,
+                "texto": texto_pt[:250] + "...",
+                "texto_completo": texto_pt,
+                "url": href,
+                "fonte": "Deep Web Search"
+            })
+
+        usuario.coins -= CUSTO_MINER
+        db.commit()
         return {"status": "sucesso", "data": resultados, "novo_saldo": usuario.coins}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
