@@ -230,8 +230,26 @@
     }
 
     function enviarMinerParaParaphraser(btn) {
-        const texto = btn.closest('.miner-card').querySelector('.miner-texto-completo').value;
-        localStorage.setItem('texto_pendente_paraphraser', texto);
+        const card = btn.closest('.miner-card');
+        const titulo = card.querySelector('h4').innerText;
+        const fonte = card.querySelector('span').innerText;
+        const resumo = card.querySelector('p').innerText.replace(/^"|"$/g, ''); // Remove as aspas
+        const textoOculto = card.querySelector('.miner-texto-completo').value;
+        
+        let pacoteFinal = "";
+        
+        // Se for Reddit, o texto oculto já vem com a história completa e formatada do backend
+        if (fonte.toLowerCase().includes('reddit')) {
+            // Usa o texto oculto, mas garante que não vá vazio
+            pacoteFinal = textoOculto.trim() ? textoOculto : `TÍTULO: ${titulo}\n\n${resumo}`;
+        } else {
+            // Se for News ou Web, juntamos o título e o corpo para dar contexto à IA!
+            // Se o scraper falhou e o texto oculto for muito curto, usamos o resumo da tela.
+            let corpoTexto = textoOculto && textoOculto.trim().length > 20 ? textoOculto : resumo;
+            pacoteFinal = `TÍTULO: ${titulo}\nFONTE: ${fonte}\n\nCONTEÚDO:\n${corpoTexto}`;
+        }
+        
+        localStorage.setItem('texto_pendente_paraphraser', pacoteFinal);
         window.location.href = '/paraphraser';
     }
 </script>
