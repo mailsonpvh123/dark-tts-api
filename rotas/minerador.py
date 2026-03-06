@@ -38,6 +38,7 @@ def traduzir_para_pt(texto):
     if not texto: return ""
     try:
         tradutor = GoogleTranslator(source='en', target='pt')
+        # Dividindo em blocos para não estourar o limite do tradutor em matérias gigantes
         blocos = [texto[i:i+4000] for i in range(0, len(texto), 4000)]
         return " ".join([tradutor.translate(b) for b in blocos])
     except:
@@ -48,48 +49,58 @@ def traduzir_para_pt(texto):
 # ==========================================
 def extrair_texto_da_url(url):
     """
-    Invade a URL fornecida, burla os redirects do Google News, remove distrações e extrai apenas o artigo.
+    Invade a URL, burla o Google News, quebra Paywalls com máscara de GoogleBot e extrai o artigo.
     """
     if not url or not url.startswith('http'):
         return ""
     try:
+        # HACK 1: Máscara de GoogleBot (Derruba Paywalls de jornais gigantes)
         headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Accept-Language': 'en-US,en;q=0.9',
+            'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
             'Referer': 'https://www.google.com/'
         }
         
-        r = requests.get(url, headers=headers, timeout=10, allow_redirects=True)
+        # HACK 2: Quebrando o Escudo de Redirecionamento do Google News
+        if "news.google" in url or "consent.google" in url:
+            try:
+                r_redir = requests.get(url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}, timeout=10)
+                # Caçando a URL real vazada no código-fonte de redirecionamento
+                urls_encontradas = re.findall(r'(?i)href=["\'](https?://[^"\']+)["\']', r_redir.text)
+                for link in urls_encontradas:
+                    if "google.com" not in link and "gstatic.com" not in link:
+                        url = link
+                        break
+                # Se ainda não encontrou, tenta a segunda tática do Google
+                if "news.google" in url:
+                    match = re.search(r'window\.location\.replace\([\'"]([^\'"]+)[\'"]\)', r_redir.text)
+                    if match: url = match.group(1)
+            except:
+                pass
+
+        # Invasão do site definitivo
+        r = requests.get(url, headers=headers, timeout=15, allow_redirects=True)
         soup = BeautifulSoup(r.text, 'html.parser')
 
-        # BURLANDO O REDIRECT DO GOOGLE NEWS
-        if "news.google.com" in url or "consent.google.com" in r.url:
-            # O Google esconde o link real num botão ou âncora invisível. Vamos caçá-lo!
-            a_tag = soup.select_one('noscript a') or soup.find('a')
-            if a_tag and a_tag.has_attr('href'):
-                real_url = a_tag['href']
-                r = requests.get(real_url, headers=headers, timeout=12, allow_redirects=True)
-                soup = BeautifulSoup(r.text, 'html.parser')
-
-        # Destruindo o lixo do site original (menus, popups, rodapés, banners)
-        for elemento in soup(["script", "style", "nav", "header", "footer", "aside", "form", "button", "iframe", "noscript"]):
+        # Aniquilando o lixo visual (Menus, Rodapés, Anúncios, Pop-ups)
+        for elemento in soup(["script", "style", "nav", "header", "footer", "aside", "form", "button", "iframe", "noscript", "meta"]):
             elemento.extract()
 
-        # Tentativa de focar no coração do artigo (<article> ou <main>)
-        container = soup.find('article') or soup.find('main') or soup
+        # Caçando o coração da matéria
+        container = soup.find('article') or soup.find('main') or soup.find('div', class_=re.compile(r'(post|article|content|body|story)', re.I)) or soup
         
-        # Pegando apenas os parágrafos reais (ignorando links soltos e legendas curtas)
-        paragrafos = container.find_all('p')
-        texto_limpo = " ".join([p.get_text(separator=' ', strip=True) for p in paragrafos if len(p.get_text(strip=True)) > 25])
+        # Extraindo Títulos e Parágrafos reais
+        paragrafos = container.find_all(['p', 'h1', 'h2', 'h3'])
+        texto_limpo = "\n\n".join([p.get_text(separator=' ', strip=True) for p in paragrafos if len(p.get_text(strip=True)) > 25])
 
-        # Fallback: Se o site for mal construído e não usar tags <p>, pegamos tudo que sobrou
+        # Força Bruta: Se o site for péssimo e não usar parágrafos <p>, lemos tudo que sobrou filtrando frases soltas
         if len(texto_limpo) < 300:
-            texto_limpo = container.get_text(separator=' ', strip=True)
+            linhas = container.get_text(separator='\n', strip=True).split('\n')
+            texto_limpo = "\n\n".join([linha for linha in linhas if len(linha) > 50])
             
-        # Limpeza fina para deixar o texto lisinho
-        texto_limpo = re.sub(r'\s+', ' ', texto_limpo).strip()
+        # Limpeza final de espaços
+        texto_limpo = re.sub(r'\n{3,}', '\n\n', texto_limpo).strip()
 
-        return texto_limpo[:15000]
+        return texto_limpo[:15000] # Limite para não explodir a API depois
     except Exception as e:
         print(f"⚠️ Aviso: Falha ao extrair fundo da URL {url}. Detalhe: {e}")
         return ""
@@ -170,7 +181,7 @@ async def miner_web(req: MinerGenericRequest, db: Session = Depends(get_db), usu
             # MAGIA: Invade o link real para pegar a matéria inteira
             texto_completo_site = extrair_texto_da_url(href)
             
-            # Se o scraping falhou (site bloqueou), usa o resumo do buscador como fallback
+            # Se o scraping falhou, usa o resumo do buscador como fallback
             if len(texto_completo_site) < 100:
                 texto_completo_site = texto_resumo
 
@@ -216,7 +227,7 @@ async def miner_news(req: MinerGenericRequest, db: Session = Depends(get_db), us
             texto_resumo = re.sub(r'<[^>]+>', ' ', html.unescape(desc_html))
             texto_resumo = re.sub(r'\s+', ' ', texto_resumo).strip()
             
-            # MAGIA: Invade o link da notícia (agora burlando o Google) para ler tudo
+            # MAGIA: Invade o link da notícia para ler tudo
             texto_completo_site = extrair_texto_da_url(link)
             
             # Fallback
