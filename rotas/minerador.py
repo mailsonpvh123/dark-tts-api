@@ -48,45 +48,54 @@ def traduzir_para_pt(texto):
 # ==========================================
 def extrair_texto_da_url(url):
     """
-    Descasca o link do Google, usa o Jina AI (Arma Secreta) e aplica Scraper Nativo como backup.
+    Descasca o link do Google inteligentemente, usa o Jina AI e bloqueia "pixels de rastreamento".
     """
     if not url or not url.startswith('http'):
         return ""
     
-    # 1. DESCASCAR O REDIRECT DO GOOGLE NEWS PRIMEIRO!
+    # 1. BURLAR O REDIRECT DO GOOGLE NEWS CORRETAMENTE
     if "news.google" in url or "consent.google" in url:
         try:
-            r_redir = requests.get(url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}, timeout=10, allow_redirects=True)
-            url_resolvida = r_redir.url
+            # Usar cookies para aceitar os termos do Google automaticamente e pular a tela de consentimento
+            cookies = {'CONSENT': 'YES+cb.20210720-07-p0.en+FX+410'}
+            headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+            r_redir = requests.get(url, headers=headers, cookies=cookies, timeout=10, allow_redirects=True)
             
-            # Se ainda estiver preso numa página intermediária do Google
-            if "consent.google" in url_resolvida or "news.google" in url_resolvida:
-                urls_encontradas = re.findall(r'(?i)href=["\'](https?://[^"\']+)["\']', r_redir.text)
-                for link in urls_encontradas:
-                    if "google.com" not in link and "gstatic.com" not in link:
-                        if not link.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.css', '.ico', '.js')):
-                            url_resolvida = link
+            url_final = r_redir.url
+            
+            # Se ainda estiver preso no Google, procuramos a tag A certa em vez de regex cego
+            if "google.com" in url_final:
+                soup_redir = BeautifulSoup(r_redir.text, 'html.parser')
+                meta = soup_redir.find('meta', attrs={'http-equiv': lambda x: x and x.lower() == 'refresh'})
+                if meta:
+                    m = re.search(r'url=([^;]+)', meta.get('content', ''), re.I)
+                    if m: url_final = m.group(1)
+                else:
+                    for a in soup_redir.find_all('a', href=True):
+                        # Pega apenas links de HTTP ignorando rastreadores óbvios
+                        if a['href'].startswith('http') and 'google.com' not in a['href']:
+                            url_final = a['href']
                             break
-            url = url_resolvida # Atualiza a URL para a verdadeira (Ex: bbc.com/noticia)
-        except:
-            pass 
+            url = url_final
+        except Exception as e:
+            print("Erro ao tentar resolver redirect do Google:", e)
 
-    # --- 2. ARMA SECRETA: API DO JINA AI READER COM A URL REAL ---
+    # --- 2. ARMA SECRETA: API DO JINA AI READER ---
     try:
         headers_jina = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
         r_jina = requests.get(f"https://r.jina.ai/{url}", headers=headers_jina, timeout=20)
         
-        if r_jina.status_code == 200 and len(r_jina.text) > 150:
+        if r_jina.status_code == 200:
             texto_limpo = r_jina.text
-            # Limpeza de códigos visuais do Markdown para não poluir o Paraphraser
             texto_limpo = re.sub(r'!\[.*?\]\(.*?\)', '', texto_limpo) 
             texto_limpo = re.sub(r'\[(.*?)\]\(.*?\)', r'\1', texto_limpo)
             
-            # Trava anti-Cloudflare (Se o Jina também for barrado)
-            if "Enable JavaScript and cookies" not in texto_limpo and "Just a moment..." not in texto_limpo:
+            # TRAVA ANTI-LIXO: Impede a leitura de Pixels de imagem e Bloqueios
+            texto_teste = texto_limpo.lower()
+            if len(texto_limpo) > 150 and "unnamed.png" not in texto_teste and "small image" not in texto_teste and "just a moment" not in texto_teste:
                 return texto_limpo.strip()[:15000]
     except Exception as e:
-        print(f"Jina AI falhou na URL. Acionando Plano B...")
+        print(f"Jina AI falhou: {e}")
 
     # --- 3. PLANO B: SCRAPER NATIVO (BEAUTIFULSOUP) ---
     try:
@@ -117,13 +126,11 @@ def extrair_texto_da_url(url):
             linhas = [linha.strip() for linha in texto_nativo.split('\n') if len(linha.strip()) > 40]
             texto_nativo = "\n\n".join(linhas)
 
-        # Se cairmos no Captcha do Cloudflare, abortamos para não poluir
-        if "Enable JavaScript and cookies" in texto_nativo or "Just a moment..." in texto_nativo:
+        if "enable javascript and cookies" in texto_nativo.lower() or "just a moment" in texto_nativo.lower():
             return "" 
 
         return texto_nativo[:15000]
     except Exception as e:
-        print(f"⚠️ Falha total ao extrair URL {url}. Detalhe: {e}")
         return ""
 
 # Custo Global do Minerador
@@ -200,9 +207,7 @@ async def miner_web(req: MinerGenericRequest, db: Session = Depends(get_db), usu
             titulo = title_elem.text.strip() if title_elem else 'Sem Título'
             
             texto_completo_site = extrair_texto_da_url(href)
-            
-            if len(texto_completo_site) < 100:
-                texto_completo_site = texto_resumo
+            if len(texto_completo_site) < 100: texto_completo_site = texto_resumo
 
             if req.traduzir:
                 titulo = traduzir_para_pt(titulo)
@@ -247,7 +252,6 @@ async def miner_news(req: MinerGenericRequest, db: Session = Depends(get_db), us
             texto_resumo = re.sub(r'<[^>]+>', ' ', html.unescape(desc_html))
             texto_resumo = re.sub(r'\s+', ' ', texto_resumo).strip()
             
-            # Se o resumo for inútil (ex: só o título repetido), trocamos por um aviso claro
             if len(texto_resumo) <= len(titulo) + 20: 
                 texto_resumo = "(Conteúdo oculto no RSS. Mineração profunda necessária.)"
             
