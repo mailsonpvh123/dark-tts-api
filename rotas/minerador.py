@@ -60,25 +60,32 @@ def extrair_texto_da_url(url):
             'Referer': 'https://www.google.com/'
         }
         
-        # HACK 2: Quebrando o Escudo de Redirecionamento do Google News
+        # HACK 2: Quebrando o Escudo de Redirecionamento do Google News (Melhorado)
         if "news.google" in url or "consent.google" in url:
             try:
-                r_redir = requests.get(url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}, timeout=10)
-                # Caçando a URL real vazada no código-fonte de redirecionamento
-                urls_encontradas = re.findall(r'(?i)href=["\'](https?://[^"\']+)["\']', r_redir.text)
-                for link in urls_encontradas:
-                    if "google.com" not in link and "gstatic.com" not in link:
-                        url = link
-                        break
-                # Se ainda não encontrou, tenta a segunda tática do Google
-                if "news.google" in url:
-                    match = re.search(r'window\.location\.replace\([\'"]([^\'"]+)[\'"]\)', r_redir.text)
-                    if match: url = match.group(1)
+                r_redir = requests.get(url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}, timeout=10, allow_redirects=True)
+                url = r_redir.url # Tenta pegar a URL final nativamente
+                
+                # Se ainda estiver preso no redirecionamento do Google, caça o link manualmente
+                if "consent.google" in url or "news.google" in url:
+                    urls_encontradas = re.findall(r'(?i)href=["\'](https?://[^"\']+)["\']', r_redir.text)
+                    for link in urls_encontradas:
+                        # Ignora links do Google e ARQUIVOS BINÁRIOS/IMAGENS (O Bug do código alienígena resolvido!)
+                        if "google.com" not in link and "gstatic.com" not in link:
+                            if not link.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.css', '.ico', '.js')):
+                                url = link
+                                break
             except:
                 pass
 
         # Invasão do site definitivo
         r = requests.get(url, headers=headers, timeout=15, allow_redirects=True)
+
+        # BLOQUEIO DE CÓDIGO ALIENÍGENA: Garante que estamos lendo um site e não uma imagem
+        content_type = r.headers.get('Content-Type', '').lower()
+        if 'text/html' not in content_type:
+            return "" # Aborta se for um arquivo binário, imagem, etc.
+
         soup = BeautifulSoup(r.text, 'html.parser')
 
         # Aniquilando o lixo visual (Menus, Rodapés, Anúncios, Pop-ups)
@@ -95,7 +102,7 @@ def extrair_texto_da_url(url):
         # Força Bruta: Se o site for péssimo e não usar parágrafos <p>, lemos tudo que sobrou filtrando frases soltas
         if len(texto_limpo) < 300:
             linhas = container.get_text(separator='\n', strip=True).split('\n')
-            texto_limpo = "\n\n".join([linha for linha in linhas if len(linha) > 50])
+            texto_limpo = "\n\n".join([linha for linha in linhas if len(linha.strip()) > 50])
             
         # Limpeza final de espaços
         texto_limpo = re.sub(r'\n{3,}', '\n\n', texto_limpo).strip()
