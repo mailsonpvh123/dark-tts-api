@@ -47,97 +47,48 @@ def traduzir_para_pt(texto):
 # MOTOR DE EXTRAÇÃO PROFUNDA (WEB SCRAPER)
 # ==========================================
 def decodificar_google_news_url(url):
-    """ Descasca o link encriptado do Google News e ignora pixels de rastreamento. """
+    """ Descasca o link encriptado do Google News de forma segura. """
     if "news.google" not in url and "consent.google" not in url:
         return url
     try:
-        cookies = {'CONSENT': 'YES+cb.20210720-07-p0.en+FX+410'}
         headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
-        r = requests.get(url, headers=headers, cookies=cookies, timeout=10, allow_redirects=True)
+        r = requests.get(url, headers=headers, timeout=10)
+        soup = BeautifulSoup(r.text, 'html.parser')
         
-        if "google.com" not in r.url:
-            return r.url
-            
-        html_text = r.text
-        match = re.search(r'window\.location\.replace\([\'"]([^\'"]+)[\'"]\)', html_text)
-        if match: return match.group(1)
-        
-        soup = BeautifulSoup(html_text, 'html.parser')
-        meta = soup.find('meta', attrs={'http-equiv': lambda x: x and x.lower() == 'refresh'})
-        if meta:
-            m = re.search(r'url=([^;]+)', meta.get('content', ''), re.I)
-            if m: return m.group(1)
-            
-        for a in soup.find_all('a', href=True):
-            href = a['href']
-            # IGNORA O GOOGLE E QUALQUER ARQUIVO DE IMAGEM/PIXEL
-            if href.startswith('http') and not any(x in href.lower() for x in ['google.com', 'gstatic.com', 'googleusercontent.com']):
-                if not href.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.css', '.js', '.ico')):
-                    return href
+        # O Google News redireciona usando uma tag <a> específica
+        a_tag = soup.find('a', href=True)
+        if a_tag and 'http' in a_tag['href'] and 'google.com' not in a_tag['href']:
+            return a_tag['href']
     except:
         pass
     return url
 
 def extrair_texto_da_url(url):
     """
-    Usa o link decodificado para invadir com Jina AI ou Scraper Nativo.
+    Tenta invadir o site para pegar o artigo completo. 
+    Retorna vazio se falhar, para que o sistema ative o "Modo PC Antigo" (Resumo).
     """
     url = decodificar_google_news_url(url)
     if not url or not url.startswith('http'):
         return ""
 
-    # --- 1. ARMA SECRETA: API DO JINA AI READER ---
     try:
         headers_jina = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
-        r_jina = requests.get(f"https://r.jina.ai/{url}", headers=headers_jina, timeout=20)
+        r_jina = requests.get(f"https://r.jina.ai/{url}", headers=headers_jina, timeout=15)
         
         if r_jina.status_code == 200:
             texto_limpo = r_jina.text
             texto_limpo = re.sub(r'!\[.*?\]\(.*?\)', '', texto_limpo) 
             texto_limpo = re.sub(r'\[(.*?)\]\(.*?\)', r'\1', texto_limpo)
             
+            # TRAVA ANTI-LIXO (Elimina o bug do unnamed.png)
             texto_teste = texto_limpo.lower()
-            # TRAVA ANTI-LIXO (Se for menor que 150 chars ou disser que é imagem, ele descarta)
-            if len(texto_limpo) > 150 and "unnamed.png" not in texto_teste and "small image" not in texto_teste and "just a moment" not in texto_teste:
+            if len(texto_limpo) > 200 and "unnamed.png" not in texto_teste and "small image" not in texto_teste and "just a moment" not in texto_teste:
                 return texto_limpo.strip()[:15000]
-    except Exception as e:
-        print(f"Jina AI falhou: {e}")
+    except:
+        pass
 
-    # --- 2. PLANO B: SCRAPER NATIVO (BEAUTIFULSOUP) ---
-    try:
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
-            'Referer': 'https://www.google.com/'
-        }
-        r = requests.get(url, headers=headers, timeout=15, allow_redirects=True)
-        
-        content_type = r.headers.get('Content-Type', '').lower()
-        if 'text/html' not in content_type:
-            return ""
-
-        r.encoding = r.apparent_encoding
-        soup = BeautifulSoup(r.text, 'html.parser')
-
-        for elemento in soup(["script", "style", "nav", "header", "footer", "aside", "form", "button", "iframe", "noscript"]):
-            elemento.extract()
-
-        divs = soup.find_all(['article', 'main', 'div'])
-        container = max(divs, key=lambda d: len(d.find_all('p'))) if divs else soup
-        
-        paragrafos = container.find_all(['p', 'h2', 'h3'])
-        texto_nativo = "\n\n".join([p.get_text(separator=' ', strip=True) for p in paragrafos if len(p.get_text(strip=True)) > 25])
-
-        if len(texto_nativo) < 300:
-            texto_nativo = container.get_text(separator='\n', strip=True)
-            linhas = [linha.strip() for linha in texto_nativo.split('\n') if len(linha.strip()) > 40]
-            texto_nativo = "\n\n".join(linhas)
-
-        if "enable javascript and cookies" in texto_nativo.lower() or "just a moment" in texto_nativo.lower():
-            return "" 
-
-        return texto_nativo[:15000]
-    except Exception as e:
-        return ""
+    return "" # Se tudo falhar, retorna vazio para acionar o resumo
 
 # Custo Global do Minerador
 CUSTO_MINER = 5
@@ -213,7 +164,10 @@ async def miner_web(req: MinerGenericRequest, db: Session = Depends(get_db), usu
             titulo = title_elem.text.strip() if title_elem else 'Sem Título'
             
             texto_completo_site = extrair_texto_da_url(href)
-            if len(texto_completo_site) < 100: texto_completo_site = texto_resumo
+            
+            # Se a extração falhar, usa o resumo igual no PC antigo
+            if len(texto_completo_site) < 100: 
+                texto_completo_site = texto_resumo
 
             if req.traduzir:
                 titulo = traduzir_para_pt(titulo)
@@ -254,22 +208,21 @@ async def miner_news(req: MinerGenericRequest, db: Session = Depends(get_db), us
             titulo = item.find('title').text if item.find('title') is not None else 'Sem título'
             link = item.find('link').text if item.find('link') is not None else ''
             
+            # Aqui está a mágica do teu PC antigo: pegar o resumo limpo do RSS
             desc_html = item.find('description').text if item.find('description') is not None else ''
             texto_resumo = re.sub(r'<[^>]+>', ' ', html.unescape(desc_html))
             texto_resumo = re.sub(r'\s+', ' ', texto_resumo).strip()
             
-            if len(texto_resumo) <= len(titulo) + 30: 
-                texto_resumo = "(Conteúdo oculto no RSS. Mineração profunda necessária.)"
-            
+            # Tentativa de extração profunda
             texto_completo_site = extrair_texto_da_url(link)
             
-            if len(texto_completo_site) < 100:
+            # Se o site bloqueou ou trouxe lixo, usamos a técnica infalível do PC antigo!
+            if len(texto_completo_site) < 150:
                 texto_completo_site = texto_resumo
             
             if req.traduzir:
                 titulo = traduzir_para_pt(titulo)
-                if "(Conteúdo oculto" not in texto_resumo:
-                    texto_resumo = traduzir_para_pt(texto_resumo)
+                texto_resumo = traduzir_para_pt(texto_resumo)
                 texto_completo_site = traduzir_para_pt(texto_completo_site)
                 
             resultados.append({
