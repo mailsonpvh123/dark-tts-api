@@ -38,10 +38,48 @@ def traduzir_para_pt(texto):
     if not texto: return ""
     try:
         tradutor = GoogleTranslator(source='en', target='pt')
+        # Divide em blocos porque o Google Translator tem limite de caracteres por requisição
         blocos = [texto[i:i+4000] for i in range(0, len(texto), 4000)]
         return " ".join([tradutor.translate(b) for b in blocos])
     except:
         return texto
+
+# ==========================================
+# MOTOR DE EXTRAÇÃO PROFUNDA (WEB SCRAPER)
+# ==========================================
+def extrair_texto_da_url(url):
+    """
+    Invade a URL fornecida, remove distrações (menus, ads) e extrai apenas o conteúdo da matéria.
+    """
+    if not url or not url.startswith('http'):
+        return ""
+    try:
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept-Language': 'en-US,en;q=0.9'
+        }
+        # Timeout curto para não travar a aplicação se o site estiver fora do ar
+        r = requests.get(url, headers=headers, timeout=8)
+        r.raise_for_status()
+        soup = BeautifulSoup(r.text, 'html.parser')
+
+        # Destruindo o lixo (scripts, estilos, menus, rodapés, anúncios)
+        for elemento in soup(["script", "style", "nav", "header", "footer", "aside", "form", "button"]):
+            elemento.extract()
+
+        # Pegando apenas os parágrafos reais do texto
+        paragrafos = soup.find_all('p')
+        texto_limpo = " ".join([p.get_text(separator=' ', strip=True) for p in paragrafos if len(p.get_text(strip=True)) > 20])
+
+        # Fallback: Se o site não usar tags <p> direito, pegamos o texto do corpo inteiro
+        if len(texto_limpo) < 200:
+            texto_limpo = soup.get_text(separator=' ', strip=True)
+
+        # Limitando a 15.000 caracteres para evitar que artigos colossais explodam o Tradutor ou a API do Gemini depois
+        return texto_limpo[:15000]
+    except Exception as e:
+        print(f"⚠️ Aviso: Falha ao extrair fundo da URL {url}. Detalhe: {e}")
+        return ""
 
 # Custo Global do Minerador
 CUSTO_MINER = 5
@@ -88,7 +126,6 @@ async def miner_reddit(req: MinerRedditRequest, db: Session = Depends(get_db), u
             
             if len(resultados) >= 10: break
             
-        # DÉBITO E HISTÓRICO
         usuario.coins -= CUSTO_MINER
         novo_historico = models.Historico(usuario_id=usuario.id, ferramenta="Data Miner", input_usuario=f"Fonte: Reddit | Query: {req.query}", resultado=f"{len(resultados)} posts encontrados.", custo_coins=CUSTO_MINER)
         db.add(novo_historico)
@@ -111,20 +148,28 @@ async def miner_web(req: MinerGenericRequest, db: Session = Depends(get_db), usu
         soup = BeautifulSoup(r.text, 'html.parser')
         
         resultados = []
-        for a in soup.find_all('a', class_='result__snippet', limit=10):
-            texto = a.text.strip()
+        for a in soup.find_all('a', class_='result__snippet', limit=5): # Reduzido para 5 para não demorar tanto o scraping
+            texto_resumo = a.text.strip()
             href = a.get('href', '')
             title_elem = a.find_previous('h2', class_='result__title')
             titulo = title_elem.text.strip() if title_elem else 'Sem Título'
             
+            # MAGIA: Invade o link real para pegar a matéria inteira
+            texto_completo_site = extrair_texto_da_url(href)
+            
+            # Se o scraping falhou (site bloqueou), usa o resumo do buscador como fallback
+            if len(texto_completo_site) < 100:
+                texto_completo_site = texto_resumo
+
             if req.traduzir:
                 titulo = traduzir_para_pt(titulo)
-                texto = traduzir_para_pt(texto)
+                texto_resumo = traduzir_para_pt(texto_resumo)
+                texto_completo_site = traduzir_para_pt(texto_completo_site)
                 
             resultados.append({
                 "titulo": titulo,
-                "texto": texto,
-                "texto_completo": texto,
+                "texto": texto_resumo,
+                "texto_completo": texto_completo_site,
                 "url": href,
                 "fonte": "Deep Web Search"
             })
@@ -151,21 +196,29 @@ async def miner_news(req: MinerGenericRequest, db: Session = Depends(get_db), us
         root = ET.fromstring(r.text)
         resultados = []
         
-        for item in root.findall('.//item')[:10]:
+        for item in root.findall('.//item')[:5]: # Reduzido para 5 para evitar Timeout
             titulo = item.find('title').text if item.find('title') is not None else 'Sem título'
             link = item.find('link').text if item.find('link') is not None else ''
             desc_html = item.find('description').text if item.find('description') is not None else ''
-            texto = re.sub(r'<[^>]+>', ' ', html.unescape(desc_html))
-            texto = re.sub(r'\s+', ' ', texto).strip()
+            texto_resumo = re.sub(r'<[^>]+>', ' ', html.unescape(desc_html))
+            texto_resumo = re.sub(r'\s+', ' ', texto_resumo).strip()
+            
+            # MAGIA: Invade o link da notícia para ler tudo
+            texto_completo_site = extrair_texto_da_url(link)
+            
+            # Fallback
+            if len(texto_completo_site) < 100:
+                texto_completo_site = texto_resumo
             
             if req.traduzir:
                 titulo = traduzir_para_pt(titulo)
-                texto = traduzir_para_pt(texto)
+                texto_resumo = traduzir_para_pt(texto_resumo)
+                texto_completo_site = traduzir_para_pt(texto_completo_site)
                 
             resultados.append({
                 "titulo": titulo,
-                "texto": texto[:250] + "...",
-                "texto_completo": texto,
+                "texto": texto_resumo[:250] + "...",
+                "texto_completo": texto_completo_site,
                 "url": link,
                 "fonte": "Google News Global"
             })
@@ -193,21 +246,29 @@ async def miner_wiki(req: MinerGenericRequest, db: Session = Depends(get_db), us
         for item in r_search.get('query', {}).get('search', [])[:5]:
             title = item['title']
             
-            url_extract = f"https://en.wikipedia.org/w/api.php?action=query&prop=extracts&exintro=1&explaintext=1&titles={urllib.parse.quote(title)}&format=json"
+            # MAGIA WIKIPEDIA: Removida a trava '&exintro=1'. Agora ele puxa o artigo enciclopédico inteiro!
+            url_extract = f"https://en.wikipedia.org/w/api.php?action=query&prop=extracts&explaintext=1&titles={urllib.parse.quote(title)}&format=json"
             r_ext = requests.get(url_extract, timeout=10).json()
             pages = r_ext.get('query', {}).get('pages', {})
             
             for page_id, page_data in pages.items():
-                texto = page_data.get('extract', '')
-                if not texto: continue
+                texto_completo_wiki = page_data.get('extract', '')
+                if not texto_completo_wiki: continue
                 
-                titulo_pt = traduzir_para_pt(title) if req.traduzir else title
-                texto_pt = traduzir_para_pt(texto) if req.traduzir else texto
+                # Resumo visual para o Card
+                texto_resumo = texto_completo_wiki[:250] + "..."
+                
+                if req.traduzir:
+                    titulo_pt = traduzir_para_pt(title)
+                    texto_resumo = traduzir_para_pt(texto_resumo)
+                    texto_completo_wiki = traduzir_para_pt(texto_completo_wiki)
+                else:
+                    titulo_pt = title
                 
                 resultados.append({
                     "titulo": titulo_pt,
-                    "texto": texto_pt[:250] + "...",
-                    "texto_completo": texto_pt,
+                    "texto": texto_resumo,
+                    "texto_completo": texto_completo_wiki,
                     "url": f"https://en.wikipedia.org/?curid={page_id}",
                     "fonte": "Wikipedia Org."
                 })
