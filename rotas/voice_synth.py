@@ -1,3 +1,122 @@
+import edge_tts
+import base64
+import math
+import os
+import io
+import time
+import re
+import textwrap
+from fastapi import APIRouter, HTTPException, Depends
+from pydantic import BaseModel
+from sqlalchemy.orm import Session
+from pydub import AudioSegment
+
+from google import genai
+from google.genai import types
+
+# Nossos imports internos
+import models
+from database import get_db
+from auth import get_usuario_atual
+
+router = APIRouter(tags=["Voice Synthesizer"])
+
+class AudioRequest(BaseModel):
+    texto: str
+    voz: str = "pt-BR-AntonioNeural"
+    velocidade: float = 1.0
+    pitch: int = 0
+    volume: int = 0
+    temperatura: float = 1.0       
+    instrucao_estilo: str = ""     
+
+VOICES_MAP = {
+    "Puck": "Animado / Jovem", "Charon": "Informativo / Grave", "Kore": "Firme / Madura",
+    "Fenrir": "Excitado / Forte", "Leda": "Jovem / Articulada", "Orus": "Firme / Clássico",
+    "Aoede": "Suave / Breezy", "Callirrhoe": "Relaxado", "Zephyr": "Brilhante / Enérgico",
+    "Despina": "Suave", "Erinome": "Claro", "Algenib": "Áspero", 
+    "Rasalgethi": "Informativo", "Laomedeia": "Animado", "Pulcherrima": "Avançado",
+    "Achird": "Amigável", "Zubenelgenubi": "Casual", "Vindemiatrix": "Gentil",
+    "Sadachbia": "Vivo", "Sadaltager": "Sábio", "Sulafat": "Caloroso"
+}
+
+vozes_cache = []
+
+@router.on_event("startup")
+async def carregar_vozes_memoria():
+    global vozes_cache
+    vozes_cache.clear() 
+    
+    try:
+        # Carrega Premium (Gemini)
+        for v_name, v_desc in VOICES_MAP.items():
+            vozes_cache.append({
+                "name": f"{v_name} ({v_desc})",
+                "shortName": f"gemini-premium-{v_name}",
+                "gender": "Neutral",
+                "tipo": "premium"
+            })
+        
+        # Carrega Padrão (Edge TTS)
+        voices = await edge_tts.list_voices()
+        for v in voices:
+            if v["Locale"].startswith("pt-") or "Multilingual" in v["ShortName"]:
+                vozes_cache.append({
+                    "name": v["Name"],
+                    "shortName": v["ShortName"],
+                    "gender": v["Gender"],
+                    "tipo": "padrao"
+                })
+        print(f"✅ {len(vozes_cache)} Vozes carregadas com sucesso na memória!")
+    except Exception as e:
+        print(f"❌ Erro ao carregar vozes: {e}")
+
+@router.get("/vozes")
+async def listar_vozes():
+    if vozes_cache:
+        return {"status": "sucesso", "vozes": vozes_cache}
+    else:
+        return {"status": "erro", "mensagem": "Vozes ainda não carregadas no servidor."}
+
+# ==========================================
+# O CHUNKER NEURAL COM OVERLAP (Contexto Contínuo)
+# ==========================================
+def split_text_for_gemini_overlap(texto, max_chars=1200):
+    """
+    Fatiador Avançado (Micro-Chunking 1200 chars).
+    Garante pacotes pequenos para a IA renderizar rápido e sem apagões.
+    """
+    texto = re.sub(r'[*#""“”]', '', texto)
+    texto = texto.replace('\n', ' ')
+    
+    frases = re.split(r'(?<=[.!?]) +', texto)
+    
+    chunks = []
+    chunk_atual = ""
+    
+    for i, frase in enumerate(frases):
+        frase = frase.strip()
+        if not frase: continue
+        
+        if len(chunk_atual) + len(frase) < max_chars:
+            chunk_atual += frase + " "
+        else:
+            if chunk_atual:
+                chunks.append(chunk_atual.strip())
+            
+            if len(frase) >= max_chars:
+                pedacos = textwrap.wrap(frase, width=max_chars)
+                for p in pedacos[:-1]:
+                    chunks.append(p.strip())
+                chunk_atual = pedacos[-1] + " "
+            else:
+                chunk_atual = frase + " "
+                
+    if chunk_atual:
+        chunks.append(chunk_atual.strip())
+        
+    return chunks
+
 # ==========================================
 # ROTA PRINCIPAL DE GERAÇÃO
 # ==========================================
