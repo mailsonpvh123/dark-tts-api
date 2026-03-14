@@ -176,18 +176,24 @@ function recalcularCustoVoz() {
         
         if(contador) {
             if(isPremium) {
-                contador.innerText = `${tamanho} / 4500 (Premium)`;
-                if(tamanho > 4500) {
-                    contador.classList.replace('text-zinc-500', 'text-red-400');
-                    contador.classList.replace('border-zinc-700', 'border-red-500/50');
+                // NOVA LÓGICA DE CHUNKING NO FRONT-END
+                if(tamanho > 4000) {
+                    const chunks = Math.ceil(tamanho / 4000);
+                    contador.innerHTML = `<i class="fa-solid fa-layer-group text-yellow-500"></i> ${tamanho} chars (${chunks} Partes Automáticas)`;
+                    contador.classList.replace('text-zinc-500', 'text-yellow-400');
+                    contador.classList.replace('border-zinc-700', 'border-yellow-500/50');
+                    contador.classList.remove('text-red-400', 'border-red-500/50');
                 } else {
-                    contador.classList.replace('text-red-400', 'text-zinc-500');
-                    contador.classList.replace('border-red-500/50', 'border-zinc-700');
+                    contador.innerText = `${tamanho} caracteres (Premium)`;
+                    contador.classList.replace('text-yellow-400', 'text-zinc-500');
+                    contador.classList.replace('border-yellow-500/50', 'border-zinc-700');
+                    contador.classList.remove('text-red-400', 'border-red-500/50');
                 }
             } else {
                 contador.innerText = `${tamanho} caracteres`;
-                contador.classList.replace('text-red-400', 'text-zinc-500');
-                contador.classList.replace('border-red-500/50', 'border-zinc-700');
+                contador.classList.replace('text-yellow-400', 'text-zinc-500');
+                contador.classList.replace('border-yellow-500/50', 'border-zinc-700');
+                contador.classList.remove('text-red-400', 'border-red-500/50');
             }
         }
 
@@ -283,10 +289,15 @@ async function gerarAudioCompleto() {
     const textoBotaoOriginal = txtBtn.innerHTML;
     btn.disabled = true;
     btn.classList.add('opacity-70', 'cursor-not-allowed');
-    txtBtn.innerHTML = `Gravando na Nuvem... <i class="fa-solid fa-circle-notch fa-spin ml-2"></i>`;
+    txtBtn.innerHTML = `Sintetizando... <i class="fa-solid fa-circle-notch fa-spin ml-2"></i>`;
     
     playerContainer.classList.remove('hidden');
-    playerContainer.innerHTML = `<p class="text-purple-400 animate-pulse text-center font-bold text-sm"><i class="fa-solid fa-microphone-lines fa-fade mr-2"></i> O estúdio neural está gravando a sua locução...</p>`;
+    
+    // Mostra pro usuário que o áudio pode demorar mais se for dividido
+    const isPremium = vozSelecionada.includes("gemini-premium");
+    let msgExtra = (isPremium && texto.length > 4000) ? "<br><span class='text-[10px] text-zinc-500'>O texto é longo e está sendo dividido e costurado em segundo plano. Aguarde.</span>" : "";
+    
+    playerContainer.innerHTML = `<p class="text-purple-400 animate-pulse text-center font-bold text-sm"><i class="fa-solid fa-microphone-lines fa-fade mr-2"></i> O estúdio neural está gravando a sua locução...${msgExtra}</p>`;
 
     const payload = { 
         texto: texto, 
@@ -345,9 +356,7 @@ async function gerarAudioCompleto() {
     }
 }
 
-// ==========================================
-// FUNÇÕES UTILITÁRIAS (PARAPHRASER / TRANSMUTER)
-// ==========================================
+// ... [O restante do seu código utilitário de paraphraser permanece inalterado logo abaixo] ...
 function contarPalavrasLocal(texto) {
     if (!texto || texto.trim() === "") return 0;
     return texto.trim().split(/\s+/).length;
