@@ -18,16 +18,21 @@ Você está escrevendo para ser FALADO, não lido em silêncio. A IA narradora p
 2. USO ESTRATÉGICO DE PONTOS: Use pontos finais para dar impacto.
 3. LIMPEZA ESTRITA DO TEXTO: O texto final NÃO PODE CONTER nenhum caractere especial de formatação. ZERO asteriscos (*). ZERO hashtags (#). ZERO emojis. ZERO rubricas de diretor.
 
-📏 MÓDULO 3: ENGENHARIA DE EXTENSÃO EXTREMA (ANTI-PREGUIÇA NEURAL)
-- O usuário pediu o seguinte tamanho: [{tamanho}].
-- 🚨 MATEMÁTICA OBRIGATÓRIA: Um narrador de IA fala a uma média de 150 palavras por minuto.
-   - Se pedido 5 min: Gere NO MÍNIMO 800 palavras.
-   - Se pedido 10 min: Gere NO MÍNIMO 1500 palavras.
-   - Se pedido 15 min: Gere NO MÍNIMO 2300 palavras.
-- COMO ALCANÇAR ESSA META SEM ENROLAR (A TÉCNICA DO ZOOM):
-   1. PROIBIDO RESUMIR: Você está terminantemente proibido de ir direto ao ponto. Expanda cada cenário, cada contexto histórico e cada consequência.
-   2. DESENVOLVIMENTO DENSO: Se for um top 10 ou uma história com partes, dedique NO MÍNIMO 3 PARÁGRAFOS LONGOS E DENSOS PARA CADA ITEM. 
-   3. PINTURA CINEMATOGRÁFICA: Descreva os cenários focando nos 5 sentidos (o que os personagens viam, o cheiro no ar, o frio na espinha).
+📏 MÓDULO 3: ENGENHARIA DE EXTENSÃO EXTREMA E ESTRUTURA (O ALGORITMO DO TEMPO)
+O usuário pediu um vídeo com o seguinte tamanho: [{tamanho}].
+Para atingir o tempo exato, a IA de voz lê 150 palavras por minuto. Você sofre de "parada precoce", então VAMOS FORÇAR A SUA ESTRUTURA DE TEXTO:
+- Se o usuário pediu 5 min: Meta de 1000 palavras.
+- Se o usuário pediu 10 min: Meta de 2000 palavras.
+- Se o usuário pediu 15 min: Meta de NO MÍNIMO 3000 palavras (EXTREMAMENTE LONGO E DENSO).
+
+🚨 COMO ALCANÇAR O TAMANHO MÁXIMO (A REGRA DOS 5 PARÁGRAFOS):
+Para cada item da lista ou capítulo principal da história, você DEVE OBRIGATORIAMENTE escrever no mínimo 4 a 5 parágrafos extensos. Use esta fórmula:
+1. Primeiro Parágrafo: O cenário e o contexto histórico. Descreva o ambiente usando os 5 sentidos (o cheiro, o clima, a escuridão).
+2. Segundo Parágrafo: O desenvolvimento da ação. O que aconteceu minuto a minuto, criando uma tensão insuportável.
+3. Terceiro Parágrafo: A psicologia e o desespero. O que se passava na mente das pessoas envolvidas? Quais eram seus medos e táticas?
+4. Quarto Parágrafo: As consequências brutais, o impacto imediato daquele evento no mundo ou nas vítimas.
+5. Quinto Parágrafo: O legado sombrio, o mistério deixado para trás e a transição elegante para o próximo ponto da história.
+NUNCA seja sucinto. Troque "Ele venceu a batalha" por "Ele marchou sobre a planície encharcada, sentindo o peso da espada enquanto os gritos ecoavam para a eternidade".
 
 DADOS DO PROJETO:
 - Formato: {formato}
@@ -37,4 +42,4 @@ DADOS DO PROJETO:
 TEXTO ORIGINAL / IDEIA BASE:
 {ideia_base}
 
-Retorne APENAS o texto final do roteiro, longo, denso, sem nenhum caractere de formatação Markdown ou aviso inicial.
+Retorne APENAS o texto final do roteiro, com a estrutura completa e absurdamente descritiva, sem nenhum caractere de formatação Markdown ou aviso inicial.
