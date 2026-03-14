@@ -82,10 +82,6 @@ async def listar_vozes():
 # O CHUNKER NEURAL COM OVERLAP (Contexto Contínuo)
 # ==========================================
 def split_text_for_gemini_overlap(texto, max_chars=1200):
-    """
-    Fatiador Avançado (Micro-Chunking 1200 chars).
-    Garante pacotes pequenos para a IA renderizar rápido e sem apagões.
-    """
     texto = re.sub(r'[*#""“”]', '', texto)
     texto = texto.replace('\n', ' ')
     
@@ -136,7 +132,6 @@ async def gerar_narracao(
     is_premium = req.voz.startswith("gemini-premium")
     tamanho_texto = len(texto)
 
-    # Cálculo de Coins: 10 Coins a cada 900 chars para Premium
     if is_premium:
         custo_operacao = max(1, math.ceil((tamanho_texto / 900.0) * 10))
     else:
@@ -153,8 +148,11 @@ async def gerar_narracao(
         audio_base64 = ""
 
         if is_premium:
-            api_key = os.environ.get("GEMINI_API_KEY")
-            if not api_key: raise ValueError("Chave GEMINI_API_KEY não configurada no Easypanel.")
+            # 1. PUXA A CHAVE PAGA E O MODELO DINÂMICO DAS VARIÁVEIS DE AMBIENTE
+            api_key = os.environ.get("GEMINI_API_KEY_PAID") or os.environ.get("GEMINI_API_KEY")
+            modelo_dinamico = os.environ.get("GEMINI_MODEL_VOICE", "gemini-2.5-flash-preview-tts")
+            
+            if not api_key: raise ValueError("Chave GEMINI_API_KEY_PAID não configurada no Easypanel.")
 
             client = genai.Client(api_key=api_key)
             voz_real = req.voz.split("-")[-1] 
@@ -186,13 +184,13 @@ async def gerar_narracao(
             final_audio = AudioSegment.empty()
             pause_seg = AudioSegment.silent(duration=150)
 
-            print(f"🎙️ Iniciando síntese Premium (Modelo: 2.5-flash-preview-tts): {len(chunks)} partes. Custo: {custo_operacao} Coins.")
+            print(f"🎙️ Iniciando síntese Premium (Modelo: {modelo_dinamico} | Chave: PAGA). Partes: {len(chunks)}. Custo: {custo_operacao} Coins.")
 
             contexto_anterior = ""
 
             for i, chunk in enumerate(chunks):
                 pcm_data = None
-                max_retries = 4
+                max_retries = 3
                 
                 # OVERLAP NEURAL
                 texto_para_gerar = chunk
@@ -201,9 +199,9 @@ async def gerar_narracao(
                 
                 for attempt in range(max_retries):
                     try:
-                        # O MOTOR DEFINITIVO:
+                        # USA O MODELO DA VARIÁVEL DE AMBIENTE
                         response = client.models.generate_content(
-                            model="gemini-2.5-flash-preview-tts", 
+                            model=modelo_dinamico, 
                             contents=texto_para_gerar, 
                             config=types.GenerateContentConfig(**kwargs)
                         )
@@ -220,11 +218,12 @@ async def gerar_narracao(
                         
                         if "429" in err_str or "exhausted" in err_str or "quota" in err_str:
                             if attempt < max_retries - 1:
-                                print(f"⏳ Cota da API forçada. Hibernando por 20 segundos para curar o 429...")
-                                time.sleep(20)
+                                # Com chave paga, o 429 é raríssimo, mas se der, 5 segundos resolvem.
+                                print(f"⏳ Cota rápida atingida. Pausando 5 segundos...")
+                                time.sleep(5)
                                 continue
                             else:
-                                raise Exception("Cota da API do Google esgotada mesmo após várias pausas.")
+                                raise Exception("Cota da API esgotada mesmo na chave paga.")
                                 
                         elif "500" in err_str or "internal" in err_str:
                             if attempt == 0 and "system_instruction" in kwargs:
@@ -253,10 +252,7 @@ async def gerar_narracao(
                 else:
                     final_audio += seg
 
-                # PACING NEURAL (7s Free Tier)
-                if len(chunks) > 1 and i < len(chunks) - 1:
-                    print(f"⏱️ Bloco {i+1}/{len(chunks)} finalizado. Pausando 7s (Free Tier Pacing) para resfriar a API...")
-                    time.sleep(7)
+                # SEM PACING NEURAL! A chave paga aguenta o tranco sem sleep() entre blocos normais.
 
             mp3_io = io.BytesIO()
             final_audio.export(mp3_io, format="mp3", bitrate="128k")
