@@ -79,12 +79,12 @@ async def listar_vozes():
         return {"status": "erro", "mensagem": "Vozes ainda não carregadas no servidor."}
 
 # ==========================================
-# O CHUNKER NEURAL (Fatiador Avançado)
+# O CHUNKER NEURAL COM OVERLAP (Contexto Contínuo)
 # ==========================================
-def split_text_for_gemini(texto, max_chars=1200):
+def split_text_for_gemini_overlap(texto, max_chars=1200):
     """
-    Cortado para 1200 caracteres (Micro-Chunking). 
-    Garante que a IA nunca estoure o limite de saída de áudio e não gere "Apagões de Silêncio".
+    Fatiador Avançado (Micro-Chunking 1200 chars).
+    Garante pacotes pequenos para a IA renderizar rápido e sem apagões.
     """
     texto = re.sub(r'[*#""“”]', '', texto)
     texto = texto.replace('\n', ' ')
@@ -94,7 +94,7 @@ def split_text_for_gemini(texto, max_chars=1200):
     chunks = []
     chunk_atual = ""
     
-    for frase in frases:
+    for i, frase in enumerate(frases):
         frase = frase.strip()
         if not frase: continue
         
@@ -136,7 +136,7 @@ async def gerar_narracao(
     is_premium = req.voz.startswith("gemini-premium")
     tamanho_texto = len(texto)
 
-    # Cálculo dinâmico para vozes premium (sem limite)
+    # Cálculo de Coins: 10 Coins a cada 900 chars para Premium
     if is_premium:
         custo_operacao = max(1, math.ceil((tamanho_texto / 900.0) * 10))
     else:
@@ -159,15 +159,17 @@ async def gerar_narracao(
             client = genai.Client(api_key=api_key)
             voz_real = req.voz.split("-")[-1] 
 
-            # CABRESTO NEURAL: Mata as pausas dramáticas exageradas e alucinações
+            # CABRESTO DITATORIAL (Em inglês para forçar obediência máxima do LLM)
             instrucao_global = (
-                "Você é um narrador profissional, focado e direto. "
-                "REGRA DE OURO: Leia o texto fornecido IMEDIATAMENTE, sem introduções. "
-                "Mantenha um ritmo de fala constante e fluido. NÃO faça pausas longas ou dramáticas entre as frases. "
-                "Seja natural, em Português (Brasil)."
+                "You are an elite, highly consistent voice actor. Read the text EXACTLY as provided in Brazilian Portuguese. "
+                "CRITICAL RULES: \n"
+                "1. Maintain the EXACT same vocal timbre, pitch, and accent as your previous sentences.\n"
+                "2. DO NOT change your persona. DO NOT drop into a whisper or yell suddenly.\n"
+                "3. Read immediately. DO NOT add conversational fillers.\n"
+                "4. This is a continuous narration; treat every input as the middle of a paragraph."
             )
             if req.instrucao_estilo:
-                instrucao_global += f"\n\nDireção extra do diretor: {req.instrucao_estilo}"
+                instrucao_global += f"\n\nDirector's note: {req.instrucao_estilo}"
 
             kwargs = {
                 "response_modalities": ["AUDIO"],
@@ -180,45 +182,50 @@ async def gerar_narracao(
                 )
             }
 
-            chunks = split_text_for_gemini(texto, max_chars=1200)
+            chunks = split_text_for_gemini_overlap(texto, max_chars=1200)
             final_audio = AudioSegment.empty()
-            
-            # Reduzida a pausa de costura para 150ms (mais fluidez na fala contínua)
             pause_seg = AudioSegment.silent(duration=150)
 
-            print(f"🎙️ Iniciando síntese Premium: {len(chunks)} partes micro-chunked. Custo: {custo_operacao} Coins.")
+            print(f"🎙️ Iniciando síntese Premium (Free Tier Mode): {len(chunks)} partes. Custo: {custo_operacao} Coins.")
+
+            contexto_anterior = ""
 
             for i, chunk in enumerate(chunks):
                 pcm_data = None
-                max_retries = 3
+                max_retries = 4
+                
+                # OVERLAP NEURAL: Ancorando a voz na emoção passada
+                texto_para_gerar = chunk
+                if i > 0 and contexto_anterior:
+                     texto_para_gerar = f"[Continuando do trecho: '{contexto_anterior[-60:]}'] " + chunk
                 
                 for attempt in range(max_retries):
                     try:
-                        try:
-                            response = client.models.generate_content(
-                                model="gemini-2.5-flash-preview-tts", 
-                                contents=chunk, 
-                                config=types.GenerateContentConfig(**kwargs)
-                            )
-                        except Exception as fallback_e:
-                            if "404" in str(fallback_e) or "not found" in str(fallback_e).lower():
-                                response = client.models.generate_content(
-                                    model="gemini-2.5-flash-tts", 
-                                    contents=chunk, 
-                                    config=types.GenerateContentConfig(**kwargs)
-                                )
-                            else:
-                                raise fallback_e
+                        response = client.models.generate_content(
+                            model="gemini-2.5-flash", 
+                            contents=texto_para_gerar, 
+                            config=types.GenerateContentConfig(**kwargs)
+                        )
                         
                         pcm_data = next((part.inline_data.data for part in response.candidates[0].content.parts if part.inline_data), None)
                         if not pcm_data: raise ValueError("Resposta de áudio vazia.")
-                        break
+                        
+                        contexto_anterior = chunk
+                        break 
                         
                     except Exception as api_err:
                         err_str = str(api_err).lower()
                         print(f"⚠️ Aviso na Parte {i+1} (Tentativa {attempt+1}/{max_retries}): {api_err}")
                         
-                        if "500" in err_str or "internal" in err_str:
+                        if "429" in err_str or "exhausted" in err_str or "quota" in err_str:
+                            if attempt < max_retries - 1:
+                                print(f"⏳ Cota da API forçada. Hibernando por 20 segundos para curar o 429...")
+                                time.sleep(20)
+                                continue
+                            else:
+                                raise Exception("Cota da API do Google esgotada mesmo após várias pausas.")
+                                
+                        elif "500" in err_str or "internal" in err_str:
                             if attempt == 0 and "system_instruction" in kwargs:
                                 kwargs.pop("system_instruction")
                                 print("♻️ Removendo Instrução de Estilo para contornar Erro 500...")
@@ -228,13 +235,7 @@ async def gerar_narracao(
                                 time.sleep(5)
                                 continue
                             else:
-                                raise Exception("O servidor do Google falhou na geração. Tente novamente.")
-                        elif "429" in err_str or "quota" in err_str:
-                            if attempt < max_retries - 1:
-                                time.sleep(10)
-                                continue
-                            else:
-                                raise Exception("Cota da API do Google excedida.")
+                                raise Exception("O servidor do Google falhou na geração (Erro Interno 500).")
                         else:
                             raise api_err
                 
@@ -243,10 +244,21 @@ async def gerar_narracao(
 
                 seg = AudioSegment(data=pcm_data, sample_width=2, frame_rate=24000, channels=1)
                 
+                # Corte de precisão do PyDub para arrancar a leitura do "Continuando do trecho..."
+                if i > 0 and len(seg) > 1000:
+                    seg = seg[1000:] 
+
                 if i > 0:
                     final_audio += pause_seg + seg
                 else:
                     final_audio += seg
+
+                # ============================================================
+                # PACING NEURAL (O FREIO DE MÃO PARA A CHAVE FREE)
+                # ============================================================
+                if len(chunks) > 1 and i < len(chunks) - 1:
+                    print(f"⏱️ Bloco {i+1}/{len(chunks)} finalizado. Pausando 7s (Free Tier Pacing) para resfriar a API...")
+                    time.sleep(7)
 
             mp3_io = io.BytesIO()
             final_audio.export(mp3_io, format="mp3", bitrate="128k")
