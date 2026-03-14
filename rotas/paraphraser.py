@@ -51,9 +51,14 @@ async def gerar_parafraze(
     db.commit()
 
     try:
-        api_key = os.environ.get("GEMINI_API_KEY")
+        # ==========================================
+        # ROTEAMENTO INTELIGENTE (CHAVE FREE E MODELO DINÂMICO)
+        # ==========================================
+        api_key = os.environ.get("GEMINI_API_KEY_FREE") or os.environ.get("GEMINI_API_KEY")
+        modelo_texto = os.environ.get("GEMINI_MODEL_TEXT", "gemini-2.5-flash")
+
         if not api_key:
-            raise ValueError("Chave GEMINI_API_KEY não configurada no servidor.")
+            raise ValueError("Chave GEMINI_API_KEY_FREE não configurada no servidor.")
 
         client = genai.Client(api_key=api_key)
 
@@ -75,8 +80,10 @@ async def gerar_parafraze(
         prompt_linhas.append(f"\nTexto original:\n{texto_original}")
         prompt_final = "\n".join(prompt_linhas)
 
+        print(f"✍️ Iniciando Paraphraser (Modelo: {modelo_texto} | Chave: FREE). Custo: {custo_operacao} Coins.")
+
         response = client.models.generate_content(
-            model="gemini-2.5-flash",
+            model=modelo_texto,
             contents=prompt_final,
             config=types.GenerateContentConfig(
                 system_instruction=instrucao_sistema,
