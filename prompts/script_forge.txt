@@ -13,16 +13,21 @@ Omitir o nome do canal "{canal}" no início e no fim é uma falha inaceitável.
 {modulo_1_regras}
 
 ⚙️ MÓDULO 2: OTIMIZAÇÃO EDGE TTS (A ARTE DA RESPIRAÇÃO E PROSÓDIA)
-Você está escrevendo para ser FALADO, não lido em silêncio. A IA narradora precisa respirar e dar ritmo ao texto. Siga estas leis absolutas:
-1. USO ESTRATÉGICO DE VÍRGULAS: Use vírgulas para simular pausas naturais de respiração humana. Não crie frases infinitas sem pausas.
-2. USO ESTRATÉGICO DE PONTOS: Use pontos finais para dar impacto e finalizar pensamentos.
-3. PROIBIDO FRASES CURTAS DEMAIS: Evite metralhar perguntas curtas ("O que é isso? Por que aconteceu?"). Prefira frases fluidas ("O que nos leva a questionar por que isso aconteceu...").
-4. LIMPEZA ESTRITA DO TEXTO: O texto final NÃO PODE CONTER nenhum caractere especial de formatação. ZERO asteriscos (*). ZERO hashtags (#). ZERO aspas duplas em excesso. ZERO emojis. ZERO rubricas de diretor (como [Narrador suspira] ou [Trilha de suspense]). 
+Você está escrevendo para ser FALADO, não lido em silêncio. A IA narradora precisa respirar e dar ritmo ao texto.
+1. USO ESTRATÉGICO DE VÍRGULAS: Use vírgulas para simular pausas naturais de respiração humana. Não crie frases infinitas.
+2. USO ESTRATÉGICO DE PONTOS: Use pontos finais para dar impacto.
+3. LIMPEZA ESTRITA DO TEXTO: O texto final NÃO PODE CONTER nenhum caractere especial de formatação. ZERO asteriscos (*). ZERO hashtags (#). ZERO emojis. ZERO rubricas de diretor.
 
-📏 MÓDULO 3: ENGENHARIA DE EXTENSÃO E PROFUNDIDADE
+📏 MÓDULO 3: ENGENHARIA DE EXTENSÃO EXTREMA (ANTI-PREGUIÇA NEURAL)
 - O usuário pediu o seguinte tamanho: [{tamanho}].
-- Não faça resumos. Faça "Zoom In". Expanda cada cenário, cada contexto histórico e cada consequência.
-- Descreva cenários como se estivesse pintando um quadro, usando múltiplos adjetivos e analogias comparativas ricas.
+- 🚨 MATEMÁTICA OBRIGATÓRIA: Um narrador de IA fala a uma média de 150 palavras por minuto.
+   - Se pedido 5 min: Gere NO MÍNIMO 800 palavras.
+   - Se pedido 10 min: Gere NO MÍNIMO 1500 palavras.
+   - Se pedido 15 min: Gere NO MÍNIMO 2300 palavras.
+- COMO ALCANÇAR ESSA META SEM ENROLAR (A TÉCNICA DO ZOOM):
+   1. PROIBIDO RESUMIR: Você está terminantemente proibido de ir direto ao ponto. Expanda cada cenário, cada contexto histórico e cada consequência.
+   2. DESENVOLVIMENTO DENSO: Se for um top 10 ou uma história com partes, dedique NO MÍNIMO 3 PARÁGRAFOS LONGOS E DENSOS PARA CADA ITEM. 
+   3. PINTURA CINEMATOGRÁFICA: Descreva os cenários focando nos 5 sentidos (o que os personagens viam, o cheiro no ar, o frio na espinha).
 
 DADOS DO PROJETO:
 - Formato: {formato}
@@ -32,4 +37,4 @@ DADOS DO PROJETO:
 TEXTO ORIGINAL / IDEIA BASE:
 {ideia_base}
 
-Retorne APENAS o texto final do roteiro, perfeitamente pontuado para a fala humana, sem nenhum caractere de formatação Markdown ou aviso inicial/final.
+Retorne APENAS o texto final do roteiro, longo, denso, sem nenhum caractere de formatação Markdown ou aviso inicial.
