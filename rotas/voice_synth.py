@@ -42,50 +42,13 @@ VOICES_MAP = {
 
 vozes_cache = []
 
-# ==========================================
-# FATIAMENTO BLINDADO (Sem depender do NLTK)
-# ==========================================
-def split_text_for_gemini(texto, max_chars=400):
-    # Limpeza rigorosa de caracteres que quebram o TTS
-    texto = re.sub(r'[*#""“”]', '', texto)
-    texto = texto.replace('\n', ' ')
-    
-    # Divide por pontuação forte
-    frases = re.split(r'(?<=[.!?]) +', texto)
-    
-    chunks = []
-    chunk_atual = ""
-    
-    for frase in frases:
-        frase = frase.strip()
-        if not frase: continue
-        
-        if len(chunk_atual) + len(frase) < max_chars:
-            chunk_atual += frase + " "
-        else:
-            if chunk_atual:
-                chunks.append(chunk_atual.strip())
-            
-            # Se uma frase isolada for maior que o limite (Raro, mas previne quebra)
-            if len(frase) >= max_chars:
-                pedacos = textwrap.wrap(frase, width=max_chars)
-                for p in pedacos[:-1]:
-                    chunks.append(p.strip())
-                chunk_atual = pedacos[-1] + " "
-            else:
-                chunk_atual = frase + " "
-                
-    if chunk_atual:
-        chunks.append(chunk_atual.strip())
-        
-    return chunks
-
 @router.on_event("startup")
 async def carregar_vozes_memoria():
     global vozes_cache
     vozes_cache.clear() 
     
     try:
+        # Carrega Premium (Gemini)
         for v_name, v_desc in VOICES_MAP.items():
             vozes_cache.append({
                 "name": f"{v_name} ({v_desc})",
@@ -94,6 +57,7 @@ async def carregar_vozes_memoria():
                 "tipo": "premium"
             })
         
+        # Carrega Padrão (Edge TTS)
         voices = await edge_tts.list_voices()
         for v in voices:
             if v["Locale"].startswith("pt-") or "Multilingual" in v["ShortName"]:
@@ -114,6 +78,53 @@ async def listar_vozes():
     else:
         return {"status": "erro", "mensagem": "Vozes ainda não carregadas no servidor."}
 
+# ==========================================
+# O CHUNKER NEURAL (Fatiador Avançado)
+# ==========================================
+def split_text_for_gemini(texto, max_chars=3900):
+    """
+    Divide o texto preservando as frases, garantindo que a API não engasgue.
+    O limite de 3900 dá uma margem segura para o limite de 4000 do Gemini.
+    """
+    # Limpeza para evitar que a IA tente narrar símbolos
+    texto = re.sub(r'[*#""“”]', '', texto)
+    texto = texto.replace('\n', ' ')
+    
+    # Divide inteligentemente por pontuações finais
+    frases = re.split(r'(?<=[.!?]) +', texto)
+    
+    chunks = []
+    chunk_atual = ""
+    
+    for frase in frases:
+        frase = frase.strip()
+        if not frase: continue
+        
+        # Se a frase couber no bloco atual, adiciona
+        if len(chunk_atual) + len(frase) < max_chars:
+            chunk_atual += frase + " "
+        else:
+            # Se o bloco encheu, salva e começa outro
+            if chunk_atual:
+                chunks.append(chunk_atual.strip())
+            
+            # Tratamento raro: Se uma única frase (sem pontuação) for maior que o limite
+            if len(frase) >= max_chars:
+                pedacos = textwrap.wrap(frase, width=max_chars)
+                for p in pedacos[:-1]:
+                    chunks.append(p.strip())
+                chunk_atual = pedacos[-1] + " "
+            else:
+                chunk_atual = frase + " "
+                
+    if chunk_atual:
+        chunks.append(chunk_atual.strip())
+        
+    return chunks
+
+# ==========================================
+# ROTA PRINCIPAL DE GERAÇÃO
+# ==========================================
 @router.post("/gerar_narracao")
 async def gerar_narracao(
     req: AudioRequest,
@@ -130,16 +141,18 @@ async def gerar_narracao(
     is_premium = req.voz.startswith("gemini-premium")
     tamanho_texto = len(texto)
 
+    # 1. CÁLCULO DINÂMICO DE CUSTOS (Sem teto de caracteres para Premium)
     if is_premium:
-        if tamanho_texto > 4500:
-            raise HTTPException(status_code=400, detail=f"Texto muito longo para Voz Premium (Máximo 4500).")
+        # 10 Coins a cada ~900 caracteres (Proporcional ao custo da API Google)
         custo_operacao = max(1, math.ceil((tamanho_texto / 900.0) * 10))
     else:
+        # Edge TTS tem custo fixo pois não usamos API paga
         custo_operacao = 30
 
     if usuario.coins < custo_operacao:
         raise HTTPException(status_code=402, detail=f"Coins insuficientes! Você precisa de {custo_operacao} coins.")
 
+    # Débito antecipado (Refund em caso de falha no bloco Except)
     usuario.coins -= custo_operacao
     db.commit()
 
@@ -148,10 +161,12 @@ async def gerar_narracao(
         audio_base64 = ""
 
         if is_premium:
+            # --- ROTA PREMIUM (GEMINI 2.5 FLASH AUDIO) ---
             api_key = os.environ.get("GEMINI_API_KEY")
             if not api_key: raise ValueError("Chave GEMINI_API_KEY não configurada no Easypanel.")
 
             client = genai.Client(api_key=api_key)
+            # Ex: "gemini-premium-Puck" -> "Puck"
             voz_real = req.voz.split("-")[-1] 
 
             kwargs = {
@@ -166,18 +181,23 @@ async def gerar_narracao(
             if req.instrucao_estilo:
                 kwargs["system_instruction"] = req.instrucao_estilo
 
-            # 1. FATIAMENTO 
-            chunks = split_text_for_gemini(texto, max_chars=400)
+            # CHUNKER NEURAL EM AÇÃO
+            chunks = split_text_for_gemini(texto, max_chars=3900)
+            
             final_audio = AudioSegment.empty()
+            # Uma leve pausa respiratória (300ms) entre os blocos para soar natural
             pause_seg = AudioSegment.silent(duration=300)
 
-            # 2. LOOP COM SISTEMA ANTI-FALHAS E CURA AUTOMÁTICA
+            print(f"🎙️ Iniciando síntese Premium: {len(chunks)} partes. Custo: {custo_operacao} Coins.")
+
             for i, chunk in enumerate(chunks):
                 pcm_data = None
                 max_retries = 3
                 
+                # Sistema de Auto-Heal (Tentativas sucessivas)
                 for attempt in range(max_retries):
                     try:
+                        # Tenta primeiro a versão preview (que costuma ter as vozes mais recentes)
                         try:
                             response = client.models.generate_content(
                                 model="gemini-2.5-flash-preview-tts", 
@@ -186,6 +206,7 @@ async def gerar_narracao(
                             )
                         except Exception as fallback_e:
                             if "404" in str(fallback_e) or "not found" in str(fallback_e).lower():
+                                # Fallback para o modelo estável se o preview não existir
                                 response = client.models.generate_content(
                                     model="gemini-2.5-flash-tts", 
                                     contents=chunk, 
@@ -194,17 +215,19 @@ async def gerar_narracao(
                             else:
                                 raise fallback_e
                         
+                        # Extrai o binário do áudio
                         pcm_data = next((part.inline_data.data for part in response.candidates[0].content.parts if part.inline_data), None)
                         if not pcm_data: raise ValueError("Resposta de áudio vazia.")
-                        break # Sucesso, sai do loop de tentativas
+                        break # Sucesso, avança para o próximo chunk
                         
                     except Exception as api_err:
                         err_str = str(api_err).lower()
-                        print(f"⚠️ Aviso no chunk {i+1} (Tentativa {attempt+1}/{max_retries}): {api_err}")
+                        print(f"⚠️ Aviso na Parte {i+1} (Tentativa {attempt+1}/{max_retries}): {api_err}")
                         
+                        # Estratégias de Recuperação de Erro
                         if "500" in err_str or "internal" in err_str:
-                            # Auto-Heal: O Google odiou a instrução de sistema. Tentamos sem ela na próxima.
                             if attempt == 0 and "system_instruction" in kwargs:
+                                # O Google às vezes recusa prompts complexos. Removemos para a próxima tentativa.
                                 kwargs.pop("system_instruction")
                                 print("♻️ Removendo Instrução de Estilo para contornar Erro 500...")
                                 time.sleep(2)
@@ -213,23 +236,30 @@ async def gerar_narracao(
                                 time.sleep(5)
                                 continue
                             else:
-                                raise Exception("Servidor do Google engasgou definitivamente (Erro 500).")
+                                raise Exception("O servidor do Google falhou na geração. Tente novamente.")
                         elif "429" in err_str or "quota" in err_str:
                             if attempt < max_retries - 1:
+                                print("⏳ Limite de requisições atingido. Aguardando 10s...")
                                 time.sleep(10)
                                 continue
                             else:
-                                raise Exception("Cota da API excedida.")
+                                raise Exception("Cota da API do Google excedida.")
                         else:
                             raise api_err
                 
                 if not pcm_data:
-                    raise Exception(f"Falha ao gerar o bloco {i+1} do áudio.")
+                    raise Exception(f"Falha crítica ao gerar o bloco {i+1}.")
 
-                # 3. COSTURA DO ÁUDIO
+                # Converte o binário puro para o formato do PyDub e anexa
+                # Gemini TTS retorna PCM de 24kHz, 16-bit, Mono
                 seg = AudioSegment(data=pcm_data, sample_width=2, frame_rate=24000, channels=1)
-                final_audio += (pause_seg + seg) if i > 0 else seg
+                
+                if i > 0:
+                    final_audio += pause_seg + seg
+                else:
+                    final_audio += seg
 
+            # Finalizou o loop? Exporta tudo como um único MP3
             mp3_io = io.BytesIO()
             final_audio.export(mp3_io, format="mp3", bitrate="128k")
             audio_base64 = base64.b64encode(mp3_io.getvalue()).decode('utf-8')
@@ -253,12 +283,13 @@ async def gerar_narracao(
             srt_content = submaker.get_srt()
             audio_base64 = base64.b64encode(audio_data).decode('utf-8')
         
-        ferramenta_nome = "Voice Synth Premium" if is_premium else "Voice Synth"
+        # Registra a ação no painel de Histórico
+        ferramenta_nome = "Voice Synth Premium" if is_premium else "Voice Synth Padrão"
         novo_historico = models.Historico(
             usuario_id=usuario.id,
             ferramenta=ferramenta_nome,
-            input_usuario=f"Voz: {req.voz} | Texto: {texto[:100]}...",
-            resultado="Áudio gerado com sucesso.", 
+            input_usuario=f"Voz: {req.voz} | Tamanho: {tamanho_texto} chars",
+            resultado="Áudio Costurado/Gerado com sucesso.", 
             custo_coins=custo_operacao
         )
         db.add(novo_historico)
@@ -267,7 +298,8 @@ async def gerar_narracao(
         return {"status": "sucesso", "audio_base64": audio_base64, "srt": srt_content, "novo_saldo": usuario.coins}
 
     except Exception as e:
+        # Reembolso de emergência
         usuario.coins += custo_operacao
         db.commit()
         print(f"❌ Erro na Geração de Áudio: {e}")
-        raise HTTPException(status_code=500, detail=f"Falha na API: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Falha ao gerar o áudio: {str(e)}")
