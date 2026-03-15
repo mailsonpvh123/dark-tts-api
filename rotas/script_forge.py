@@ -111,11 +111,12 @@ async def process_script(
         texto_limpo = texto_limpo.replace('?', '.').replace('!', '.')
         texto_limpo = re.sub(r'\.{2,}', '.', texto_limpo)
         
+        # AQUI ESTAVA O ERRO! Agora gravamos o Roteiro Inteiro (texto_limpo) no Histórico
         novo_historico = models.Historico(
             usuario_id=usuario.id,
             ferramenta="Script Forge",
             input_usuario=f"Canal: {req.canal} | Modelo: {modelo_texto}",
-            resultado=f"Roteiro forjado com {len(texto_limpo.split())} palavras.", 
+            resultado=texto_limpo, 
             custo_coins=custo_operacao
         )
         
