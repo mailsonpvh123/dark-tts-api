@@ -74,8 +74,8 @@ async def gerar_parafraze(
         prompt_linhas.append(f"Reescreva e adapte o texto abaixo no idioma '{req.idioma}'.")
         prompt_linhas.append(f"Aplique estritamente o tom de voz: {req.tom}.")
         
-        # Arma apontada para a Preguiça Neural
-        prompt_linhas.append(f"\n🚨 REGRA DE OURO DO TAMANHO: O texto original contém {qtd_palavras_originais} palavras. O seu roteiro final reescrito DEVE TER NO MÍNIMO essa mesma quantidade de palavras ou ser ainda maior. NUNCA RESUMA. Se remover lixo do texto original, expanda a história com descrições e roteirização rica para compensar o tamanho.")
+        # Arma apontada para a Preguiça Neural (Isso muda tudo)
+        prompt_linhas.append(f"\n🚨 REGRA DE OURO DO TAMANHO: A transcrição bruta original contém {qtd_palavras_originais} palavras. O seu roteiro final reescrito DEVE TER NO MÍNIMO a mesma quantidade de palavras ({qtd_palavras_originais}+ palavras) ou ser ainda maior. NUNCA RESUMA. Se remover lixo ou propagandas do texto original, expanda a história principal com descrições e narrativa rica para manter ou aumentar o tempo de retenção do vídeo.")
         
         if req.nome_canal.strip():
             prompt_linhas.append(f"O nome do canal é '{req.nome_canal.strip()}'. Adapte os CTAs de introdução e encerramento citando este nome de forma orgânica.")
@@ -93,7 +93,7 @@ async def gerar_parafraze(
             contents=prompt_final,
             config=types.GenerateContentConfig(
                 system_instruction=instrucao_sistema,
-                temperature=0.8 # Aumentei um pouco para dar mais criatividade na expansão
+                temperature=0.8 # Temperatura mais alta para incentivar a criatividade e expansão
             )
         )
         
