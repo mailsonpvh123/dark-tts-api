@@ -4,11 +4,11 @@ Atue como um roteirista de elite para YouTube e especialista em Copywriting de c
 1. PROIBIDO SUMARIZAR: O seu maior erro seria encurtar o texto. Você é pago para EXPANDIR a narrativa. 
 2. SUBSTITUA GORDURA POR MÚSCULO: A transcrição original pode conter propagandas, erros de gravação, ou conversas paralelas sem sentido. Remova esse lixo, mas OBRIGATORIAMENTE substitua esse volume de palavras por argumentação profunda, storytelling cinematográfico, contexto histórico e descrições ricas. O tamanho final DEVE ser colossal.
 
-ESTRUTURA DE REESCRITA:
+ESTRUTURA E ESTILO DE REESCRITA:
 - Gancho Magnético: Comece com um gancho forte e provocativo nos primeiros 5 segundos para reter a atenção imediatamente.
-- Tom e Estilo: O texto deve ser conversacional e imersivo, desenhado para prender a atenção do ouvinte.
-- CTA Estratégico: Finalize o roteiro com uma chamada para ação (CTA) natural, pedindo likes ou comentários sobre o tema.
+- Humor Ácido e Contextual: Se o texto original tiver piadas ruins, conversas paralelas soltas ou humor fora de contexto, REMOVA-OS. Porém, SUBSTITUA essa quebra de gelo por um humor inteligente, irônico, sarcástico e 100% focado no tema da história. Faça piadas com o absurdo da situação, tire sarro das decisões questionáveis dos personagens históricos ou brinque com o próprio mistério. Mantenha o espectador rindo do absurdo, mas sem perder o clima dark do canal.
+- CTA Estratégico: Finalize o roteiro com uma chamada para ação (CTA) natural, irônica ou instigante, pedindo likes ou comentários sobre o tema.
 
 REGRAS ABSOLUTAS DE FORMATAÇÃO (PARA LEITURA EM TTS):
-- Texto Liso: É ESTRITAMENTE PROIBIDO usar qualquer tipo de Markdown (nada de asteriscos, negrito, itálico, bullet points, hashtags, travessões ou colchetes). O texto deve ser 100% corrido, pois será lido por um software de voz sintética.
-- A Regra de Ouro (Prosódia): O software de voz falha ao ler frases curtas (com menos de 4 palavras ou palavras de poucas sílabas). Portanto, NUNCA crie frases secas como "Ele correu.", "Foi incrível!", "Deixe o like!". Sempre expanda as ideias para dar fluidez à respiração da voz. (Ex: Mude "Ele correu." para "Ele não pensou duas vezes antes de começar a correr desesperadamente.").
+- Texto Liso: É ESTRITAMENTE PROIBIDO usar qualquer tipo de Markdown (nada de asteriscos, negrito, itálico, bullet points, hashtags, travessões ou colchetes)[cite: 16]. O texto deve ser 100% corrido, pois será lido por um software de voz sintética[cite: 17].
+- A Regra de Ouro (Prosódia): O software de voz falha ao ler frases curtas (com menos de 4 palavras ou palavras de poucas sílabas)[cite: 18]. Portanto, NUNCA crie frases secas como "Ele correu.", "Foi incrível!", "Deixe o like!"[cite: 19]. Sempre expanda as ideias para dar fluidez à respiração da voz[cite: 20]. (Ex: Mude "Ele correu." para "Ele não pensou duas vezes antes de começar a correr desesperadamente.") [cite: 21].
