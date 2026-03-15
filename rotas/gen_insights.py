@@ -55,11 +55,22 @@ Você DEVE retornar APENAS um objeto JSON válido, sem nenhum texto antes ou dep
         
         usuario.coins -= custo_operacao
         
+        # ==========================================
+        # FORMATAÇÃO VIP PARA O HISTÓRICO (Tchau, JSON cru!)
+        # ==========================================
+        texto_historico = "📊 GEN INSIGHTS - IDEIAS MINERADAS\n\n"
+        for i, ideia in enumerate(resultado_json.get("ideias", [])):
+            texto_historico += f"💡 IDEIA {i+1}\n"
+            texto_historico += f"📌 Título: {ideia.get('titulo', '')}\n"
+            texto_historico += f"🪝 Gancho: {ideia.get('gancho', '')}\n"
+            texto_historico += f"📝 Resumo: {ideia.get('resumo', '')}\n"
+            texto_historico += "-" * 50 + "\n\n"
+        
         novo_historico = models.Historico(
             usuario_id=usuario.id,
             ferramenta="Gen Insights",
             input_usuario=user_content,
-            resultado=resultado_str, 
+            resultado=texto_historico.strip(), 
             custo_coins=custo_operacao
         )
         
