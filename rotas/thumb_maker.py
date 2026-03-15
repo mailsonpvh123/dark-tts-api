@@ -87,15 +87,26 @@ Roteiro Completo:
         dados_json = json.loads(texto_limpo)
         
         # ==========================================
-        # 2. TRANSAÇÃO FINANCEIRA E HISTÓRICO
+        # 2. TRANSAÇÃO FINANCEIRA E HISTÓRICO LIMPO
         # ==========================================
         usuario.coins -= custo_operacao
         
+        # Convertendo o JSON em um layout humano e elegante
+        texto_historico = "🎨 THUMB MAKER - DIREÇÃO DE ARTE\n\n"
+        texto_historico += f"🎯 CONFLITO PRINCIPAL: {dados_json.get('conflito_principal', '')}\n"
+        texto_historico += "=" * 50 + "\n\n"
+        
+        for i, capa in enumerate(dados_json.get("capas", [])):
+            texto_historico += f"🖼️ CONCEITO {i+1} ({capa.get('estrategia', '')})\n"
+            texto_historico += f"🧠 Psicologia: {capa.get('psicologia', '')}\n"
+            texto_historico += f"🪄 Prompt Midjourney (Copie abaixo):\n{capa.get('prompt_gringo', '')}\n"
+            texto_historico += "-" * 50 + "\n\n"
+
         novo_historico = models.Historico(
             usuario_id=usuario.id,
             ferramenta="Thumb Maker",
             input_usuario=f"Título: {req.titulo} | Estilo: {req.estilo}",
-            resultado=texto_limpo, 
+            resultado=texto_historico.strip(), 
             custo_coins=custo_operacao
         )
         
