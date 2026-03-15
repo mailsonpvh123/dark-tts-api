@@ -67,9 +67,15 @@ async def gerar_parafraze(
         else:
             instrucao_sistema = ler_prompt_arquivo("padrao_mode.txt")
 
+        # CONTAGEM E TRAVA DE VOLUME
+        qtd_palavras_originais = len(texto_original.split())
+
         prompt_linhas = []
         prompt_linhas.append(f"Reescreva e adapte o texto abaixo no idioma '{req.idioma}'.")
         prompt_linhas.append(f"Aplique estritamente o tom de voz: {req.tom}.")
+        
+        # Arma apontada para a Preguiça Neural
+        prompt_linhas.append(f"\n🚨 REGRA DE OURO DO TAMANHO: O texto original contém {qtd_palavras_originais} palavras. O seu roteiro final reescrito DEVE TER NO MÍNIMO essa mesma quantidade de palavras ou ser ainda maior. NUNCA RESUMA. Se remover lixo do texto original, expanda a história com descrições e roteirização rica para compensar o tamanho.")
         
         if req.nome_canal.strip():
             prompt_linhas.append(f"O nome do canal é '{req.nome_canal.strip()}'. Adapte os CTAs de introdução e encerramento citando este nome de forma orgânica.")
@@ -80,18 +86,18 @@ async def gerar_parafraze(
         prompt_linhas.append(f"\nTexto original:\n{texto_original}")
         prompt_final = "\n".join(prompt_linhas)
 
-        print(f"✍️ Iniciando Paraphraser (Modelo: {modelo_texto} | Chave: FREE). Custo: {custo_operacao} Coins.")
+        print(f"✍️ Iniciando Paraphraser (Modelo: {modelo_texto} | Chave: FREE | Alvo: {qtd_palavras_originais}+ palavras). Custo: {custo_operacao} Coins.")
 
         response = client.models.generate_content(
             model=modelo_texto,
             contents=prompt_final,
             config=types.GenerateContentConfig(
                 system_instruction=instrucao_sistema,
-                temperature=0.7 
+                temperature=0.8 # Aumentei um pouco para dar mais criatividade na expansão
             )
         )
         
-        texto_gerado = response.text
+        texto_gerado = response.text.strip()
 
         novo_historico = models.Historico(
             usuario_id=usuario.id,
