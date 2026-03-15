@@ -22,16 +22,17 @@ if MP_ACCESS_TOKEN:
 else:
     print("⚠️ AVISO: MP_ACCESS_TOKEN não encontrado nas variáveis de ambiente!")
     sdk = None
+
 # ==========================================
-# TABELA DE PREÇOS E PACOTES
+# TABELA DE PREÇOS E PACOTES (R$ 0,04 por Coin)
 # ==========================================
 PACOTES = {
-    "basic": {"nome": "Plano Basic", "valor": 75.00, "coins": 3000, "plano_id": "BASIC"},
-    "plus": {"nome": "Plano Plus", "valor": 150.00, "coins": 6000, "plano_id": "PLUS"},
-    "pro": {"nome": "Plano Pro", "valor": 300.00, "coins": 12000, "plano_id": "PRO"},
-    "avulso_1000": {"nome": "Pacote Avulso 1.000 Coins", "valor": 25.00, "coins": 1000, "plano_id": "MANTER"},
-    "avulso_2000": {"nome": "Pacote Avulso 2.000 Coins", "valor": 50.00, "coins": 2000, "plano_id": "MANTER"},
-    "avulso_4000": {"nome": "Pacote Avulso 4.000 Coins", "valor": 100.00, "coins": 4000, "plano_id": "MANTER"}
+    "basic": {"nome": "Plano Basic", "valor": 120.00, "coins": 3000, "plano_id": "BASIC"},
+    "plus": {"nome": "Plano Plus", "valor": 240.00, "coins": 6000, "plano_id": "PLUS"},
+    "pro": {"nome": "Plano Pro", "valor": 480.00, "coins": 12000, "plano_id": "PRO"},
+    "avulso_1000": {"nome": "Pacote Avulso 1.000 Coins", "valor": 40.00, "coins": 1000, "plano_id": "MANTER"},
+    "avulso_2000": {"nome": "Pacote Avulso 2.000 Coins", "valor": 80.00, "coins": 2000, "plano_id": "MANTER"},
+    "avulso_4000": {"nome": "Pacote Avulso 4.000 Coins", "valor": 160.00, "coins": 4000, "plano_id": "MANTER"}
 }
 
 class PagamentoRequest(BaseModel):
