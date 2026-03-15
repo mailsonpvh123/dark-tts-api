@@ -129,26 +129,32 @@ async def gerar_narracao(
     if not texto:
         raise HTTPException(status_code=400, detail="O texto para narração é obrigatório.")
 
+    # MODO FANTASMA: Se for o texto de preview, não cobra e não salva no histórico!
+    is_preview = texto.startswith("Olá, sou uma voz neural da sua plataforma.")
+    
     is_premium = req.voz.startswith("gemini-premium")
     tamanho_texto = len(texto)
 
-    if is_premium:
+    # Cálculo de Custo Blindado
+    if is_preview:
+        custo_operacao = 0
+    elif is_premium:
         custo_operacao = max(1, math.ceil((tamanho_texto / 900.0) * 10))
     else:
         custo_operacao = 30
 
-    if usuario.coins < custo_operacao:
-        raise HTTPException(status_code=402, detail=f"Coins insuficientes! Você precisa de {custo_operacao} coins.")
-
-    usuario.coins -= custo_operacao
-    db.commit()
+    # Só desconta se NÃO for preview
+    if not is_preview:
+        if usuario.coins < custo_operacao:
+            raise HTTPException(status_code=402, detail=f"Coins insuficientes! Você precisa de {custo_operacao} coins.")
+        usuario.coins -= custo_operacao
+        db.commit()
 
     try:
         srt_content = ""
         audio_base64 = ""
 
         if is_premium:
-            # 1. PUXA A CHAVE PAGA E O MODELO DINÂMICO DAS VARIÁVEIS DE AMBIENTE
             api_key = os.environ.get("GEMINI_API_KEY_PAID") or os.environ.get("GEMINI_API_KEY")
             modelo_dinamico = os.environ.get("GEMINI_MODEL_VOICE", "gemini-2.5-flash-preview-tts")
             
@@ -157,7 +163,6 @@ async def gerar_narracao(
             client = genai.Client(api_key=api_key)
             voz_real = req.voz.split("-")[-1] 
 
-            # CABRESTO DITATORIAL
             instrucao_global = (
                 "You are an elite, highly consistent voice actor. Read the text EXACTLY as provided in Brazilian Portuguese. "
                 "CRITICAL RULES: \n"
@@ -184,7 +189,7 @@ async def gerar_narracao(
             final_audio = AudioSegment.empty()
             pause_seg = AudioSegment.silent(duration=150)
 
-            print(f"🎙️ Iniciando síntese Premium (Modelo: {modelo_dinamico} | Chave: PAGA). Partes: {len(chunks)}. Custo: {custo_operacao} Coins.")
+            print(f"🎙️ Iniciando síntese Premium (Preview: {is_preview} | Partes: {len(chunks)}).")
 
             contexto_anterior = ""
 
@@ -192,14 +197,12 @@ async def gerar_narracao(
                 pcm_data = None
                 max_retries = 3
                 
-                # OVERLAP NEURAL
                 texto_para_gerar = chunk
                 if i > 0 and contexto_anterior:
                      texto_para_gerar = f"[Continuando do trecho: '{contexto_anterior[-60:]}'] " + chunk
                 
                 for attempt in range(max_retries):
                     try:
-                        # USA O MODELO DA VARIÁVEL DE AMBIENTE
                         response = client.models.generate_content(
                             model=modelo_dinamico, 
                             contents=texto_para_gerar, 
@@ -215,20 +218,15 @@ async def gerar_narracao(
                     except Exception as api_err:
                         err_str = str(api_err).lower()
                         print(f"⚠️ Aviso na Parte {i+1} (Tentativa {attempt+1}/{max_retries}): {api_err}")
-                        
                         if "429" in err_str or "exhausted" in err_str or "quota" in err_str:
                             if attempt < max_retries - 1:
-                                # Com chave paga, o 429 é raríssimo, mas se der, 5 segundos resolvem.
-                                print(f"⏳ Cota rápida atingida. Pausando 5 segundos...")
                                 time.sleep(5)
                                 continue
                             else:
                                 raise Exception("Cota da API esgotada mesmo na chave paga.")
-                                
                         elif "500" in err_str or "internal" in err_str:
                             if attempt == 0 and "system_instruction" in kwargs:
                                 kwargs.pop("system_instruction")
-                                print("♻️ Removendo Instrução de Estilo para contornar Erro 500...")
                                 time.sleep(2)
                                 continue
                             elif attempt < max_retries - 1:
@@ -251,8 +249,6 @@ async def gerar_narracao(
                     final_audio += pause_seg + seg
                 else:
                     final_audio += seg
-
-                # SEM PACING NEURAL! A chave paga aguenta o tranco sem sleep() entre blocos normais.
 
             mp3_io = io.BytesIO()
             final_audio.export(mp3_io, format="mp3", bitrate="128k")
@@ -277,21 +273,37 @@ async def gerar_narracao(
             srt_content = submaker.get_srt()
             audio_base64 = base64.b64encode(audio_data).decode('utf-8')
         
-        ferramenta_nome = "Voice Synth Premium" if is_premium else "Voice Synth Padrão"
-        novo_historico = models.Historico(
-            usuario_id=usuario.id,
-            ferramenta=ferramenta_nome,
-            input_usuario=f"Voz: {req.voz} | Tamanho: {tamanho_texto} chars",
-            resultado="Áudio Costurado/Gerado com sucesso.", 
-            custo_coins=custo_operacao
-        )
-        db.add(novo_historico)
-        db.commit()
+        # SÓ SALVA HISTÓRICO E FÍSICO SE NÃO FOR PREVIEW
+        if not is_preview:
+            # Salvar MP3 físico na pasta static para o usuário poder baixar depois
+            pasta_audios = os.path.join("frontend", "static", "audios")
+            os.makedirs(pasta_audios, exist_ok=True)
+            nome_arquivo = f"audio_{usuario.id}_{int(time.time())}.mp3"
+            caminho_completo = os.path.join(pasta_audios, nome_arquivo)
+            
+            with open(caminho_completo, "wb") as f:
+                f.write(base64.b64decode(audio_base64))
+                
+            caminho_relativo = f"/static/audios/{nome_arquivo}"
+
+            # Histórico recebe o caminho do MP3!
+            ferramenta_nome = "Voice Synth Premium" if is_premium else "Voice Synth Padrão"
+            novo_historico = models.Historico(
+                usuario_id=usuario.id,
+                ferramenta=ferramenta_nome,
+                input_usuario=f"Voz: {req.voz} | Tamanho: {tamanho_texto} chars",
+                resultado=caminho_relativo, # Aqui está a mágica
+                custo_coins=custo_operacao
+            )
+            db.add(novo_historico)
+            db.commit()
 
         return {"status": "sucesso", "audio_base64": audio_base64, "srt": srt_content, "novo_saldo": usuario.coins}
 
     except Exception as e:
-        usuario.coins += custo_operacao
-        db.commit()
+        # Só devolve a moeda se ele pagou
+        if not is_preview:
+            usuario.coins += custo_operacao
+            db.commit()
         print(f"❌ Erro na Geração de Áudio: {e}")
         raise HTTPException(status_code=500, detail=f"Falha ao gerar o áudio: {str(e)}")
