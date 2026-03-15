@@ -9,7 +9,7 @@
             </div>
             <h1 class="text-2xl md:text-3xl font-bold text-white">Histórico de Produção</h1>
         </div>
-        <p class="text-zinc-400">Consulte as suas criações anteriores e acompanhe o uso dos seus Coins.</p>
+        <p class="text-zinc-400">Consulte as suas criações anteriores, faça downloads e acompanhe o uso dos seus Coins.</p>
     </div>
 
     <div class="bg-[#18181b] border border-zinc-800/80 rounded-xl shadow-2xl relative overflow-hidden flex flex-col h-[70vh]">
@@ -50,7 +50,7 @@
     <div class="bg-[#18181b] border border-zinc-700 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col relative transform scale-95 transition-transform" id="modal_conteudo_interno">
         
         <div class="flex justify-between items-center p-5 border-b border-zinc-800 bg-[#121214] rounded-t-2xl">
-            <h3 class="text-lg font-bold text-white flex items-center gap-2" id="modal_titulo"><i class="fa-solid fa-eye text-emerald-500"></i> Visualizar Registo</h3>
+            <h3 class="text-lg font-bold text-white flex items-center gap-2" id="modal_titulo"><i class="fa-solid fa-vault text-emerald-500"></i> Cofre de Produção</h3>
             <button onclick="fecharModal()" class="text-zinc-500 hover:text-red-400 transition-colors w-8 h-8 flex items-center justify-center rounded-lg hover:bg-zinc-800">
                 <i class="fa-solid fa-xmark text-xl"></i>
             </button>
@@ -63,13 +63,13 @@
             </div>
             
             <div>
-                <h4 class="text-xs font-bold text-emerald-500 uppercase tracking-wider mb-2 border-b border-emerald-900/30 pb-1">Resultado Forjado</h4>
-                <pre id="modal_output" class="bg-[#121214] p-4 rounded-lg border border-emerald-500/20 text-emerald-400 text-sm whitespace-pre-wrap font-mono shadow-inner custom-scrollbar overflow-x-auto"></pre>
+                <h4 class="text-xs font-bold text-emerald-500 uppercase tracking-wider mb-2 border-b border-emerald-900/30 pb-1">Asset Recuperado</h4>
+                <div id="modal_output_container" class="mt-2"></div>
             </div>
         </div>
         
         <div class="p-4 border-t border-zinc-800 bg-[#121214] rounded-b-2xl flex justify-end gap-3">
-            <button onclick="fecharModal()" class="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-5 py-2 rounded-lg font-bold transition-colors">Fechar</button>
+            <button onclick="fecharModal()" class="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-5 py-2 rounded-lg font-bold transition-colors shadow-sm">Fechar</button>
         </div>
     </div>
 </div>
@@ -81,11 +81,12 @@
         carregarHistorico();
     });
 
-    // Mapeamento visual das ferramentas
     const configFerramentas = {
         "Gen Insights": { icone: "fa-lightbulb", cor: "text-yellow-400", bg: "bg-yellow-500/10", border: "border-yellow-500/20" },
         "Script Forge": { icone: "fa-pen-nib", cor: "text-orange-400", bg: "bg-orange-500/10", border: "border-orange-500/20" },
         "Voice Synth": { icone: "fa-microphone-lines", cor: "text-purple-400", bg: "bg-purple-500/10", border: "border-purple-500/20" },
+        "Voice Synth Padrão": { icone: "fa-microphone", cor: "text-blue-400", bg: "bg-blue-500/10", border: "border-blue-500/20" },
+        "Voice Synth Premium": { icone: "fa-bolt", cor: "text-yellow-400", bg: "bg-yellow-500/10", border: "border-yellow-500/20" },
         "Data Miner": { icone: "fa-magnet", cor: "text-indigo-400", bg: "bg-indigo-500/10", border: "border-indigo-500/20" },
         "Paraphraser": { icone: "fa-rotate", cor: "text-pink-400", bg: "bg-pink-500/10", border: "border-pink-500/20" },
         "Audio Mixer": { icone: "fa-sliders", cor: "text-amber-400", bg: "bg-amber-500/10", border: "border-amber-500/20" },
@@ -121,7 +122,7 @@
                     <tr class="hover:bg-zinc-800/30 transition-colors group">
                         <td class="px-6 py-4 whitespace-nowrap text-zinc-300 font-medium">${item.data_geracao}</td>
                         <td class="px-6 py-4 whitespace-nowrap">
-                            <span class="inline-flex items-center gap-2 px-2.5 py-1 rounded-md text-xs font-bold ${conf.cor} ${conf.bg} ${conf.border} border">
+                            <span class="inline-flex items-center gap-2 px-2.5 py-1 rounded-md text-xs font-bold ${conf.cor} ${conf.bg} ${conf.border} border shadow-sm">
                                 <i class="fa-solid ${conf.icone}"></i> ${item.ferramenta}
                             </span>
                         </td>
@@ -132,8 +133,8 @@
                             <span class="text-xs font-bold text-emerald-400"><i class="fa-solid fa-coins mr-1"></i>${item.custo_coins}</span>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-right">
-                            <button onclick="abrirModal(${index})" class="text-zinc-400 hover:text-white bg-zinc-800 hover:bg-zinc-700 p-2 rounded-lg border border-zinc-700 transition-colors shadow-sm">
-                                <i class="fa-solid fa-eye"></i> Ver Detalhes
+                            <button onclick="abrirModal(${index})" class="text-emerald-400 hover:text-zinc-900 bg-emerald-500/10 hover:bg-emerald-500 p-2 rounded-lg border border-emerald-500/20 transition-all shadow-sm flex items-center gap-2 ml-auto text-xs font-bold">
+                                <i class="fa-solid fa-folder-open"></i> Resgatar
                             </button>
                         </td>
                     </tr>
@@ -153,12 +154,46 @@
         document.getElementById('modal_titulo').innerHTML = `<i class="fa-solid ${conf.icone} ${conf.cor}"></i> ${item.ferramenta} <span class="text-xs font-normal text-zinc-500 ml-2">(${item.data_geracao})</span>`;
         document.getElementById('modal_input').innerText = item.input_usuario;
         
-        // Se for JSON (ex: Gen Insights), formatar bonito. Se for texto, mostrar normal.
-        try {
-            const jsonObj = JSON.parse(item.resultado);
-            document.getElementById('modal_output').innerText = JSON.stringify(jsonObj, null, 4);
-        } catch (e) {
-            document.getElementById('modal_output').innerText = item.resultado;
+        const container = document.getElementById('modal_output_container');
+        let resultadoData = item.resultado;
+
+        // Se for ÁUDIO salvo em disco (contém a string ".mp3" no caminho)
+        if (item.ferramenta.includes("Voice Synth") && resultadoData.includes(".mp3")) {
+            container.innerHTML = `
+                <div class="bg-[#121214] p-6 rounded-lg border border-emerald-500/20 shadow-inner flex flex-col items-center gap-5">
+                    <div class="w-16 h-16 rounded-full bg-emerald-500/10 flex items-center justify-center border border-emerald-500/30">
+                        <i class="fa-solid fa-file-audio text-3xl text-emerald-400"></i>
+                    </div>
+                    <audio controls class="w-full h-12 outline-none rounded-lg bg-zinc-900 shadow-lg">
+                        <source src="${resultadoData}" type="audio/mp3">
+                        Seu navegador não suporta o elemento de áudio.
+                    </audio>
+                    <a href="${resultadoData}" download="Narração_${item.data_geracao.replace(/[\/:]/g, '-')}.mp3" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-md flex items-center justify-center gap-2 group">
+                        <i class="fa-solid fa-download group-hover:-translate-y-1 transition-transform"></i> Baixar MP3
+                    </a>
+                </div>
+            `;
+        } 
+        // Se for TEXTO / JSON (Script Forge, Gen Insights, Paraphraser, etc)
+        else {
+            try { 
+                // Tenta limpar e formatar caso seja um JSON válido
+                resultadoData = JSON.stringify(JSON.parse(resultadoData), null, 4); 
+            } catch(e) { }
+
+            container.innerHTML = `
+                <div class="relative group">
+                    <pre id="texto_resgate" class="bg-[#121214] p-5 rounded-lg border border-emerald-500/20 text-emerald-400 text-sm whitespace-pre-wrap font-mono shadow-inner overflow-x-auto max-h-[40vh] custom-scrollbar">${resultadoData}</pre>
+                </div>
+                <div class="flex gap-3 mt-4 justify-end">
+                    <button onclick="copiarTextoHist()" class="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700 px-4 py-2 rounded-lg font-bold transition-all flex items-center gap-2 hover:text-white">
+                        <i class="fa-regular fa-copy"></i> Copiar
+                    </button>
+                    <button onclick="baixarTxtHist('${item.ferramenta}', '${item.data_geracao}')" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg font-bold transition-all shadow-md flex items-center gap-2">
+                        <i class="fa-solid fa-download"></i> Baixar .txt
+                    </button>
+                </div>
+            `;
         }
 
         const modal = document.getElementById('modal_resultado');
@@ -180,7 +215,28 @@
         
         setTimeout(() => {
             modal.classList.add('hidden');
+            // Pausar o áudio se o modal for fechado
+            const audioPlayer = document.querySelector('#modal_output_container audio');
+            if (audioPlayer) audioPlayer.pause();
         }, 200);
+    }
+
+    function copiarTextoHist() {
+        const texto = document.getElementById('texto_resgate').innerText;
+        navigator.clipboard.writeText(texto).then(() => {
+            alert("Conteúdo copiado para a área de transferência!");
+        });
+    }
+
+    function baixarTxtHist(ferramenta, dataStr) {
+        const texto = document.getElementById('texto_resgate').innerText;
+        const blob = new Blob([texto], { type: 'text/plain' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `${ferramenta.replace(' ', '_')}_${dataStr.replace(/[\/:]/g, '-')}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
     }
 </script>
 {% endblock %}
