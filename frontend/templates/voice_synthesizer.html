@@ -52,20 +52,14 @@
                     </div>
                 </div>
 
-                <div id="controles_gemini" class="mt-6 space-y-4 relative z-10 hidden transition-opacity">
-                    <div class="bg-yellow-500/5 p-4 rounded-xl border border-yellow-500/20 shadow-inner">
-                        <label class="text-xs font-bold text-yellow-500 uppercase tracking-wider block mb-2"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Direção de Arte (Prompt)</label>
-                        <input type="text" id="gemini_prompt" class="w-full bg-[#09090b] border border-yellow-500/30 rounded-lg p-3 text-zinc-200 focus:outline-none focus:border-yellow-500 transition-colors text-sm placeholder:text-zinc-600" placeholder="Ex: Leia em um tom misterioso, sussurrando nas partes de suspense...">
-                    </div>
-                    <div class="bg-[#09090b] p-4 rounded-xl border border-zinc-800 shadow-inner">
-                        <div class="flex justify-between mb-2">
-                            <label class="text-xs font-bold text-zinc-400 uppercase tracking-wider">Temperatura (Emoção)</label>
-                            <span id="val_temp" class="text-xs font-bold text-yellow-400">1.0</span>
+                <div id="controles_openai" class="mt-6 hidden relative z-10 transition-opacity">
+                    <div class="bg-yellow-500/5 p-5 rounded-xl border border-yellow-500/20 shadow-inner flex items-start gap-4">
+                        <div class="w-10 h-10 rounded-full bg-yellow-500/10 flex items-center justify-center shrink-0 border border-yellow-500/30">
+                            <i class="fa-solid fa-brain text-yellow-500"></i>
                         </div>
-                        <div class="flex items-center gap-3">
-                            <button onclick="ajustarTemperatura(-0.1)" class="w-8 h-8 rounded-lg bg-zinc-800 hover:bg-yellow-600 text-white flex items-center justify-center transition-colors"><i class="fa-solid fa-minus text-xs"></i></button>
-                            <input type="range" id="gemini_temperatura" min="0.0" max="2.0" step="0.1" value="1.0" class="flex-1 accent-yellow-500">
-                            <button onclick="ajustarTemperatura(0.1)" class="w-8 h-8 rounded-lg bg-zinc-800 hover:bg-yellow-600 text-white flex items-center justify-center transition-colors"><i class="fa-solid fa-plus text-xs"></i></button>
+                        <div>
+                            <h4 class="text-sm font-bold text-yellow-500 mb-1">Voz Premium (OpenAI TTS-1)</h4>
+                            <p class="text-xs text-zinc-400 leading-relaxed">Este modelo de ponta adapta a emoção e a respiração da voz automaticamente com base na pontuação do seu texto (vírgulas, pontos e exclamações). Não é necessário ajuste manual de velocidade ou tom.</p>
                         </div>
                     </div>
                 </div>
