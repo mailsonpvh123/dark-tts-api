@@ -151,10 +151,13 @@ async def gerar_narracao(
         if is_premium:
             # === ROTA OPENAI (A Máquina de Lucro) ===
             api_key = os.environ.get("OPENAI_API_KEY")
+            # Agora o modelo vem das variáveis de ambiente! Fallback para 'tts-1'
+            modelo_tts = os.environ.get("OPENAI_MODEL_TTS", "tts-1") 
+            
             if not api_key: raise ValueError("Chave OPENAI_API_KEY não configurada no Easypanel.")
 
             client = openai.AsyncOpenAI(api_key=api_key)
-            voz_real = req.voz.split("-")[-1] # Pega "onyx", "nova", etc
+            voz_real = req.voz.split("-")[-1] 
 
             chunks = split_text_for_openai(texto, max_chars=4000)
             final_audio = AudioSegment.empty()
@@ -162,7 +165,7 @@ async def gerar_narracao(
             # Uma pequena pausa de 200ms entre blocos para soar natural
             pause_seg = AudioSegment.silent(duration=200) 
 
-            print(f"🎙️ Iniciando síntese Premium OpenAI (Voz: {voz_real} | Partes: {len(chunks)}).")
+            print(f"🎙️ Iniciando síntese Premium OpenAI (Modelo: {modelo_tts} | Voz: {voz_real} | Partes: {len(chunks)}).")
 
             for i, chunk in enumerate(chunks):
                 max_retries = 3
@@ -171,7 +174,7 @@ async def gerar_narracao(
                 for attempt in range(max_retries):
                     try:
                         response = await client.audio.speech.create(
-                            model="tts-1", # Pode mudar para tts-1-hd se quiser extrema qualidade depois
+                            model=modelo_tts, # Injetado dinamicamente
                             voice=voz_real,
                             input=chunk
                         )
