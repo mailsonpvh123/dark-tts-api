@@ -35,7 +35,10 @@ VOICES_MAP = {
     "fable": "Masculino / Expressivo",
     "onyx": "Masculino / Grave e Sombrio (Ideal p/ Dark)",
     "nova": "Feminino / Clara e Energética",
-    "shimmer": "Feminino / Acolhedora"
+    "shimmer": "Feminino / Acolhedora",
+    "ash": "Masculino / Quente e Conversacional",
+    "coral": "Feminino / Vibrante e Polida",
+    "sage": "Andrógino / Calmo e Reflexivo"
 }
 
 vozes_cache = []
