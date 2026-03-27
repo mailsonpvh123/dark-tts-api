@@ -37,7 +37,6 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     if(document.getElementById('lista_vozes')) {
         try {
-            // Nota: Confirme o endpoint real da sua API no fetch
             const resposta = await fetch("/vozes");
             if (!resposta.ok) throw new Error("Falha ao comunicar com a API.");
             const dados = await resposta.json();
@@ -147,16 +146,19 @@ function renderizarListaVozes() {
 function selecionarVoz(sn) { 
     vozSelecionada = sn; 
     
-    const painelEdge = document.getElementById('controles_edge');
+    const controlePitch = document.getElementById('controle_pitch');
+    const wrapperVelocidade = document.getElementById('wrapper_velocidade');
     const painelOpenAI = document.getElementById('controles_openai');
     
-    // Atualizado para reconhecer openai-premium
+    // Toggle visual inteligente
     if(sn.includes("openai-premium")) {
-        painelEdge.classList.add('hidden');
+        if(controlePitch) controlePitch.classList.add('hidden');
+        if(wrapperVelocidade) wrapperVelocidade.classList.add('md:col-span-2');
         if(painelOpenAI) painelOpenAI.classList.remove('hidden');
     } else {
         if(painelOpenAI) painelOpenAI.classList.add('hidden');
-        painelEdge.classList.remove('hidden');
+        if(controlePitch) controlePitch.classList.remove('hidden');
+        if(wrapperVelocidade) wrapperVelocidade.classList.remove('md:col-span-2');
     }
     
     renderizarListaVozes(); 
@@ -213,7 +215,7 @@ function recalcularCustoVoz() {
 }
 
 // ==========================================
-// CONTROLES DE SLIDERS (Edge)
+// CONTROLES DE SLIDERS (Universal e Edge)
 // ==========================================
 function ajustarVelocidade(delta) {
     const slider = document.getElementById('velocidade');
@@ -245,12 +247,13 @@ async function tocarPreview(event, shortName) {
     icon.className = "fa-solid fa-circle-notch fa-spin text-white";
     
     try {
-        const res = await fetch("/gerar_narracao", {  // Confirme o seu endpoint local
+        const res = await fetch("/gerar_narracao", { 
             method: 'POST', 
             headers: { 'Content-Type': 'application/json' }, 
             body: JSON.stringify({ 
                 texto: "Olá, sou uma voz neural da sua plataforma. Esta é a minha qualidade de narração.", 
                 voz: shortName, 
+                // A prévia sempre toca na velocidade 1.0 para o cliente ouvir o timbre original
                 velocidade: 1.0, 
                 pitch: 0 
             }) 
@@ -289,7 +292,6 @@ async function gerarAudioCompleto() {
     
     playerContainer.innerHTML = `<p class="text-purple-400 animate-pulse text-center font-bold text-sm"><i class="fa-solid fa-microphone-lines fa-fade mr-2"></i> O estúdio neural está gravando a sua locução...${msgExtra}</p>`;
 
-    // Limpei o payload para a OpenAI (removi temp e estilo)
     const payload = { 
         texto: texto, 
         voz: vozSelecionada, 
@@ -344,7 +346,7 @@ async function gerarAudioCompleto() {
     }
 }
 
-// ... (Mantenha o resto das suas funções do paraphraser aqui embaixo)
+// ... (Resto das funções de contagem de palavras do seu código)
 function contarPalavrasLocal(texto) {
     if (!texto || texto.trim() === "") return 0;
     return texto.trim().split(/\s+/).length;
