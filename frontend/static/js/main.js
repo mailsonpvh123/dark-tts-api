@@ -1,8 +1,8 @@
 // ==========================================
 // CONFIGURAÇÕES GLOBAIS
 // ==========================================
-const URL_API_VOZES = "/vozes"; 
-const URL_API_DIRETA = "/gerar_narracao"; 
+const URL_API_VOZES = "/api/v1/vozes"; // Ajuste se a sua rota for apenas /vozes
+const URL_API_DIRETA = "/api/v1/gerar_narracao"; // Ajuste se for apenas /gerar_narracao
 let vozesData = [];
 let vozSelecionada = "pt-BR-AntonioNeural"; 
 let srtGlobal = ""; 
@@ -37,7 +37,8 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     if(document.getElementById('lista_vozes')) {
         try {
-            const resposta = await fetch(URL_API_VOZES);
+            // Nota: Confirme o endpoint real da sua API no fetch
+            const resposta = await fetch("/vozes");
             if (!resposta.ok) throw new Error("Falha ao comunicar com a API.");
             const dados = await resposta.json();
             
@@ -147,13 +148,14 @@ function selecionarVoz(sn) {
     vozSelecionada = sn; 
     
     const painelEdge = document.getElementById('controles_edge');
-    const painelGemini = document.getElementById('controles_gemini');
+    const painelOpenAI = document.getElementById('controles_openai');
     
-    if(sn.includes("gemini-premium")) {
+    // Atualizado para reconhecer openai-premium
+    if(sn.includes("openai-premium")) {
         painelEdge.classList.add('hidden');
-        painelGemini.classList.remove('hidden');
+        if(painelOpenAI) painelOpenAI.classList.remove('hidden');
     } else {
-        painelGemini.classList.add('hidden');
+        if(painelOpenAI) painelOpenAI.classList.add('hidden');
         painelEdge.classList.remove('hidden');
     }
     
@@ -172,11 +174,10 @@ function recalcularCustoVoz() {
         const btnTxt = document.getElementById('txt_btn_voz');
         const contador = document.getElementById('contador_caracteres_voz');
         
-        const isPremium = vozSelecionada.includes("gemini-premium");
+        const isPremium = vozSelecionada.includes("openai-premium");
         
         if(contador) {
             if(isPremium) {
-                // NOVA LÓGICA DE CHUNKING NO FRONT-END
                 if(tamanho > 4000) {
                     const chunks = Math.ceil(tamanho / 4000);
                     contador.innerHTML = `<i class="fa-solid fa-layer-group text-yellow-500"></i> ${tamanho} chars (${chunks} Partes Automáticas)`;
@@ -212,7 +213,7 @@ function recalcularCustoVoz() {
 }
 
 // ==========================================
-// CONTROLES DE SLIDERS
+// CONTROLES DE SLIDERS (Edge)
 // ==========================================
 function ajustarVelocidade(delta) {
     const slider = document.getElementById('velocidade');
@@ -232,15 +233,6 @@ function ajustarPitch(delta) {
     document.getElementById('val_p').innerText = slider.value + 'Hz';
 }
 
-function ajustarTemperatura(delta) {
-    const slider = document.getElementById('gemini_temperatura');
-    let newVal = parseFloat(slider.value) + delta;
-    if(newVal > 2.0) newVal = 2.0;
-    if(newVal < 0.0) newVal = 0.0;
-    slider.value = newVal.toFixed(1);
-    document.getElementById('val_temp').innerText = slider.value;
-}
-
 // ==========================================
 // INTEGRAÇÃO COM A API (GERAÇÃO DE VOZ)
 // ==========================================
@@ -253,15 +245,14 @@ async function tocarPreview(event, shortName) {
     icon.className = "fa-solid fa-circle-notch fa-spin text-white";
     
     try {
-        const res = await fetch(URL_API_DIRETA, { 
+        const res = await fetch("/gerar_narracao", {  // Confirme o seu endpoint local
             method: 'POST', 
             headers: { 'Content-Type': 'application/json' }, 
             body: JSON.stringify({ 
                 texto: "Olá, sou uma voz neural da sua plataforma. Esta é a minha qualidade de narração.", 
                 voz: shortName, 
                 velocidade: 1.0, 
-                pitch: 0, 
-                temperatura: 1.0 
+                pitch: 0 
             }) 
         });
         
@@ -293,24 +284,21 @@ async function gerarAudioCompleto() {
     
     playerContainer.classList.remove('hidden');
     
-    // Mostra pro usuário que o áudio pode demorar mais se for dividido
-    const isPremium = vozSelecionada.includes("gemini-premium");
+    const isPremium = vozSelecionada.includes("openai-premium");
     let msgExtra = (isPremium && texto.length > 4000) ? "<br><span class='text-[10px] text-zinc-500'>O texto é longo e está sendo dividido e costurado em segundo plano. Aguarde.</span>" : "";
     
     playerContainer.innerHTML = `<p class="text-purple-400 animate-pulse text-center font-bold text-sm"><i class="fa-solid fa-microphone-lines fa-fade mr-2"></i> O estúdio neural está gravando a sua locução...${msgExtra}</p>`;
 
+    // Limpei o payload para a OpenAI (removi temp e estilo)
     const payload = { 
         texto: texto, 
         voz: vozSelecionada, 
         velocidade: parseFloat(document.getElementById('velocidade').value), 
-        pitch: parseInt(document.getElementById('pitch').value),
-        volume: 0,
-        temperatura: parseFloat(document.getElementById('gemini_temperatura') ? document.getElementById('gemini_temperatura').value : 1.0),
-        instrucao_estilo: document.getElementById('gemini_prompt') ? document.getElementById('gemini_prompt').value : ""
+        pitch: parseInt(document.getElementById('pitch').value)
     };
 
     try {
-        const res = await fetch(URL_API_DIRETA, { 
+        const res = await fetch("/gerar_narracao", { 
             method: 'POST', 
             headers: { 'Content-Type': 'application/json' }, 
             body: JSON.stringify(payload) 
@@ -356,86 +344,8 @@ async function gerarAudioCompleto() {
     }
 }
 
-// ... [O restante do seu código utilitário de paraphraser permanece inalterado logo abaixo] ...
+// ... (Mantenha o resto das suas funções do paraphraser aqui embaixo)
 function contarPalavrasLocal(texto) {
     if (!texto || texto.trim() === "") return 0;
     return texto.trim().split(/\s+/).length;
-}
-
-async function transmutarTexto() {
-    const inputTexto = document.getElementById('texto_original');
-    if(!inputTexto) return;
-    
-    const textoOrig = inputTexto.value;
-    const elEstrategia = document.getElementById('estrategia_escrita');
-    const modoSelecionado = elEstrategia && elEstrategia.value.toLowerCase().includes('reddit') ? 'reddit' : 'padrao';
-    
-    const elCanal = document.getElementById('nome_canal'); 
-    const nomeCanal = elCanal ? elCanal.value : "";
-
-    const elGancho = document.getElementById('gancho_exato'); 
-    const tituloGancho = elGancho ? elGancho.value : "";
-    
-    if (!textoOrig.trim()) return alert("Cole o texto original primeiro!");
-
-    const painelResultado = document.getElementById('texto_transmutado');
-    const btnTexto = document.getElementById('txt_btn_transmutar');
-    
-    painelResultado.value = "Gerando a história com a inteligência do Gemini... Por favor, aguarde.";
-    btnTexto.innerHTML = `Transmutando... <i class="fa-solid fa-circle-notch fa-spin ml-2"></i>`;
-
-    try {
-        const payload = {
-            texto: textoOrig,
-            tom: "Sarcástico e Ácido",
-            idioma: "Português (Brasil)",
-            modo: modoSelecionado,
-            gancho_exato: tituloGancho,
-            nome_canal: nomeCanal
-        };
-
-        const res = await fetch('/api/v1/paraphraser', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-
-        const dados = await res.json();
-        console.log("Resposta recebida da API:", dados);
-
-        if (!res.ok) throw new Error(dados.detail || "Erro no servidor.");
-
-        const textoGerado = dados.texto_parafrazedo || dados.texto_parafraseado || dados.texto;
-
-        if (!textoGerado) {
-            throw new Error("Falha na formatação da resposta da API.");
-        }
-
-        painelResultado.value = textoGerado;
-        
-        // AUTO-SAVE DO RESULTADO FINAL GERADO PELA IA
-        localStorage.setItem('paraph_resultado', textoGerado);
-        
-        const contadorRes = document.getElementById('contador_resultado');
-        if(contadorRes) {
-            contadorRes.innerText = contarPalavrasLocal(textoGerado) + " palavras";
-        }
-        
-        if(dados.novo_saldo !== undefined) {
-            const paineisDeCoins = document.querySelectorAll('.fa-coins');
-            paineisDeCoins.forEach(icone => {
-                const elementoPai = icone.closest('p'); 
-                if(elementoPai) {
-                    elementoPai.innerHTML = `<i class="fa-solid fa-coins"></i> ${dados.novo_saldo.toLocaleString('pt-BR')} coins`;
-                    elementoPai.classList.add('text-pink-400', 'scale-110');
-                    setTimeout(() => elementoPai.classList.remove('text-pink-400', 'scale-110'), 500);
-                }
-            });
-        }
-
-    } catch (e) {
-        painelResultado.value = `Erro Técnico: ${e.message}`;
-    } finally {
-        btnTexto.innerText = "Transmutar Texto (25 Coins)";
-    }
 }
