@@ -11,8 +11,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from pydub import AudioSegment
 
-from google import genai
-from google.genai import types
+import openai
 
 # Nossos imports internos
 import models
@@ -26,18 +25,17 @@ class AudioRequest(BaseModel):
     voz: str = "pt-BR-AntonioNeural"
     velocidade: float = 1.0
     pitch: int = 0
-    volume: int = 0
-    temperatura: float = 1.0       
-    instrucao_estilo: str = ""     
 
+# ==========================================
+# CATÁLOGO OPENAI (VOZES PREMIUM)
+# ==========================================
 VOICES_MAP = {
-    "Puck": "Animado / Jovem", "Charon": "Informativo / Grave", "Kore": "Firme / Madura",
-    "Fenrir": "Excitado / Forte", "Leda": "Jovem / Articulada", "Orus": "Firme / Clássico",
-    "Aoede": "Suave / Breezy", "Callirrhoe": "Relaxado", "Zephyr": "Brilhante / Enérgico",
-    "Despina": "Suave", "Erinome": "Claro", "Algenib": "Áspero", 
-    "Rasalgethi": "Informativo", "Laomedeia": "Animado", "Pulcherrima": "Avançado",
-    "Achird": "Amigável", "Zubenelgenubi": "Casual", "Vindemiatrix": "Gentil",
-    "Sadachbia": "Vivo", "Sadaltager": "Sábio", "Sulafat": "Caloroso"
+    "alloy": "Andrógino / Versátil",
+    "echo": "Masculino / Suave",
+    "fable": "Masculino / Expressivo",
+    "onyx": "Masculino / Grave e Sombrio (Ideal p/ Dark)",
+    "nova": "Feminino / Clara e Energética",
+    "shimmer": "Feminino / Acolhedora"
 }
 
 vozes_cache = []
@@ -48,11 +46,11 @@ async def carregar_vozes_memoria():
     vozes_cache.clear() 
     
     try:
-        # Carrega Premium (Gemini)
+        # Carrega Premium (OpenAI)
         for v_name, v_desc in VOICES_MAP.items():
             vozes_cache.append({
-                "name": f"{v_name} ({v_desc})",
-                "shortName": f"gemini-premium-{v_name}",
+                "name": f"{v_name.capitalize()} ({v_desc})",
+                "shortName": f"openai-premium-{v_name}",
                 "gender": "Neutral",
                 "tipo": "premium"
             })
@@ -79,12 +77,10 @@ async def listar_vozes():
         return {"status": "erro", "mensagem": "Vozes ainda não carregadas no servidor."}
 
 # ==========================================
-# O CHUNKER NEURAL COM OVERLAP (Contexto Contínuo)
+# O CHUNKER OTIMIZADO (OPENAI = 4096 chars máx)
 # ==========================================
-def split_text_for_gemini_overlap(texto, max_chars=1200):
-    texto = re.sub(r'[*#""“”]', '', texto)
+def split_text_for_openai(texto, max_chars=4000):
     texto = texto.replace('\n', ' ')
-    
     frases = re.split(r'(?<=[.!?]) +', texto)
     
     chunks = []
@@ -129,13 +125,12 @@ async def gerar_narracao(
     if not texto:
         raise HTTPException(status_code=400, detail="O texto para narração é obrigatório.")
 
-    # MODO FANTASMA: Se for o texto de preview, não cobra e não salva no histórico!
+    # MODO FANTASMA
     is_preview = texto.startswith("Olá, sou uma voz neural da sua plataforma.")
-    
-    is_premium = req.voz.startswith("gemini-premium")
+    is_premium = req.voz.startswith("openai-premium")
     tamanho_texto = len(texto)
 
-    # Cálculo de Custo Blindado
+    # Cálculo de Custo Blindado (10 Coins por Minuto ~900 chars)
     if is_preview:
         custo_operacao = 0
     elif is_premium:
@@ -143,7 +138,6 @@ async def gerar_narracao(
     else:
         custo_operacao = 30
 
-    # Só desconta se NÃO for preview
     if not is_preview:
         if usuario.coins < custo_operacao:
             raise HTTPException(status_code=402, detail=f"Coins insuficientes! Você precisa de {custo_operacao} coins.")
@@ -155,96 +149,47 @@ async def gerar_narracao(
         audio_base64 = ""
 
         if is_premium:
-            api_key = os.environ.get("GEMINI_API_KEY_PAID") or os.environ.get("GEMINI_API_KEY")
-            modelo_dinamico = os.environ.get("GEMINI_MODEL_VOICE", "gemini-2.5-flash-preview-tts")
-            
-            if not api_key: raise ValueError("Chave GEMINI_API_KEY_PAID não configurada no Easypanel.")
+            # === ROTA OPENAI (A Máquina de Lucro) ===
+            api_key = os.environ.get("OPENAI_API_KEY")
+            if not api_key: raise ValueError("Chave OPENAI_API_KEY não configurada no Easypanel.")
 
-            client = genai.Client(api_key=api_key)
-            voz_real = req.voz.split("-")[-1] 
+            client = openai.AsyncOpenAI(api_key=api_key)
+            voz_real = req.voz.split("-")[-1] # Pega "onyx", "nova", etc
 
-            instrucao_global = (
-                "You are an elite, highly consistent voice actor. Read the text EXACTLY as provided in Brazilian Portuguese. "
-                "CRITICAL RULES: \n"
-                "1. Maintain the EXACT same vocal timbre, pitch, and accent as your previous sentences.\n"
-                "2. DO NOT change your persona. DO NOT drop into a whisper or yell suddenly.\n"
-                "3. Read immediately. DO NOT add conversational fillers.\n"
-                "4. This is a continuous narration; treat every input as the middle of a paragraph."
-            )
-            if req.instrucao_estilo:
-                instrucao_global += f"\n\nDirector's note: {req.instrucao_estilo}"
-
-            kwargs = {
-                "response_modalities": ["AUDIO"],
-                "temperature": req.temperatura,
-                "system_instruction": instrucao_global,
-                "speech_config": types.SpeechConfig(
-                    voice_config=types.VoiceConfig(
-                        prebuilt_voice_config=types.PrebuiltVoiceConfig(voice_name=voz_real)
-                    )
-                )
-            }
-
-            chunks = split_text_for_gemini_overlap(texto, max_chars=1200)
+            chunks = split_text_for_openai(texto, max_chars=4000)
             final_audio = AudioSegment.empty()
-            pause_seg = AudioSegment.silent(duration=150)
+            
+            # Uma pequena pausa de 200ms entre blocos para soar natural
+            pause_seg = AudioSegment.silent(duration=200) 
 
-            print(f"🎙️ Iniciando síntese Premium (Preview: {is_preview} | Partes: {len(chunks)}).")
-
-            contexto_anterior = ""
+            print(f"🎙️ Iniciando síntese Premium OpenAI (Voz: {voz_real} | Partes: {len(chunks)}).")
 
             for i, chunk in enumerate(chunks):
-                pcm_data = None
                 max_retries = 3
-                
-                texto_para_gerar = chunk
-                if i > 0 and contexto_anterior:
-                     texto_para_gerar = f"[Continuando do trecho: '{contexto_anterior[-60:]}'] " + chunk
+                audio_bytes = None
                 
                 for attempt in range(max_retries):
                     try:
-                        response = client.models.generate_content(
-                            model=modelo_dinamico, 
-                            contents=texto_para_gerar, 
-                            config=types.GenerateContentConfig(**kwargs)
+                        response = await client.audio.speech.create(
+                            model="tts-1", # Pode mudar para tts-1-hd se quiser extrema qualidade depois
+                            voice=voz_real,
+                            input=chunk
                         )
-                        
-                        pcm_data = next((part.inline_data.data for part in response.candidates[0].content.parts if part.inline_data), None)
-                        if not pcm_data: raise ValueError("Resposta de áudio vazia.")
-                        
-                        contexto_anterior = chunk
+                        audio_bytes = response.read()
                         break 
-                        
                     except Exception as api_err:
-                        err_str = str(api_err).lower()
                         print(f"⚠️ Aviso na Parte {i+1} (Tentativa {attempt+1}/{max_retries}): {api_err}")
-                        if "429" in err_str or "exhausted" in err_str or "quota" in err_str:
-                            if attempt < max_retries - 1:
-                                time.sleep(5)
-                                continue
-                            else:
-                                raise Exception("Cota da API esgotada mesmo na chave paga.")
-                        elif "500" in err_str or "internal" in err_str:
-                            if attempt == 0 and "system_instruction" in kwargs:
-                                kwargs.pop("system_instruction")
-                                time.sleep(2)
-                                continue
-                            elif attempt < max_retries - 1:
-                                time.sleep(5)
-                                continue
-                            else:
-                                raise Exception("O servidor do Google falhou na geração (Erro Interno 500).")
+                        if attempt < max_retries - 1:
+                            time.sleep(3)
+                            continue
                         else:
-                            raise api_err
+                            raise Exception("A OpenAI falhou ao gerar a voz após várias tentativas.")
                 
-                if not pcm_data:
+                if not audio_bytes:
                     raise Exception(f"Falha crítica ao gerar o bloco {i+1}.")
 
-                seg = AudioSegment(data=pcm_data, sample_width=2, frame_rate=24000, channels=1)
+                seg = AudioSegment.from_file(io.BytesIO(audio_bytes), format="mp3")
                 
-                if i > 0 and len(seg) > 1000:
-                    seg = seg[1000:] 
-
                 if i > 0:
                     final_audio += pause_seg + seg
                 else:
@@ -255,7 +200,7 @@ async def gerar_narracao(
             audio_base64 = base64.b64encode(mp3_io.getvalue()).decode('utf-8')
 
         else:
-            # --- ROTA PADRÃO (EDGE TTS) ---
+            # === ROTA PADRÃO (EDGE TTS) ===
             voz_engine = req.voz
             velocidade_formatada = f"{int((req.velocidade - 1.0) * 100):+d}%"
             pitch_formatado = f"{req.pitch:+d}Hz"
@@ -273,9 +218,8 @@ async def gerar_narracao(
             srt_content = submaker.get_srt()
             audio_base64 = base64.b64encode(audio_data).decode('utf-8')
         
-        # SÓ SALVA HISTÓRICO E FÍSICO SE NÃO FOR PREVIEW
+        # SALVA NO DISCO SE NÃO FOR PREVIEW
         if not is_preview:
-            # Salvar MP3 físico na pasta static para o usuário poder baixar depois
             pasta_audios = os.path.join("frontend", "static", "audios")
             os.makedirs(pasta_audios, exist_ok=True)
             nome_arquivo = f"audio_{usuario.id}_{int(time.time())}.mp3"
@@ -286,13 +230,12 @@ async def gerar_narracao(
                 
             caminho_relativo = f"/static/audios/{nome_arquivo}"
 
-            # Histórico recebe o caminho do MP3!
             ferramenta_nome = "Voice Synth Premium" if is_premium else "Voice Synth Padrão"
             novo_historico = models.Historico(
                 usuario_id=usuario.id,
                 ferramenta=ferramenta_nome,
                 input_usuario=f"Voz: {req.voz} | Tamanho: {tamanho_texto} chars",
-                resultado=caminho_relativo, # Aqui está a mágica
+                resultado=caminho_relativo,
                 custo_coins=custo_operacao
             )
             db.add(novo_historico)
@@ -301,7 +244,6 @@ async def gerar_narracao(
         return {"status": "sucesso", "audio_base64": audio_base64, "srt": srt_content, "novo_saldo": usuario.coins}
 
     except Exception as e:
-        # Só devolve a moeda se ele pagou
         if not is_preview:
             usuario.coins += custo_operacao
             db.commit()
