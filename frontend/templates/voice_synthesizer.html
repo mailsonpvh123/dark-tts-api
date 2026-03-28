@@ -26,11 +26,10 @@
                 
                 <textarea id="texto_voz" oninput="recalcularCustoVoz()" class="w-full h-64 bg-[#09090b] border border-zinc-700/80 rounded-xl p-5 text-zinc-200 focus:outline-none focus:border-purple-500 transition-colors resize-none shadow-inner text-lg leading-relaxed custom-scrollbar relative z-10" placeholder="Cole aqui o seu roteiro..."></textarea>
                 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6 relative z-10">
-                    
-                    <div id="wrapper_velocidade" class="bg-[#09090b] p-4 rounded-xl border border-zinc-800 shadow-inner transition-all duration-300">
+                <div id="controles_edge" class="grid grid-cols-2 gap-6 mt-6 relative z-10 transition-opacity">
+                    <div class="bg-[#09090b] p-4 rounded-xl border border-zinc-800 shadow-inner">
                         <div class="flex justify-between mb-2">
-                            <label class="text-xs font-bold text-zinc-400 uppercase tracking-wider">Velocidade (Ritmo)</label>
+                            <label class="text-xs font-bold text-zinc-400 uppercase tracking-wider">Velocidade</label>
                             <span id="val_v" class="text-xs font-bold text-purple-400">1.0x</span>
                         </div>
                         <div class="flex items-center gap-3">
@@ -40,7 +39,7 @@
                         </div>
                     </div>
                     
-                    <div id="controle_pitch" class="bg-[#09090b] p-4 rounded-xl border border-zinc-800 shadow-inner transition-opacity">
+                    <div class="bg-[#09090b] p-4 rounded-xl border border-zinc-800 shadow-inner">
                         <div class="flex justify-between mb-2">
                             <label class="text-xs font-bold text-zinc-400 uppercase tracking-wider">Tom (Pitch)</label>
                             <span id="val_p" class="text-xs font-bold text-purple-400">0Hz</span>
@@ -54,14 +53,17 @@
                 </div>
 
                 <div id="controles_openai" class="mt-6 hidden relative z-10 transition-opacity">
-                    <div class="bg-yellow-500/5 p-5 rounded-xl border border-yellow-500/20 shadow-inner flex items-start gap-4">
-                        <div class="w-10 h-10 rounded-full bg-yellow-500/10 flex items-center justify-center shrink-0 border border-yellow-500/30">
-                            <i class="fa-solid fa-bolt text-yellow-500"></i>
+                    <div class="bg-yellow-500/5 p-5 rounded-xl border border-yellow-500/20 shadow-inner flex flex-col gap-4">
+                        <div class="flex items-start gap-4">
+                            <div class="w-10 h-10 rounded-full bg-yellow-500/10 flex items-center justify-center shrink-0 border border-yellow-500/30">
+                                <i class="fa-solid fa-masks-theater text-yellow-500"></i>
+                            </div>
+                            <div>
+                                <h4 class="text-sm font-bold text-yellow-500 mb-1">Direção de Dublagem Multimodal</h4>
+                                <p class="text-xs text-zinc-400 leading-relaxed">Você está usando um modelo que entende atuação. Dê instruções de como a IA deve ler o roteiro abaixo (Ex: "Sussurre e seja assustador" ou "Fale com ironia e sarcasmo").</p>
+                            </div>
                         </div>
-                        <div>
-                            <h4 class="text-sm font-bold text-yellow-500 mb-1">Dica de Pacing para Canais Dark</h4>
-                            <p class="text-xs text-zinc-400 leading-relaxed">Para manter a retenção máxima em vídeos misteriosos no YouTube e TikTok, teste o controle de <strong class="text-yellow-400">Velocidade em 1.1x ou 1.2x</strong>. O modelo OpenAI ajustará o tempo de respiração e fluidez automaticamente.</p>
-                        </div>
+                        <input type="text" id="instrucao_estilo" placeholder="Ex: Leia de forma grave, fazendo suspense a cada vírgula..." class="w-full bg-[#09090b] border border-yellow-500/30 rounded-lg p-3 text-zinc-300 text-sm focus:outline-none focus:border-yellow-500 transition-colors shadow-inner mt-2 placeholder-zinc-600">
                     </div>
                 </div>
 
