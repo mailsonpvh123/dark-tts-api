@@ -26,7 +26,6 @@ class AudioRequest(BaseModel):
     voz: str = "padrao-pt-BR-AntonioNeural"
     velocidade: float = 1.0
     pitch: int = 0
-    instrucao_estilo: str = "" 
 
 # ==========================================
 # CATÁLOGOS DE VOZES (SEM CITAR MOTORES)
@@ -43,7 +42,6 @@ VOICES_CREATOR = {
     "sage": "Andrógino / Calmo e Reflexivo"
 }
 
-# IDs oficiais das melhores vozes da ElevenLabs
 VOICES_CINEMATIC = {
     "pNInz6obpgDQGcFmaJgB": {"nome": "Adam", "desc": "Profundo e Narrativo (Documentários)"},
     "21m00Tcm4TlvDq8ikWAM": {"nome": "Rachel", "desc": "Calma e Conversacional"},
@@ -172,12 +170,11 @@ async def gerar_narracao(
         
         chunks = split_text_for_api(texto, max_chars=4000)
         final_audio = AudioSegment.empty()
-        pause_seg = AudioSegment.silent(duration=250)
+        pause_seg = AudioSegment.silent(duration=300)
 
         if is_cinematic:
             # === MOTOR 3: CINEMATIC (ELEVENLABS) ===
             api_key = os.environ.get("ELEVENLABS_API_KEY")
-            # 🚨 INJEÇÃO DO MODELO DINÂMICO AQUI:
             modelo_eleven = os.environ.get("ELEVENLABS_MODEL_ID", "eleven_turbo_v2_5")
             
             if not api_key: raise ValueError("Chave ELEVENLABS_API_KEY não configurada no Easypanel.")
@@ -194,7 +191,7 @@ async def gerar_narracao(
                     }
                     data = {
                         "text": chunk,
-                        "model_id": modelo_eleven, # Usando a variável de ambiente
+                        "model_id": modelo_eleven,
                         "voice_settings": {
                             "stability": 0.5,
                             "similarity_boost": 0.75
@@ -213,41 +210,28 @@ async def gerar_narracao(
             audio_base64 = base64.b64encode(mp3_io.getvalue()).decode('utf-8')
 
         elif is_creator:
-            # === MOTOR 2: CREATOR (OPENAI MULTIMODAL) ===
+            # === MOTOR 2: CREATOR (OPENAI TTS ESTÁVEL) ===
             api_key = os.environ.get("OPENAI_API_KEY")
-            modelo_tts = os.environ.get("OPENAI_MODEL_TTS", "gpt-4o-mini-audio-preview") 
+            # Agora recomendamos usar tts-1 ou tts-1-hd
+            modelo_tts = os.environ.get("OPENAI_MODEL_TTS", "tts-1") 
             if not api_key: raise ValueError("Chave OPENAI_API_KEY não configurada no Easypanel.")
 
             client = openai.AsyncOpenAI(api_key=api_key)
             voz_real = req.voz.replace("creator-", "")
             
-            sys_prompt = (
-                "Você é um narrador profissional e dublador de elite para YouTube. "
-                "🚨 REGRA DE OURO: O texto fornecido pelo usuário está em PORTUGUÊS DO BRASIL. "
-                "Leia e atue EXATAMENTE as palavras escritas, com pronúncia perfeita em PT-BR. "
-                "PROIBIDO traduzir para o inglês. Entregue APENAS o áudio."
-            )
-            if req.instrucao_estilo:
-                sys_prompt += f" \n\nDIRETRIZ DE ATUAÇÃO: {req.instrucao_estilo}"
-
-            print(f"🎙️ Iniciando Dublagem Creator (Modelo: {modelo_tts} | Voz: {voz_real})")
+            print(f"🎙️ Iniciando Síntese Creator Estável (Modelo: {modelo_tts} | Voz: {voz_real})")
 
             for i, chunk in enumerate(chunks):
                 max_retries = 3
                 audio_bytes = None
                 for attempt in range(max_retries):
                     try:
-                        response = await client.chat.completions.create(
+                        response = await client.audio.speech.create(
                             model=modelo_tts,
-                            modalities=["text", "audio"],
-                            audio={"voice": voz_real, "format": "mp3"},
-                            messages=[
-                                {"role": "system", "content": sys_prompt},
-                                {"role": "user", "content": chunk}
-                            ]
+                            voice=voz_real,
+                            input=chunk
                         )
-                        audio_b64_output = response.choices[0].message.audio.data
-                        audio_bytes = base64.b64decode(audio_b64_output)
+                        audio_bytes = response.read()
                         break 
                     except Exception as api_err:
                         if attempt < max_retries - 1: time.sleep(3)
