@@ -155,8 +155,7 @@ async def gerar_narracao(
         if is_premium:
             # === ROTA OPENAI MULTIMODAL (O Ator de Dublagem) ===
             api_key = os.environ.get("OPENAI_API_KEY")
-            # Fallback agora é o GPT-4o-mini
-            modelo_tts = os.environ.get("OPENAI_MODEL_TTS", "gpt-4o-mini") 
+            modelo_tts = os.environ.get("OPENAI_MODEL_TTS", "gpt-4o-mini-audio-preview") 
             
             if not api_key: raise ValueError("Chave OPENAI_API_KEY não configurada no Easypanel.")
 
@@ -168,10 +167,16 @@ async def gerar_narracao(
             
             pause_seg = AudioSegment.silent(duration=200) 
 
-            # Montando a mente do Ator
-            sys_prompt = "Você é um narrador profissional e dublador de elite para YouTube. Leia o texto fornecido pelo usuário com perfeição rítmica. Entregue APENAS o áudio lendo o texto, não adicione respostas em texto."
+            # Montando a mente do Ator (BLINDADO CONTRA TRADUÇÃO)
+            sys_prompt = (
+                "Você é um narrador profissional e dublador de elite para YouTube. "
+                "🚨 REGRA DE OURO DE IDIOMA: O texto fornecido pelo usuário está em PORTUGUÊS DO BRASIL. "
+                "Você DEVE ler e atuar EXATAMENTE as palavras escritas, com pronúncia e sotaque perfeitos em PORTUGUÊS DO BRASIL (PT-BR). "
+                "É ESTRITAMENTE PROIBIDO traduzir o texto para o inglês. Nunca fale em inglês. "
+                "Entregue APENAS o áudio atuado, não adicione nenhum texto na resposta."
+            )
             if req.instrucao_estilo:
-                sys_prompt += f" \n\nDIRETOR DE ARTE: {req.instrucao_estilo}"
+                sys_prompt += f" \n\nDIRETRIZ DE ATUAÇÃO (DIRETOR): {req.instrucao_estilo}"
 
             print(f"🎙️ Iniciando Dublagem Multimodal (Modelo: {modelo_tts} | Voz: {voz_real} | Partes: {len(chunks)}).")
 
