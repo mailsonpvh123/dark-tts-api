@@ -6,6 +6,7 @@ import io
 import time
 import re
 import textwrap
+import httpx # Para a chamada da ElevenLabs
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -22,15 +23,15 @@ router = APIRouter(tags=["Voice Synthesizer"])
 
 class AudioRequest(BaseModel):
     texto: str
-    voz: str = "pt-BR-AntonioNeural"
+    voz: str = "padrao-pt-BR-AntonioNeural"
     velocidade: float = 1.0
     pitch: int = 0
-    instrucao_estilo: str = "" # Trazendo a Direção de Arte de volta para a IA Multimodal
+    instrucao_estilo: str = "" 
 
 # ==========================================
-# CATÁLOGO OPENAI (VOZES PREMIUM)
+# CATÁLOGOS DE VOZES (SEM CITAR MOTORES)
 # ==========================================
-VOICES_MAP = {
+VOICES_CREATOR = {
     "alloy": "Andrógino / Versátil",
     "echo": "Masculino / Suave",
     "fable": "Masculino / Expressivo",
@@ -42,6 +43,17 @@ VOICES_MAP = {
     "sage": "Andrógino / Calmo e Reflexivo"
 }
 
+# IDs oficiais das melhores vozes da ElevenLabs
+VOICES_CINEMATIC = {
+    "pNInz6obpgDQGcFmaJgB": {"nome": "Adam", "desc": "Profundo e Narrativo (Documentários)"},
+    "21m00Tcm4TlvDq8ikWAM": {"nome": "Rachel", "desc": "Calma e Conversacional"},
+    "ErXwobaYiN019PkySvjV": {"nome": "Antony", "desc": "Firme e Confiante"},
+    "EXAVITQu4vr4xnSDxMaL": {"nome": "Bella", "desc": "Suave e Envolvente"},
+    "D38z5RcWu1voky8WS1ja": {"nome": "Fin", "desc": "Dinâmico e Expressivo"},
+    "TxGEqnHWrfWFTfGW9XjX": {"nome": "Josh", "desc": "Grave e Dramático"},
+    "MF3mGyEYCl7XYWbV9V6O": {"nome": "Elli", "desc": "Jovem e Emotiva"}
+}
+
 vozes_cache = []
 
 @router.on_event("startup")
@@ -50,22 +62,31 @@ async def carregar_vozes_memoria():
     vozes_cache.clear() 
     
     try:
-        # Carrega Premium (OpenAI)
-        for v_name, v_desc in VOICES_MAP.items():
+        # 1. Carrega Cinematic (Elite)
+        for v_id, info in VOICES_CINEMATIC.items():
+            vozes_cache.append({
+                "name": f"{info['nome']} ({info['desc']})",
+                "shortName": f"cinematic-{v_id}",
+                "gender": "Neutral",
+                "tipo": "cinematic"
+            })
+
+        # 2. Carrega Creator (Premium)
+        for v_name, v_desc in VOICES_CREATOR.items():
             vozes_cache.append({
                 "name": f"{v_name.capitalize()} ({v_desc})",
-                "shortName": f"openai-premium-{v_name}",
+                "shortName": f"creator-{v_name}",
                 "gender": "Neutral",
-                "tipo": "premium"
+                "tipo": "creator"
             })
         
-        # Carrega Padrão (Edge TTS)
+        # 3. Carrega Standard (Padrão)
         voices = await edge_tts.list_voices()
         for v in voices:
             if v["Locale"].startswith("pt-") or "Multilingual" in v["ShortName"]:
                 vozes_cache.append({
                     "name": v["Name"],
-                    "shortName": v["ShortName"],
+                    "shortName": f"padrao-{v['ShortName']}",
                     "gender": v["Gender"],
                     "tipo": "padrao"
                 })
@@ -77,40 +98,30 @@ async def carregar_vozes_memoria():
 async def listar_vozes():
     if vozes_cache:
         return {"status": "sucesso", "vozes": vozes_cache}
-    else:
-        return {"status": "erro", "mensagem": "Vozes ainda não carregadas no servidor."}
+    return {"status": "erro", "mensagem": "Vozes ainda não carregadas no servidor."}
 
 # ==========================================
-# O CHUNKER OTIMIZADO
+# O CHUNKER UNIVERSAL (4000 chars)
 # ==========================================
-def split_text_for_openai(texto, max_chars=4000):
+def split_text_for_api(texto, max_chars=4000):
     texto = texto.replace('\n', ' ')
     frases = re.split(r'(?<=[.!?]) +', texto)
-    
     chunks = []
     chunk_atual = ""
-    
-    for i, frase in enumerate(frases):
+    for frase in frases:
         frase = frase.strip()
         if not frase: continue
-        
         if len(chunk_atual) + len(frase) < max_chars:
             chunk_atual += frase + " "
         else:
-            if chunk_atual:
-                chunks.append(chunk_atual.strip())
-            
+            if chunk_atual: chunks.append(chunk_atual.strip())
             if len(frase) >= max_chars:
                 pedacos = textwrap.wrap(frase, width=max_chars)
-                for p in pedacos[:-1]:
-                    chunks.append(p.strip())
+                for p in pedacos[:-1]: chunks.append(p.strip())
                 chunk_atual = pedacos[-1] + " "
             else:
                 chunk_atual = frase + " "
-                
-    if chunk_atual:
-        chunks.append(chunk_atual.strip())
-        
+    if chunk_atual: chunks.append(chunk_atual.strip())
     return chunks
 
 # ==========================================
@@ -129,18 +140,25 @@ async def gerar_narracao(
     if not texto:
         raise HTTPException(status_code=400, detail="O texto para narração é obrigatório.")
 
-    # MODO FANTASMA
+    # MODO FANTASMA (Previews)
     is_preview = texto.startswith("Olá, sou uma voz neural da sua plataforma.")
-    is_premium = req.voz.startswith("openai-premium")
+    
+    # Roteamento Inteligente
+    is_cinematic = req.voz.startswith("cinematic-")
+    is_creator = req.voz.startswith("creator-")
+    is_padrao = req.voz.startswith("padrao-")
+    
     tamanho_texto = len(texto)
 
-    # Cálculo de Custo Blindado (10 Coins por Minuto ~900 chars)
+    # PRECIFICAÇÃO DE CEO
     if is_preview:
         custo_operacao = 0
-    elif is_premium:
-        custo_operacao = max(1, math.ceil((tamanho_texto / 900.0) * 10))
+    elif is_cinematic:
+        custo_operacao = max(1, math.ceil((tamanho_texto / 900.0) * 50))
+    elif is_creator:
+        custo_operacao = max(1, math.ceil((tamanho_texto / 900.0) * 12))
     else:
-        custo_operacao = 30
+        custo_operacao = 30 # Standard fixo
 
     if not is_preview:
         if usuario.coins < custo_operacao:
@@ -151,42 +169,71 @@ async def gerar_narracao(
     try:
         srt_content = ""
         audio_base64 = ""
+        
+        chunks = split_text_for_api(texto, max_chars=4000)
+        final_audio = AudioSegment.empty()
+        pause_seg = AudioSegment.silent(duration=250)
 
-        if is_premium:
-            # === ROTA OPENAI MULTIMODAL (O Ator de Dublagem) ===
+        if is_cinematic:
+            # === MOTOR 3: CINEMATIC (ELEVENLABS) ===
+            api_key = os.environ.get("ELEVENLABS_API_KEY")
+            if not api_key: raise ValueError("Chave ELEVENLABS_API_KEY não configurada no Easypanel.")
+            
+            voz_real = req.voz.replace("cinematic-", "")
+            print(f"🎬 Iniciando Dublagem Cinematic (Voz ID: {voz_real} | Partes: {len(chunks)})")
+
+            async with httpx.AsyncClient(timeout=120.0) as client:
+                for i, chunk in enumerate(chunks):
+                    url = f"https://api.elevenlabs.io/v1/text-to-speech/{voz_real}"
+                    headers = {
+                        "xi-api-key": api_key,
+                        "Content-Type": "application/json"
+                    }
+                    data = {
+                        "text": chunk,
+                        "model_id": "eleven_turbo_v2_5",
+                        "voice_settings": {
+                            "stability": 0.5,
+                            "similarity_boost": 0.75
+                        }
+                    }
+                    
+                    response = await client.post(url, json=data, headers=headers)
+                    if response.status_code != 200:
+                        raise Exception(f"Falha na API Cinematic: {response.text}")
+                    
+                    seg = AudioSegment.from_file(io.BytesIO(response.content), format="mp3")
+                    final_audio += (pause_seg + seg) if i > 0 else seg
+
+            mp3_io = io.BytesIO()
+            final_audio.export(mp3_io, format="mp3", bitrate="128k")
+            audio_base64 = base64.b64encode(mp3_io.getvalue()).decode('utf-8')
+
+        elif is_creator:
+            # === MOTOR 2: CREATOR (OPENAI MULTIMODAL) ===
             api_key = os.environ.get("OPENAI_API_KEY")
             modelo_tts = os.environ.get("OPENAI_MODEL_TTS", "gpt-4o-mini-audio-preview") 
-            
             if not api_key: raise ValueError("Chave OPENAI_API_KEY não configurada no Easypanel.")
 
             client = openai.AsyncOpenAI(api_key=api_key)
-            voz_real = req.voz.split("-")[-1] 
-
-            chunks = split_text_for_openai(texto, max_chars=4000)
-            final_audio = AudioSegment.empty()
+            voz_real = req.voz.replace("creator-", "")
             
-            pause_seg = AudioSegment.silent(duration=200) 
-
-            # Montando a mente do Ator (BLINDADO CONTRA TRADUÇÃO)
             sys_prompt = (
                 "Você é um narrador profissional e dublador de elite para YouTube. "
-                "🚨 REGRA DE OURO DE IDIOMA: O texto fornecido pelo usuário está em PORTUGUÊS DO BRASIL. "
-                "Você DEVE ler e atuar EXATAMENTE as palavras escritas, com pronúncia e sotaque perfeitos em PORTUGUÊS DO BRASIL (PT-BR). "
-                "É ESTRITAMENTE PROIBIDO traduzir o texto para o inglês. Nunca fale em inglês. "
-                "Entregue APENAS o áudio atuado, não adicione nenhum texto na resposta."
+                "🚨 REGRA DE OURO: O texto fornecido pelo usuário está em PORTUGUÊS DO BRASIL. "
+                "Leia e atue EXATAMENTE as palavras escritas, com pronúncia perfeita em PT-BR. "
+                "PROIBIDO traduzir para o inglês. Entregue APENAS o áudio."
             )
             if req.instrucao_estilo:
-                sys_prompt += f" \n\nDIRETRIZ DE ATUAÇÃO (DIRETOR): {req.instrucao_estilo}"
+                sys_prompt += f" \n\nDIRETRIZ DE ATUAÇÃO: {req.instrucao_estilo}"
 
-            print(f"🎙️ Iniciando Dublagem Multimodal (Modelo: {modelo_tts} | Voz: {voz_real} | Partes: {len(chunks)}).")
+            print(f"🎙️ Iniciando Dublagem Creator (Modelo: {modelo_tts} | Voz: {voz_real})")
 
             for i, chunk in enumerate(chunks):
                 max_retries = 3
                 audio_bytes = None
-                
                 for attempt in range(max_retries):
                     try:
-                        # Chamada para o Chat Completions forçando saída de Áudio
                         response = await client.chat.completions.create(
                             model=modelo_tts,
                             modalities=["text", "audio"],
@@ -196,36 +243,23 @@ async def gerar_narracao(
                                 {"role": "user", "content": chunk}
                             ]
                         )
-                        
-                        # Extrai a base64 gerada pela IA e converte em bytes
                         audio_b64_output = response.choices[0].message.audio.data
                         audio_bytes = base64.b64decode(audio_b64_output)
                         break 
                     except Exception as api_err:
-                        print(f"⚠️ Aviso na Parte {i+1} (Tentativa {attempt+1}/{max_retries}): {api_err}")
-                        if attempt < max_retries - 1:
-                            time.sleep(3)
-                            continue
-                        else:
-                            raise Exception(f"A OpenAI falhou ao gerar a atuação da voz: {str(api_err)}")
+                        if attempt < max_retries - 1: time.sleep(3)
+                        else: raise Exception(f"Falha na API Creator: {str(api_err)}")
                 
-                if not audio_bytes:
-                    raise Exception(f"Falha crítica ao gerar o bloco {i+1}.")
-
                 seg = AudioSegment.from_file(io.BytesIO(audio_bytes), format="mp3")
-                
-                if i > 0:
-                    final_audio += pause_seg + seg
-                else:
-                    final_audio += seg
+                final_audio += (pause_seg + seg) if i > 0 else seg
 
             mp3_io = io.BytesIO()
             final_audio.export(mp3_io, format="mp3", bitrate="128k")
             audio_base64 = base64.b64encode(mp3_io.getvalue()).decode('utf-8')
 
         else:
-            # === ROTA PADRÃO (EDGE TTS) ===
-            voz_engine = req.voz
+            # === MOTOR 1: STANDARD (EDGE TTS) ===
+            voz_engine = req.voz.replace("padrao-", "") # Limpa o prefixo
             velocidade_formatada = f"{int((req.velocidade - 1.0) * 100):+d}%"
             pitch_formatado = f"{req.pitch:+d}Hz"
             
@@ -242,7 +276,7 @@ async def gerar_narracao(
             srt_content = submaker.get_srt()
             audio_base64 = base64.b64encode(audio_data).decode('utf-8')
         
-        # SALVA NO DISCO SE NÃO FOR PREVIEW
+        # SALVA NO DISCO
         if not is_preview:
             pasta_audios = os.path.join("frontend", "static", "audios")
             os.makedirs(pasta_audios, exist_ok=True)
@@ -252,14 +286,12 @@ async def gerar_narracao(
             with open(caminho_completo, "wb") as f:
                 f.write(base64.b64decode(audio_base64))
                 
-            caminho_relativo = f"/static/audios/{nome_arquivo}"
-
-            ferramenta_nome = "Voice Synth Premium" if is_premium else "Voice Synth Padrão"
+            ferramenta_nome = "Voz Cinematic" if is_cinematic else ("Voz Creator" if is_creator else "Voz Standard")
             novo_historico = models.Historico(
                 usuario_id=usuario.id,
                 ferramenta=ferramenta_nome,
-                input_usuario=f"Voz: {req.voz} | Tamanho: {tamanho_texto} chars\nDireção: {req.instrucao_estilo}",
-                resultado=caminho_relativo,
+                input_usuario=f"Voz: {req.voz} | Tamanho: {tamanho_texto} chars",
+                resultado=f"/static/audios/{nome_arquivo}",
                 custo_coins=custo_operacao
             )
             db.add(novo_historico)
