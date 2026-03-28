@@ -42,14 +42,15 @@ VOICES_CREATOR = {
     "sage": "Andrógino / Calmo e Reflexivo"
 }
 
+# IDs oficiais das vozes NATIVAS da ElevenLabs (Liberadas no Plano Free)
 VOICES_CINEMATIC = {
     "pNInz6obpgDQGcFmaJgB": {"nome": "Adam", "desc": "Profundo e Narrativo (Documentários)"},
-    "21m00Tcm4TlvDq8ikWAM": {"nome": "Rachel", "desc": "Calma e Conversacional"},
     "ErXwobaYiN019PkySvjV": {"nome": "Antony", "desc": "Firme e Confiante"},
+    "21m00Tcm4TlvDq8ikWAM": {"nome": "Rachel", "desc": "Calma e Conversacional"},
     "EXAVITQu4vr4xnSDxMaL": {"nome": "Bella", "desc": "Suave e Envolvente"},
-    "D38z5RcWu1voky8WS1ja": {"nome": "Fin", "desc": "Dinâmico e Expressivo"},
-    "TxGEqnHWrfWFTfGW9XjX": {"nome": "Josh", "desc": "Grave e Dramático"},
-    "MF3mGyEYCl7XYWbV9V6O": {"nome": "Elli", "desc": "Jovem e Emotiva"}
+    "AZnzlk1XvdvUeBnXmlld": {"nome": "Domi", "desc": "Forte e Expressiva"},
+    "yoZ06aMxZJJ28mfd3POQ": {"nome": "Sam", "desc": "Claro e Jornalístico"},
+    "29vD33N1CtxCmqQRPOHJ": {"nome": "Drew", "desc": "Noticiário e Dinâmico"}
 }
 
 vozes_cache = []
