@@ -88,7 +88,7 @@ function alternarAbaVozes(tipo) {
         if(btnCreator) btnCreator.className = "flex-1 py-2 text-xs font-bold rounded-md bg-zinc-800 text-blue-400 shadow-sm transition-all";
         atualizarInfoTier(
             "Qualidade Creator", 
-            "Vozes neurais avançadas com capacidade de atuação. A escolha definitiva para quem já monetiza e busca retenção com ótimo custo-benefício.",
+            "Vozes neurais altamente estáveis, previsíveis e com ritmo uniforme. A escolha definitiva e de ótimo custo-benefício para quem já monetiza.",
             "text-blue-400", "border-blue-500/20"
         );
     } else if (tipo === 'cinematic') {
@@ -144,7 +144,6 @@ function renderizarListaVozes() {
 
         let nomeDisplay = v.name;
         if (!isCinematic && !isCreator) {
-            // Limpa nomes muito grandes do Standard
             nomeDisplay = v.shortName.replace(/padrao-|Neural|Multilingual|V2/ig, '').trim(); 
             let partes = nomeDisplay.split('-');
             if(partes.length >= 3) {
@@ -176,16 +175,11 @@ function selecionarVoz(sn) {
     vozSelecionada = sn; 
     
     const painelStandard = document.getElementById('controles_standard');
-    const painelCreator = document.getElementById('controles_creator');
     
-    if(sn.includes("cinematic-")) {
+    // Tanto Creator quanto Cinematic não precisam de controles manuais de pitch/rate na interface limpa
+    if(sn.includes("cinematic-") || sn.includes("creator-")) {
         if(painelStandard) painelStandard.classList.add('hidden');
-        if(painelCreator) painelCreator.classList.add('hidden'); // Cinematic atua sozinho pelo roteiro
-    } else if (sn.includes("creator-")) {
-        if(painelStandard) painelStandard.classList.add('hidden');
-        if(painelCreator) painelCreator.classList.remove('hidden');
     } else {
-        if(painelCreator) painelCreator.classList.add('hidden');
         if(painelStandard) painelStandard.classList.remove('hidden');
     }
     
@@ -289,9 +283,6 @@ async function gerarAudioCompleto() {
     const texto = document.getElementById('texto_voz').value;
     const playerContainer = document.getElementById('player_container');
     
-    const instrucaoElement = document.getElementById('instrucao_estilo');
-    const instrucaoEstilo = instrucaoElement ? instrucaoElement.value : "";
-    
     if(!texto.trim()) return alert("Digite um texto antes de sintetizar!");
 
     btn.disabled = true;
@@ -312,8 +303,7 @@ async function gerarAudioCompleto() {
         texto: texto, 
         voz: vozSelecionada, 
         velocidade: parseFloat(document.getElementById('velocidade').value), 
-        pitch: parseInt(document.getElementById('pitch').value),
-        instrucao_estilo: instrucaoEstilo
+        pitch: parseInt(document.getElementById('pitch').value)
     };
 
     try {
