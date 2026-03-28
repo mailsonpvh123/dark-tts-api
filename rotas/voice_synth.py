@@ -177,10 +177,13 @@ async def gerar_narracao(
         if is_cinematic:
             # === MOTOR 3: CINEMATIC (ELEVENLABS) ===
             api_key = os.environ.get("ELEVENLABS_API_KEY")
+            # 🚨 INJEÇÃO DO MODELO DINÂMICO AQUI:
+            modelo_eleven = os.environ.get("ELEVENLABS_MODEL_ID", "eleven_turbo_v2_5")
+            
             if not api_key: raise ValueError("Chave ELEVENLABS_API_KEY não configurada no Easypanel.")
             
             voz_real = req.voz.replace("cinematic-", "")
-            print(f"🎬 Iniciando Dublagem Cinematic (Voz ID: {voz_real} | Partes: {len(chunks)})")
+            print(f"🎬 Iniciando Dublagem Cinematic (Modelo: {modelo_eleven} | Voz ID: {voz_real} | Partes: {len(chunks)})")
 
             async with httpx.AsyncClient(timeout=120.0) as client:
                 for i, chunk in enumerate(chunks):
@@ -191,7 +194,7 @@ async def gerar_narracao(
                     }
                     data = {
                         "text": chunk,
-                        "model_id": "eleven_turbo_v2_5",
+                        "model_id": modelo_eleven, # Usando a variável de ambiente
                         "voice_settings": {
                             "stability": 0.5,
                             "similarity_boost": 0.75
@@ -259,7 +262,7 @@ async def gerar_narracao(
 
         else:
             # === MOTOR 1: STANDARD (EDGE TTS) ===
-            voz_engine = req.voz.replace("padrao-", "") # Limpa o prefixo
+            voz_engine = req.voz.replace("padrao-", "") 
             velocidade_formatada = f"{int((req.velocidade - 1.0) * 100):+d}%"
             pitch_formatado = f"{req.pitch:+d}Hz"
             
