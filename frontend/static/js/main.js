@@ -146,19 +146,15 @@ function renderizarListaVozes() {
 function selecionarVoz(sn) { 
     vozSelecionada = sn; 
     
-    const controlePitch = document.getElementById('controle_pitch');
-    const wrapperVelocidade = document.getElementById('wrapper_velocidade');
+    const painelEdge = document.getElementById('controles_edge');
     const painelOpenAI = document.getElementById('controles_openai');
     
-    // Toggle visual inteligente
     if(sn.includes("openai-premium")) {
-        if(controlePitch) controlePitch.classList.add('hidden');
-        if(wrapperVelocidade) wrapperVelocidade.classList.add('md:col-span-2');
+        painelEdge.classList.add('hidden');
         if(painelOpenAI) painelOpenAI.classList.remove('hidden');
     } else {
         if(painelOpenAI) painelOpenAI.classList.add('hidden');
-        if(controlePitch) controlePitch.classList.remove('hidden');
-        if(wrapperVelocidade) wrapperVelocidade.classList.remove('md:col-span-2');
+        painelEdge.classList.remove('hidden');
     }
     
     renderizarListaVozes(); 
@@ -207,7 +203,7 @@ function recalcularCustoVoz() {
             } else {
                 let custo = Math.ceil((tamanho / 900.0) * 10);
                 if (custo < 1) custo = 1;
-                btnTxt.innerHTML = `Sintetizar Voz Premium (<span class="text-yellow-900 drop-shadow-md">${custo} Coins</span>)`;
+                btnTxt.innerHTML = `Sintetizar Atuação Multimodal (<span class="text-yellow-900 drop-shadow-md">${custo} Coins</span>)`;
                 document.getElementById('btn_gerar_voz').className = "w-full mt-6 bg-yellow-500 hover:bg-yellow-400 text-yellow-900 font-black py-4 px-4 rounded-xl shadow-[0_0_20px_rgba(234,179,8,0.3)] transition-all flex items-center justify-center gap-2 group border border-yellow-400 relative z-10";
             }
         }
@@ -215,7 +211,7 @@ function recalcularCustoVoz() {
 }
 
 // ==========================================
-// CONTROLES DE SLIDERS (Universal e Edge)
+// CONTROLES DE SLIDERS (Edge)
 // ==========================================
 function ajustarVelocidade(delta) {
     const slider = document.getElementById('velocidade');
@@ -253,7 +249,6 @@ async function tocarPreview(event, shortName) {
             body: JSON.stringify({ 
                 texto: "Olá, sou uma voz neural da sua plataforma. Esta é a minha qualidade de narração.", 
                 voz: shortName, 
-                // A prévia sempre toca na velocidade 1.0 para o cliente ouvir o timbre original
                 velocidade: 1.0, 
                 pitch: 0 
             }) 
@@ -278,25 +273,30 @@ async function gerarAudioCompleto() {
     const texto = document.getElementById('texto_voz').value;
     const playerContainer = document.getElementById('player_container');
     
+    // Captura a direção de arte
+    const instrucaoElement = document.getElementById('instrucao_estilo');
+    const instrucaoEstilo = instrucaoElement ? instrucaoElement.value : "";
+    
     if(!texto.trim()) return alert("Digite um texto antes de sintetizar!");
 
     const textoBotaoOriginal = txtBtn.innerHTML;
     btn.disabled = true;
     btn.classList.add('opacity-70', 'cursor-not-allowed');
-    txtBtn.innerHTML = `Sintetizando... <i class="fa-solid fa-circle-notch fa-spin ml-2"></i>`;
+    txtBtn.innerHTML = `Dublando... <i class="fa-solid fa-circle-notch fa-spin ml-2"></i>`;
     
     playerContainer.classList.remove('hidden');
     
     const isPremium = vozSelecionada.includes("openai-premium");
     let msgExtra = (isPremium && texto.length > 4000) ? "<br><span class='text-[10px] text-zinc-500'>O texto é longo e está sendo dividido e costurado em segundo plano. Aguarde.</span>" : "";
     
-    playerContainer.innerHTML = `<p class="text-purple-400 animate-pulse text-center font-bold text-sm"><i class="fa-solid fa-microphone-lines fa-fade mr-2"></i> O estúdio neural está gravando a sua locução...${msgExtra}</p>`;
+    playerContainer.innerHTML = `<p class="text-purple-400 animate-pulse text-center font-bold text-sm"><i class="fa-solid fa-masks-theater fa-fade mr-2"></i> O ator de dublagem está atuando o seu roteiro...${msgExtra}</p>`;
 
     const payload = { 
         texto: texto, 
         voz: vozSelecionada, 
         velocidade: parseFloat(document.getElementById('velocidade').value), 
-        pitch: parseInt(document.getElementById('pitch').value)
+        pitch: parseInt(document.getElementById('pitch').value),
+        instrucao_estilo: instrucaoEstilo
     };
 
     try {
@@ -329,7 +329,7 @@ async function gerarAudioCompleto() {
         playerContainer.innerHTML = `
             <div class="flex items-center gap-2 mb-3">
                 <i class="fa-solid fa-circle-check text-emerald-400 drop-shadow-[0_0_5px_rgba(16,185,129,0.8)]"></i>
-                <p class="text-xs text-emerald-400 font-bold uppercase tracking-wider">Áudio Finalizado</p>
+                <p class="text-xs text-emerald-400 font-bold uppercase tracking-wider">Dublagem Finalizada</p>
             </div>
             <audio controls class="w-full h-12 bg-zinc-900 rounded-lg outline-none shadow-inner">
                 <source src="data:audio/mp3;base64,${dados.audio_base64}" type="audio/mp3">
@@ -346,7 +346,9 @@ async function gerarAudioCompleto() {
     }
 }
 
-// ... (Resto das funções de contagem de palavras do seu código)
+// ==========================================
+// FUNÇÕES UTILITÁRIAS
+// ==========================================
 function contarPalavrasLocal(texto) {
     if (!texto || texto.trim() === "") return 0;
     return texto.trim().split(/\s+/).length;
