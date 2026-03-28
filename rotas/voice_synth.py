@@ -25,6 +25,7 @@ class AudioRequest(BaseModel):
     voz: str = "pt-BR-AntonioNeural"
     velocidade: float = 1.0
     pitch: int = 0
+    instrucao_estilo: str = "" # Trazendo a Direção de Arte de volta para a IA Multimodal
 
 # ==========================================
 # CATÁLOGO OPENAI (VOZES PREMIUM)
@@ -80,7 +81,7 @@ async def listar_vozes():
         return {"status": "erro", "mensagem": "Vozes ainda não carregadas no servidor."}
 
 # ==========================================
-# O CHUNKER OTIMIZADO (OPENAI = 4096 chars máx)
+# O CHUNKER OTIMIZADO
 # ==========================================
 def split_text_for_openai(texto, max_chars=4000):
     texto = texto.replace('\n', ' ')
@@ -152,9 +153,10 @@ async def gerar_narracao(
         audio_base64 = ""
 
         if is_premium:
-            # === ROTA OPENAI (A Máquina de Lucro) ===
+            # === ROTA OPENAI MULTIMODAL (O Ator de Dublagem) ===
             api_key = os.environ.get("OPENAI_API_KEY")
-            modelo_tts = os.environ.get("OPENAI_MODEL_TTS", "tts-1") 
+            # Fallback agora é o GPT-4o-mini
+            modelo_tts = os.environ.get("OPENAI_MODEL_TTS", "gpt-4o-mini") 
             
             if not api_key: raise ValueError("Chave OPENAI_API_KEY não configurada no Easypanel.")
 
@@ -164,10 +166,14 @@ async def gerar_narracao(
             chunks = split_text_for_openai(texto, max_chars=4000)
             final_audio = AudioSegment.empty()
             
-            # Uma pequena pausa de 200ms entre blocos para soar natural
             pause_seg = AudioSegment.silent(duration=200) 
 
-            print(f"🎙️ Iniciando síntese Premium OpenAI (Modelo: {modelo_tts} | Voz: {voz_real} | Velocidade: {req.velocidade}x | Partes: {len(chunks)}).")
+            # Montando a mente do Ator
+            sys_prompt = "Você é um narrador profissional e dublador de elite para YouTube. Leia o texto fornecido pelo usuário com perfeição rítmica. Entregue APENAS o áudio lendo o texto, não adicione respostas em texto."
+            if req.instrucao_estilo:
+                sys_prompt += f" \n\nDIRETOR DE ARTE: {req.instrucao_estilo}"
+
+            print(f"🎙️ Iniciando Dublagem Multimodal (Modelo: {modelo_tts} | Voz: {voz_real} | Partes: {len(chunks)}).")
 
             for i, chunk in enumerate(chunks):
                 max_retries = 3
@@ -175,14 +181,20 @@ async def gerar_narracao(
                 
                 for attempt in range(max_retries):
                     try:
-                        # INJETANDO A VELOCIDADE AQUI (speed)
-                        response = await client.audio.speech.create(
-                            model=modelo_tts, 
-                            voice=voz_real,
-                            input=chunk,
-                            speed=req.velocidade
+                        # Chamada para o Chat Completions forçando saída de Áudio
+                        response = await client.chat.completions.create(
+                            model=modelo_tts,
+                            modalities=["text", "audio"],
+                            audio={"voice": voz_real, "format": "mp3"},
+                            messages=[
+                                {"role": "system", "content": sys_prompt},
+                                {"role": "user", "content": chunk}
+                            ]
                         )
-                        audio_bytes = response.read()
+                        
+                        # Extrai a base64 gerada pela IA e converte em bytes
+                        audio_b64_output = response.choices[0].message.audio.data
+                        audio_bytes = base64.b64decode(audio_b64_output)
                         break 
                     except Exception as api_err:
                         print(f"⚠️ Aviso na Parte {i+1} (Tentativa {attempt+1}/{max_retries}): {api_err}")
@@ -190,7 +202,7 @@ async def gerar_narracao(
                             time.sleep(3)
                             continue
                         else:
-                            raise Exception("A OpenAI falhou ao gerar a voz após várias tentativas.")
+                            raise Exception(f"A OpenAI falhou ao gerar a atuação da voz: {str(api_err)}")
                 
                 if not audio_bytes:
                     raise Exception(f"Falha crítica ao gerar o bloco {i+1}.")
@@ -241,7 +253,7 @@ async def gerar_narracao(
             novo_historico = models.Historico(
                 usuario_id=usuario.id,
                 ferramenta=ferramenta_nome,
-                input_usuario=f"Voz: {req.voz} | Tamanho: {tamanho_texto} chars",
+                input_usuario=f"Voz: {req.voz} | Tamanho: {tamanho_texto} chars\nDireção: {req.instrucao_estilo}",
                 resultado=caminho_relativo,
                 custo_coins=custo_operacao
             )
