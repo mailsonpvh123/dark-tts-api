@@ -18,12 +18,26 @@ VOICES_CREATOR = ["alloy", "echo", "fable", "onyx", "nova", "shimmer", "ash", "c
 
 VOICES_CINEMATIC = {
     "pNInz6obpgDQGcFmaJgB": "Adam",
-    "ErXwobaYiN019PkySvjV": "Antony",
-    "21m00Tcm4TlvDq8ikWAM": "Rachel",
-    "EXAVITQu4vr4xnSDxMaL": "Bella",
-    "AZnzlk1XvdvUeBnXmlld": "Domi",
-    "yoZ06aMxZJJ28mfd3POQ": "Sam",
-    "29vD33N1CtxCmqQRPOHJ": "Drew"
+    "Xb7hH8MSUJpSbSDYk0k2": "Alice",
+    "hpp4J3VqNfWAUOO0d1Us": "Bella",
+    "pqHfZKP75CvOlQylNhV4": "Bill",
+    "nPczCjzI2devNBz1zQrb": "Brian",
+    "N2lVS1w4EtoT3dr4eOWO": "Callum",
+    "IKne3meq5aSn9XLyUdCD": "Charlie",
+    "iP95p4xoKVk53GoZ742B": "Chris",
+    "onwK4e9ZLuTAKqWW03F9": "Daniel",
+    "cjVigY5qzO86Huf0OWal": "Eric",
+    "JBFqnCBsd6RMkjVDRZzb": "George",
+    "SOYHLrjzK2X1ezoPC6cr": "Harry",
+    "cgSgspJ2msm6clMCkdW9": "Jessica",
+    "FGY2WhTYpPnrIDTdsKH5": "Laura",
+    "TX3LPaxmHKxFdv7VOQHJ": "Liam",
+    "pFZP5JQG7iQjIQuC4Bku": "Lily",
+    "XrExE9yKIg1WjnnlVkGX": "Matilda",
+    "SAz9YHcvj6GT2YYXdXww": "River",
+    "CwhRBWXzGAHq8TQ4Fs17": "Roger",
+    "EXAVITQu4vr4xnSDxMaL": "Sarah",
+    "bIHbv24MWmeRgasZH58o": "Will"
 }
 
 async def gerar_todas_as_previas():
