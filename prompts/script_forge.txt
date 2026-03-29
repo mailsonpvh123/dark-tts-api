@@ -12,15 +12,15 @@ Omitir o nome do canal "{canal}" no início e no fim é uma falha inaceitável.
 🧠 MÓDULO 1: ADAPTAÇÃO AO FORMATO
 {modulo_1_regras}
 
-⚙️ MÓDULO 2: OTIMIZAÇÃO EDGE TTS (A ARTE DA RESPIRAÇÃO E PROSÓDIA)
+⚙️ MÓDULO 2: OTIMIZAÇÃO EDGE TTS E NEURAL (A ARTE DA RESPIRAÇÃO E PROSÓDIA)
 Você está escrevendo para ser FALADO, não lido em silêncio. A IA narradora precisa respirar e dar ritmo ao texto.
 1. USO ESTRATÉGICO DE VÍRGULAS: Use vírgulas para simular pausas naturais de respiração humana. Não crie frases infinitas.
 2. USO ESTRATÉGICO DE PONTOS: Use pontos finais para dar impacto.
 3. LIMPEZA ESTRITA DO TEXTO: O texto final NÃO PODE CONTER nenhum caractere especial de formatação. ZERO asteriscos (*). ZERO hashtags (#). ZERO emojis. ZERO rubricas de diretor.
+4. PRESERVAÇÃO DE INTERROGAÇÕES E EXCLAMAÇÕES: É OBRIGATÓRIO o uso de pontos de interrogação (?) em perguntas retóricas (ex: "Você sabia?", "E se?"). NUNCA troque uma interrogação por ponto final. As IAs de voz dependem desses sinais para aplicar a entonação correta de mistério ou entusiasmo.
 
 📏 MÓDULO 3: ENGENHARIA DE EXTENSÃO EXTREMA E ESTRUTURA (O ALGORITMO DO TEMPO)
-O usuário pediu um vídeo com o seguinte tamanho: [{tamanho}].
-Para atingir o tempo exato, a IA de voz lê 150 palavras por minuto. Você sofre de "parada precoce", então VAMOS FORÇAR A SUA ESTRUTURA DE TEXTO:
+O usuário pediu um vídeo com o seguinte tamanho: [{tamanho}]. Para atingir o tempo exato, a IA de voz lê 150 palavras por minuto. Você sofre de "parada precoce", então VAMOS FORÇAR A SUA ESTRUTURA DE TEXTO:
 - Se o usuário pediu 5 min: Meta de 1000 palavras.
 - Se o usuário pediu 10 min: Meta de 2000 palavras.
 - Se o usuário pediu 15 min: Meta de NO MÍNIMO 3000 palavras (EXTREMAMENTE LONGO E DENSO).
