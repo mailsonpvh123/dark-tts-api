@@ -15,7 +15,7 @@ from database import engine, get_db
 from auth import criar_token_acesso, verificar_senha, get_usuario_atual
 
 # Importa as rotas dos arquivos modulares
-from rotas import minerador, voice_synth, audio_mixer, paraphraser, gen_insights, script_forge, meta_seo, thumb_maker, historico, pagamentos
+from rotas import minerador, voice_synth, audio_mixer, paraphraser, gen_insights, script_forge, meta_seo, thumb_maker, historico, pagamentos, cliphunter
 
 # --- INICIALIZAÇÃO ---
 app = FastAPI(
@@ -51,6 +51,7 @@ app.include_router(gen_insights.router)
 app.include_router(script_forge.router)
 app.include_router(meta_seo.router)
 app.include_router(thumb_maker.router)
+app.include_router(cliphunter.router)
 app.include_router(historico.router)
 app.include_router(pagamentos.router)
 
@@ -180,6 +181,12 @@ async def thumb_page(request: Request, db: Session = Depends(get_db)):
     user = await obter_user_ou_redirect(request, db)
     if not user: return RedirectResponse(url="/login")
     return templates.TemplateResponse("thumb_maker.html", {"request": request, "title": "Thumb Maker", "user": user})
+
+@app.get("/clip-hunter", response_class=HTMLResponse)
+async def clip_hunter_page(request: Request, db: Session = Depends(get_db)):
+    user = await obter_user_ou_redirect(request, db)
+    if not user: return RedirectResponse(url="/login")
+    return templates.TemplateResponse("clip_hunter.html", {"request": request, "title": "Clip Hunter", "user": user})
 
 @app.get("/historico", response_class=HTMLResponse)
 async def historico_page(request: Request, db: Session = Depends(get_db)):
