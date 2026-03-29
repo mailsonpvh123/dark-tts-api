@@ -274,7 +274,7 @@ async def gerar_narracao(
             with open(caminho_completo, "wb") as f:
                 f.write(base64.b64decode(audio_base64))
                 
-            ferramenta_nome = "Voz Cinematic" if is_cinematic else ("Voz Creator" if is_creator else "Voz Standard")
+            ferramenta_nome = "Voice Synth - Cinematic" if is_cinematic else ("Voice Synth - Creator" if is_creator else "Voice Synth - Standard")
             novo_historico = models.Historico(
                 usuario_id=usuario.id,
                 ferramenta=ferramenta_nome,
