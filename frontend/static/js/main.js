@@ -9,9 +9,13 @@ let srtGlobal = "";
 let timerDebounceCusto = null; 
 let abaVozAtiva = "padrao";
 
+// ==========================================
+// INICIALIZAÇÃO DA PLATAFORMA
+// ==========================================
 document.addEventListener('DOMContentLoaded', async function() {
     const path = window.location.pathname;
     
+    // Controle visual de qual página está ativa no menu lateral
     document.querySelectorAll('.menu-btn').forEach(link => {
         if (link.getAttribute('href') === path) {
             link.classList.add('text-white', 'bg-zinc-800/80', 'border-zinc-700');
@@ -25,9 +29,11 @@ document.addEventListener('DOMContentLoaded', async function() {
             if (path === '/audio-mixer') icon.classList.add('text-amber-400');
             if (path === '/meta-seo') icon.classList.add('text-blue-400');
             if (path === '/thumb-maker') icon.classList.add('text-pink-400');
+            if (path === '/clip-hunter') icon.classList.add('text-emerald-400');
         }
     });
 
+    // Lógica do Voice Synthesizer
     const textoVoice = localStorage.getItem('texto_pendente_voice');
     if (textoVoice && document.getElementById('texto_voz')) {
         document.getElementById('texto_voz').value = textoVoice;
@@ -63,7 +69,139 @@ function despacharParaVoice(idCampoOrigem) {
 }
 
 // ==========================================
-// FUNÇÕES DE INTERFACE (AS 3 ABAS)
+// FUNÇÕES DO CLIP HUNTER (MINERADOR DE MÍDIAS)
+// ==========================================
+async function buscarMidiaHunter() {
+    const termoInput = document.getElementById('hunter_input');
+    const galeria = document.getElementById('hunter_galeria');
+    const btn = document.getElementById('hunter_btn');
+    const status = document.getElementById('hunter_status');
+    const mediaType = document.getElementById('hunter_type').value;
+    const orientation = document.getElementById('hunter_orientation').value;
+    
+    if(!termoInput || !galeria) return;
+    
+    const termo = termoInput.value.trim();
+    if(termo === "") return alert("Por favor, insira um termo para buscar!");
+
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>';
+    status.innerText = "Minerando arquivos na nuvem...";
+    galeria.innerHTML = ""; // Limpa a galeria atual
+    
+    try {
+        const resposta = await fetch(`/api/cliphunter/search?query=${encodeURIComponent(termo)}&media_type=${mediaType}&orientation=${orientation}`);
+        const dados = await resposta.json();
+        
+        if(!resposta.ok) throw new Error(dados.detail || "Erro ao conectar na API.");
+        
+        if(dados.results.length === 0) {
+            galeria.innerHTML = `<div class="col-span-full text-center py-10 text-zinc-500"><i class="fa-solid fa-ghost text-4xl mb-3"></i><p>Nenhuma mídia encontrada para "${termo}". Tente outro termo em inglês.</p></div>`;
+            status.innerText = "Busca concluída (0 resultados).";
+            return;
+        }
+
+        status.innerText = `Mostrando resultados para "${dados.query_traduzida}" (${dados.results.length} mídias)`;
+        
+        dados.results.forEach(item => {
+            const card = document.createElement('div');
+            card.className = "bg-[#1E1E1E] rounded-xl border border-zinc-800 overflow-hidden hover:border-emerald-500/50 transition-all shadow-lg flex flex-col";
+            
+            let conteudoVisual = "";
+            let btnAcao = "";
+            
+            if(item.type === "video") {
+                conteudoVisual = `
+                    <div class="relative aspect-video bg-black group">
+                        <img src="${item.thumb}" class="w-full h-full object-cover opacity-80 group-hover:opacity-50 transition-opacity">
+                        <button onclick="abrirPreviewHunter(this, '${item.url}', 'video')" class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <i class="fa-solid fa-circle-play text-4xl text-emerald-400 drop-shadow-lg"></i>
+                        </button>
+                        <span class="absolute bottom-2 right-2 bg-black/80 px-2 py-1 text-[10px] rounded text-white font-bold">${item.duration}s</span>
+                    </div>`;
+                btnAcao = `<a href="${item.url}" target="_blank" download class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 text-center text-sm rounded transition-colors"><i class="fa-solid fa-download mr-1"></i> Baixar</a>`;
+            } 
+            else if(item.type === "image") {
+                conteudoVisual = `
+                    <div class="relative aspect-square bg-black group">
+                        <img src="${item.thumb}" class="w-full h-full object-cover opacity-90 group-hover:opacity-60 transition-opacity">
+                        <button onclick="abrirPreviewHunter(this, '${item.url}', 'image')" class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <i class="fa-solid fa-expand text-3xl text-zinc-200 drop-shadow-lg"></i>
+                        </button>
+                    </div>`;
+                btnAcao = `<a href="${item.url}" target="_blank" download class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 text-center text-sm rounded transition-colors"><i class="fa-solid fa-download mr-1"></i> Baixar</a>`;
+            }
+            else if(item.type === "audio") {
+                conteudoVisual = `
+                    <div class="p-4 bg-zinc-900 border-b border-zinc-800 flex items-center justify-center h-24">
+                        <button onclick="tocarAudioHunter(this, '${item.url}')" class="w-12 h-12 rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-500 hover:bg-amber-500 hover:text-white transition-colors">
+                            <i class="fa-solid fa-play text-lg ml-1"></i>
+                        </button>
+                    </div>`;
+                btnAcao = `<a href="${item.url}" target="_blank" download class="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-2 text-center text-sm rounded transition-colors"><i class="fa-solid fa-download mr-1"></i> Baixar</a>`;
+            }
+
+            card.innerHTML = `
+                ${conteudoVisual}
+                <div class="p-3 flex-1 flex flex-col justify-between">
+                    <p class="text-[11px] text-zinc-400 mb-3 truncate" title="${item.author || item.title}"><i class="fa-solid ${item.type === 'audio' ? 'fa-music' : 'fa-camera'} mr-1"></i> ${item.author || item.title}</p>
+                    ${btnAcao}
+                </div>
+            `;
+            galeria.appendChild(card);
+        });
+
+    } catch(erro) {
+        status.innerText = "Falha na mineração.";
+        galeria.innerHTML = `<div class="col-span-full text-center py-10 text-red-400 font-bold border border-red-500/30 bg-red-500/10 rounded-xl"><i class="fa-solid fa-triangle-exclamation mb-2 text-2xl"></i><br>${erro.message}</div>`;
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-magnifying-glass"></i>';
+    }
+}
+
+function abrirPreviewHunter(btn, url, type) {
+    // Implementação básica de preview. Para vídeos, abre em nova aba.
+    // Em versões futuras, podemos criar um Modal (Popup) bonito na própria tela.
+    window.open(url, '_blank');
+}
+
+function tocarAudioHunter(btn, url) {
+    if(window.hunterAudioAtual) {
+        window.hunterAudioAtual.pause();
+        // Reseta todos os ícones
+        document.querySelectorAll('#hunter_galeria .fa-pause').forEach(i => {
+            i.classList.remove('fa-pause');
+            i.classList.add('fa-play');
+        });
+    }
+    
+    const icon = btn.querySelector('i');
+    
+    // Se clicou no botão que já estava tocando, apenas pausa
+    if(btn.dataset.tocando === "sim") {
+        btn.dataset.tocando = "nao";
+        return;
+    }
+    
+    // Toca o novo áudio
+    window.hunterAudioAtual = new Audio(url);
+    window.hunterAudioAtual.play();
+    
+    icon.classList.remove('fa-play');
+    icon.classList.add('fa-pause');
+    btn.dataset.tocando = "sim";
+    
+    window.hunterAudioAtual.onended = () => {
+        icon.classList.remove('fa-pause');
+        icon.classList.add('fa-play');
+        btn.dataset.tocando = "nao";
+    };
+}
+
+
+// ==========================================
+// FUNÇÕES DA INTERFACE DO ESTÚDIO DE DUBLAGEM (VOICE SYNTH)
 // ==========================================
 function alternarAbaVozes(tipo) {
     abaVozAtiva = tipo;
@@ -247,35 +385,27 @@ function ajustarPitch(delta) {
 async function tocarPreview(event, shortName) {
     event.stopPropagation();
     
-    // Interrompe qualquer preview que já esteja tocando para não encavalar áudios
     if (window.playerPreviewAtual) {
         window.playerPreviewAtual.pause();
         document.querySelectorAll('[id^="play_icon_"]').forEach(i => i.className = "fa-solid fa-play text-xs ml-0.5");
     }
 
     const icon = document.getElementById(`play_icon_${shortName}`);
-    icon.className = "fa-solid fa-circle-notch fa-spin text-white"; // Animação de loading rápida
+    icon.className = "fa-solid fa-circle-notch fa-spin text-white"; 
     
     try {
-        // A MÁGICA DO CUSTO ZERO: Busca direto na pasta estática do servidor
         const audioUrl = `/static/audios/previews/${shortName}.mp3`;
-        
         const playerPreview = new Audio(audioUrl);
         window.playerPreviewAtual = playerPreview; 
         
-        // Tenta dar o play no arquivo estático
         await playerPreview.play();
-        
-        // Fica com ícone de "Pausa" verde enquanto toca
         icon.className = "fa-solid fa-volume-high text-xs ml-0.5 text-emerald-400"; 
         
-        // Volta pro ícone de Play quando acabar
         playerPreview.onended = () => { 
             icon.className = "fa-solid fa-play text-xs ml-0.5"; 
         };
 
     } catch(e) {
-        // Se der erro (ex: arquivo não existe na pasta), ele avisa!
         alert(`Arquivo de prévia não encontrado no servidor!\n\n(Dica técnica: Você precisa rodar o script gerar_previas.py para baixar o arquivo "${shortName}.mp3").`);
         icon.className = "fa-solid fa-play text-xs ml-0.5"; 
     } 
