@@ -242,37 +242,41 @@ function ajustarPitch(delta) {
 }
 
 // ==========================================
-// INTEGRAÇÃO COM A API (GERAÇÃO DE VOZ)
+// INTEGRAÇÃO DE PRÉVIAS E GERAÇÃO DE VOZ
 // ==========================================
 async function tocarPreview(event, shortName) {
     event.stopPropagation();
-    const playerPreview = document.getElementById('player_preview') || new Audio();
-    playerPreview.pause();
+    
+    // Interrompe qualquer preview que já esteja tocando para não encavalar áudios
+    if (window.playerPreviewAtual) {
+        window.playerPreviewAtual.pause();
+        document.querySelectorAll('[id^="play_icon_"]').forEach(i => i.className = "fa-solid fa-play text-xs ml-0.5");
+    }
 
     const icon = document.getElementById(`play_icon_${shortName}`);
-    icon.className = "fa-solid fa-circle-notch fa-spin text-white";
+    icon.className = "fa-solid fa-circle-notch fa-spin text-white"; // Animação de loading rápida
     
     try {
-        const res = await fetch("/gerar_narracao", { 
-            method: 'POST', 
-            headers: { 'Content-Type': 'application/json' }, 
-            body: JSON.stringify({ 
-                texto: "Olá, sou uma voz neural da sua plataforma. Esta é a minha qualidade de narração.", 
-                voz: shortName, 
-                velocidade: 1.0, 
-                pitch: 0 
-            }) 
-        });
+        // A MÁGICA DO CUSTO ZERO: Busca direto na pasta estática do servidor
+        const audioUrl = `/static/audios/previews/${shortName}.mp3`;
         
-        const dados = await res.json();
-        if(dados.status === "erro") throw new Error(dados.mensagem);
+        const playerPreview = new Audio(audioUrl);
+        window.playerPreviewAtual = playerPreview; 
+        
+        // Tenta dar o play no arquivo estático
+        await playerPreview.play();
+        
+        // Fica com ícone de "Pausa" verde enquanto toca
+        icon.className = "fa-solid fa-volume-high text-xs ml-0.5 text-emerald-400"; 
+        
+        // Volta pro ícone de Play quando acabar
+        playerPreview.onended = () => { 
+            icon.className = "fa-solid fa-play text-xs ml-0.5"; 
+        };
 
-        playerPreview.src = "data:audio/mp3;base64," + dados.audio_base64;
-        playerPreview.play();
-        
-        playerPreview.onended = () => { icon.className = "fa-solid fa-play text-xs ml-0.5"; };
     } catch(e) {
-        alert("Erro no Preview: " + e.message);
+        // Se der erro (ex: arquivo não existe na pasta), ele avisa!
+        alert(`Arquivo de prévia não encontrado no servidor!\n\n(Dica técnica: Você precisa rodar o script gerar_previas.py para baixar o arquivo "${shortName}.mp3").`);
         icon.className = "fa-solid fa-play text-xs ml-0.5"; 
     } 
 }
