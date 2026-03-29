@@ -108,10 +108,10 @@ async def process_script(
         
         # Limpeza fina para o Voice Synthesizer
         texto_limpo = texto_limpo.replace('*', '').replace('#', '')
-        texto_limpo = texto_limpo.replace('?', '.').replace('!', '.')
+        # AQUI FOI REMOVIDA A DESTRUIÇÃO DE INTERROGAÇÕES E EXCLAMAÇÕES!
         texto_limpo = re.sub(r'\.{2,}', '.', texto_limpo)
         
-        # AQUI ESTAVA O ERRO! Agora gravamos o Roteiro Inteiro (texto_limpo) no Histórico
+        # Gravamos o Roteiro Inteiro (texto_limpo) no Histórico
         novo_historico = models.Historico(
             usuario_id=usuario.id,
             ferramenta="Script Forge",
