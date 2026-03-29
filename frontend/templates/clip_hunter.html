@@ -10,7 +10,7 @@
                 CLIP <span class="text-zinc-500 font-normal">HUNTER</span>
             </h1>
             <p class="text-sm text-zinc-400 max-w-2xl leading-relaxed">
-                O maior cofre de mídias seguras da internet para os seus vídeos Dark. Encontre imagens, vídeos e efeitos sonoros com um clique, 100% livres de royalties e prontos para o YouTube. <span class="text-xs text-zinc-600">(Motor Pexels & Freesound)</p>
+                O maior cofre de mídias seguras da internet para os seus vídeos Dark. Encontre imagens, vídeos e efeitos sonoros com um clique, 100% livres de royalties e prontos para o YouTube. <span class="text-xs text-zinc-600">(Motor Pexels & Pixabay & Freesound)</span></p>
         </div>
     </div>
 
@@ -52,17 +52,11 @@
     </div>
 
     <style>
-        .pinterest-grid {
-            columns: 1;
-            column-gap: 1.5rem;
-        }
+        .pinterest-grid { columns: 1; column-gap: 1.5rem; }
         @media (min-width: 640px) { .pinterest-grid { columns: 2; } }
         @media (min-width: 1024px) { .pinterest-grid { columns: 3; } }
         @media (min-width: 1280px) { .pinterest-grid { columns: 4; } }
-        .pinterest-grid > div {
-            break-inside: avoid;
-            margin-bottom: 1.5rem;
-        }
+        .pinterest-grid > div { break-inside: avoid; margin-bottom: 1.5rem; }
     </style>
 
     <div id="hunter_galeria" class="pinterest-grid relative z-10">
@@ -71,6 +65,14 @@
             <h3 class="font-bold text-lg mb-1 text-zinc-400">Pronto para a Colheita?</h3>
             <p class="text-sm max-w-sm mx-auto leading-relaxed text-zinc-600">Sua galeria está vazia. Use a barra acima para buscar o tema do seu vídeo e eu minerarei os melhores arquivos Royalty-Free para você.</p>
         </div>
+    </div>
+
+    <div id="hunter_modal" class="fixed inset-0 bg-black/95 backdrop-blur-md z-[100] hidden flex-col items-center justify-center p-4 transition-all duration-300">
+        <button onclick="fecharModalHunter()" class="absolute top-6 right-6 w-12 h-12 flex items-center justify-center bg-zinc-800/50 hover:bg-red-500 hover:text-white text-zinc-400 border border-zinc-700 rounded-full text-xl z-10 transition-colors shadow-lg">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+        <div id="hunter_modal_content" class="relative w-full max-w-5xl max-h-[90vh] flex items-center justify-center">
+            </div>
     </div>
 
 </div>
