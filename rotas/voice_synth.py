@@ -44,13 +44,27 @@ VOICES_CREATOR = {
 
 # IDs oficiais das vozes NATIVAS da ElevenLabs (Liberadas no Plano Free)
 VOICES_CINEMATIC = {
-    "pNInz6obpgDQGcFmaJgB": {"nome": "Adam", "desc": "Profundo e Narrativo (Documentários)"},
-    "ErXwobaYiN019PkySvjV": {"nome": "Antony", "desc": "Firme e Confiante"},
-    "21m00Tcm4TlvDq8ikWAM": {"nome": "Rachel", "desc": "Calma e Conversacional"},
-    "EXAVITQu4vr4xnSDxMaL": {"nome": "Bella", "desc": "Suave e Envolvente"},
-    "AZnzlk1XvdvUeBnXmlld": {"nome": "Domi", "desc": "Forte e Expressiva"},
-    "yoZ06aMxZJJ28mfd3POQ": {"nome": "Sam", "desc": "Claro e Jornalístico"},
-    "29vD33N1CtxCmqQRPOHJ": {"nome": "Drew", "desc": "Noticiário e Dinâmico"}
+    "CwhRBWXzGAHq8TQ4Fs17": {"nome": "Roger - Laid-Back, Casual, Resonant", "desc": "Voz Nativa ElevenLabs"},
+    "EXAVITQu4vr4xnSDxMaL": {"nome": "Sarah - Mature, Reassuring, Confident", "desc": "Voz Nativa ElevenLabs"},
+    "FGY2WhTYpPnrIDTdsKH5": {"nome": "Laura - Enthusiast, Quirky Attitude", "desc": "Voz Nativa ElevenLabs"},
+    "IKne3meq5aSn9XLyUdCD": {"nome": "Charlie - Deep, Confident, Energetic", "desc": "Voz Nativa ElevenLabs"},
+    "JBFqnCBsd6RMkjVDRZzb": {"nome": "George - Warm, Captivating Storyteller", "desc": "Voz Nativa ElevenLabs"},
+    "N2lVS1w4EtoT3dr4eOWO": {"nome": "Callum - Husky Trickster", "desc": "Voz Nativa ElevenLabs"},
+    "SAz9YHcvj6GT2YYXdXww": {"nome": "River - Relaxed, Neutral, Informative", "desc": "Voz Nativa ElevenLabs"},
+    "SOYHLrjzK2X1ezoPC6cr": {"nome": "Harry - Fierce Warrior", "desc": "Voz Nativa ElevenLabs"},
+    "TX3LPaxmHKxFdv7VOQHJ": {"nome": "Liam - Energetic, Social Media Creator", "desc": "Voz Nativa ElevenLabs"},
+    "Xb7hH8MSUJpSbSDYk0k2": {"nome": "Alice - Clear, Engaging Educator", "desc": "Voz Nativa ElevenLabs"},
+    "XrExE9yKIg1WjnnlVkGX": {"nome": "Matilda - Knowledgable, Professional", "desc": "Voz Nativa ElevenLabs"},
+    "bIHbv24MWmeRgasZH58o": {"nome": "Will - Relaxed Optimist", "desc": "Voz Nativa ElevenLabs"},
+    "cgSgspJ2msm6clMCkdW9": {"nome": "Jessica - Playful, Bright, Warm", "desc": "Voz Nativa ElevenLabs"},
+    "cjVigY5qzO86Huf0OWal": {"nome": "Eric - Smooth, Trustworthy", "desc": "Voz Nativa ElevenLabs"},
+    "hpp4J3VqNfWAUOO0d1Us": {"nome": "Bella - Professional, Bright, Warm", "desc": "Voz Nativa ElevenLabs"},
+    "iP95p4xoKVk53GoZ742B": {"nome": "Chris - Charming, Down-to-Earth", "desc": "Voz Nativa ElevenLabs"},
+    "nPczCjzI2devNBz1zQrb": {"nome": "Brian - Deep, Resonant and Comforting", "desc": "Voz Nativa ElevenLabs"},
+    "onwK4e9ZLuTAKqWW03F9": {"nome": "Daniel - Steady Broadcaster", "desc": "Voz Nativa ElevenLabs"},
+    "pFZP5JQG7iQjIQuC4Bku": {"nome": "Lily - Velvety Actress", "desc": "Voz Nativa ElevenLabs"},
+    "pNInz6obpgDQGcFmaJgB": {"nome": "Adam - Dominant, Firm", "desc": "Voz Nativa ElevenLabs"},
+    "pqHfZKP75CvOlQylNhV4": {"nome": "Bill - Wise, Mature, Balanced", "desc": "Voz Nativa ElevenLabs"},
 }
 
 vozes_cache = []
