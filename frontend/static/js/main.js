@@ -15,7 +15,6 @@ let abaVozAtiva = "padrao";
 document.addEventListener('DOMContentLoaded', async function() {
     const path = window.location.pathname;
     
-    // Controle visual de qual página está ativa no menu lateral
     document.querySelectorAll('.menu-btn').forEach(link => {
         if (link.getAttribute('href') === path) {
             link.classList.add('text-white', 'bg-zinc-800/80', 'border-zinc-700');
@@ -33,7 +32,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     });
 
-    // Lógica do Voice Synthesizer
     const textoVoice = localStorage.getItem('texto_pendente_voice');
     if (textoVoice && document.getElementById('texto_voz')) {
         document.getElementById('texto_voz').value = textoVoice;
@@ -84,10 +82,16 @@ async function buscarMidiaHunter() {
     const termo = termoInput.value.trim();
     if(termo === "") return alert("Por favor, insira um termo para buscar!");
 
+    // Se estiver tocando um áudio, ele para na hora ao fazer nova busca
+    if(window.hunterAudioAtual) {
+        window.hunterAudioAtual.pause();
+        window.hunterAudioUrlAtual = null;
+    }
+
     btn.disabled = true;
     btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>';
     status.innerText = "Minerando arquivos na nuvem...";
-    galeria.innerHTML = ""; // Limpa a galeria atual
+    galeria.innerHTML = ""; 
     
     try {
         const resposta = await fetch(`/api/cliphunter/search?query=${encodeURIComponent(termo)}&media_type=${mediaType}&orientation=${orientation}`);
@@ -114,8 +118,8 @@ async function buscarMidiaHunter() {
                 conteudoVisual = `
                     <div class="relative aspect-video bg-black group">
                         <img src="${item.thumb}" class="w-full h-full object-cover opacity-80 group-hover:opacity-50 transition-opacity">
-                        <button onclick="abrirPreviewHunter(this, '${item.url}', 'video')" class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                            <i class="fa-solid fa-circle-play text-4xl text-emerald-400 drop-shadow-lg"></i>
+                        <button onclick="abrirPreviewHunter('${item.url}', 'video')" class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <i class="fa-solid fa-circle-play text-5xl text-emerald-400 drop-shadow-lg scale-90 group-hover:scale-100 transition-transform"></i>
                         </button>
                         <span class="absolute bottom-2 right-2 bg-black/80 px-2 py-1 text-[10px] rounded text-white font-bold">${item.duration}s</span>
                     </div>`;
@@ -125,8 +129,8 @@ async function buscarMidiaHunter() {
                 conteudoVisual = `
                     <div class="relative aspect-square bg-black group">
                         <img src="${item.thumb}" class="w-full h-full object-cover opacity-90 group-hover:opacity-60 transition-opacity">
-                        <button onclick="abrirPreviewHunter(this, '${item.url}', 'image')" class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                            <i class="fa-solid fa-expand text-3xl text-zinc-200 drop-shadow-lg"></i>
+                        <button onclick="abrirPreviewHunter('${item.url}', 'image')" class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <i class="fa-solid fa-expand text-4xl text-zinc-200 drop-shadow-lg scale-90 group-hover:scale-100 transition-transform"></i>
                         </button>
                     </div>`;
                 btnAcao = `<a href="${item.url}" target="_blank" download class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 text-center text-sm rounded transition-colors"><i class="fa-solid fa-download mr-1"></i> Baixar</a>`;
@@ -134,7 +138,7 @@ async function buscarMidiaHunter() {
             else if(item.type === "audio") {
                 conteudoVisual = `
                     <div class="p-4 bg-zinc-900 border-b border-zinc-800 flex items-center justify-center h-24">
-                        <button onclick="tocarAudioHunter(this, '${item.url}')" class="w-12 h-12 rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-500 hover:bg-amber-500 hover:text-white transition-colors">
+                        <button onclick="tocarAudioHunter(this, '${item.url}')" class="w-12 h-12 rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-500 hover:bg-amber-500 hover:text-white transition-colors shadow-lg">
                             <i class="fa-solid fa-play text-lg ml-1"></i>
                         </button>
                     </div>`;
@@ -156,46 +160,78 @@ async function buscarMidiaHunter() {
         galeria.innerHTML = `<div class="col-span-full text-center py-10 text-red-400 font-bold border border-red-500/30 bg-red-500/10 rounded-xl"><i class="fa-solid fa-triangle-exclamation mb-2 text-2xl"></i><br>${erro.message}</div>`;
     } finally {
         btn.disabled = false;
-        btn.innerHTML = '<i class="fa-solid fa-magnifying-glass"></i>';
+        btn.innerHTML = '<i class="fa-solid fa-magnifying-glass"></i> Minerar Mídias';
     }
 }
 
-function abrirPreviewHunter(btn, url, type) {
-    // Implementação básica de preview. Para vídeos, abre em nova aba.
-    // Em versões futuras, podemos criar um Modal (Popup) bonito na própria tela.
-    window.open(url, '_blank');
-}
-
-function tocarAudioHunter(btn, url) {
+// LÓGICA DO MODAL (TELA DE CINEMA)
+function abrirPreviewHunter(url, type) {
+    // Para o áudio do fundo caso o usuário decida abrir um vídeo enquanto toca música
     if(window.hunterAudioAtual) {
         window.hunterAudioAtual.pause();
-        // Reseta todos os ícones
+        window.hunterAudioUrlAtual = null;
         document.querySelectorAll('#hunter_galeria .fa-pause').forEach(i => {
             i.classList.remove('fa-pause');
             i.classList.add('fa-play');
         });
     }
+
+    const modal = document.getElementById('hunter_modal');
+    const content = document.getElementById('hunter_modal_content');
     
-    const icon = btn.querySelector('i');
-    
-    // Se clicou no botão que já estava tocando, apenas pausa
-    if(btn.dataset.tocando === "sim") {
-        btn.dataset.tocando = "nao";
-        return;
+    if(type === 'video') {
+        content.innerHTML = `<video controls autoplay class="max-w-full max-h-[85vh] rounded-xl shadow-2xl outline-none border border-zinc-700"><source src="${url}" type="video/mp4"></video>`;
+    } else if (type === 'image') {
+        content.innerHTML = `<img src="${url}" class="max-w-full max-h-[85vh] rounded-xl shadow-2xl object-contain border border-zinc-700">`;
     }
     
-    // Toca o novo áudio
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+}
+
+function fecharModalHunter() {
+    const modal = document.getElementById('hunter_modal');
+    const content = document.getElementById('hunter_modal_content');
+    
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    // Ao apagar o HTML interno, o vídeo para de tocar imediatamente
+    content.innerHTML = ''; 
+}
+
+// LÓGICA BLINDADA DO ÁUDIO
+function tocarAudioHunter(btn, url) {
+    // 1. Se tem áudio tocando, pausa ele e reseta a interface
+    if(window.hunterAudioAtual) {
+        window.hunterAudioAtual.pause();
+        
+        document.querySelectorAll('#hunter_galeria .fa-pause').forEach(i => {
+            i.classList.remove('fa-pause');
+            i.classList.add('fa-play');
+        });
+        
+        // 2. Se a URL clicada for a mesma que já estava tocando, o usuário só queria pausar. Fim da execução.
+        if (window.hunterAudioUrlAtual === url) {
+            window.hunterAudioUrlAtual = null; 
+            return; 
+        }
+    }
+    
+    // 3. Se chegou até aqui, é para dar play num áudio novo!
+    const icon = btn.querySelector('i');
+    
     window.hunterAudioAtual = new Audio(url);
+    window.hunterAudioUrlAtual = url; // Guarda a URL para saber quem está tocando
     window.hunterAudioAtual.play();
     
     icon.classList.remove('fa-play');
     icon.classList.add('fa-pause');
-    btn.dataset.tocando = "sim";
     
+    // 4. Quando o áudio acabar sozinho, reseta o botão
     window.hunterAudioAtual.onended = () => {
         icon.classList.remove('fa-pause');
         icon.classList.add('fa-play');
-        btn.dataset.tocando = "nao";
+        window.hunterAudioUrlAtual = null;
     };
 }
 
@@ -210,32 +246,19 @@ function alternarAbaVozes(tipo) {
     const btnCreator = document.getElementById('aba_btn_creator');
     const btnCinematic = document.getElementById('aba_btn_cinematic');
     
-    // Reseta visuais
     [btnPadrao, btnCreator, btnCinematic].forEach(btn => {
         if(btn) btn.className = "flex-1 py-2 text-xs font-bold rounded-md text-zinc-500 hover:text-white transition-all";
     });
     
     if (tipo === 'padrao') {
         if(btnPadrao) btnPadrao.className = "flex-1 py-2 text-xs font-bold rounded-md bg-zinc-800 text-white shadow-sm transition-all";
-        atualizarInfoTier(
-            "Qualidade Standard", 
-            "Vozes sintéticas de alta eficiência. Ideais para testes, rascunhos ou canais de curiosidades com alto volume de postagem.",
-            "text-purple-400", "border-purple-500/20"
-        );
+        atualizarInfoTier("Qualidade Standard", "Vozes sintéticas de alta eficiência. Ideais para testes, rascunhos ou canais de curiosidades com alto volume de postagem.", "text-purple-400", "border-purple-500/20");
     } else if (tipo === 'creator') {
         if(btnCreator) btnCreator.className = "flex-1 py-2 text-xs font-bold rounded-md bg-zinc-800 text-blue-400 shadow-sm transition-all";
-        atualizarInfoTier(
-            "Qualidade Creator", 
-            "Vozes neurais altamente estáveis, previsíveis e com ritmo uniforme. A escolha definitiva e de ótimo custo-benefício para quem já monetiza.",
-            "text-blue-400", "border-blue-500/20"
-        );
+        atualizarInfoTier("Qualidade Creator", "Vozes neurais altamente estáveis, previsíveis e com ritmo uniforme. A escolha definitiva e de ótimo custo-benefício para quem já monetiza.", "text-blue-400", "border-blue-500/20");
     } else if (tipo === 'cinematic') {
         if(btnCinematic) btnCinematic.className = "flex-1 py-2 text-xs font-bold rounded-md bg-zinc-800 text-amber-400 shadow-sm transition-all";
-        atualizarInfoTier(
-            "Qualidade Cinematic (Ultra-Realista)", 
-            "Atuação de estúdio e realismo absoluto. Vozes que respiram e se adaptam naturalmente ao texto. Recomendado para documentários de elite e canais Dark premium.",
-            "text-amber-500", "border-amber-500/30"
-        );
+        atualizarInfoTier("Qualidade Cinematic (Ultra-Realista)", "Atuação de estúdio e realismo absoluto. Vozes que respiram e se adaptam naturalmente ao texto. Recomendado para documentários de elite e canais Dark premium.", "text-amber-500", "border-amber-500/30");
     }
     
     const primeiraDaLista = vozesData.find(v => v.tipo === tipo);
@@ -314,7 +337,6 @@ function selecionarVoz(sn) {
     
     const painelStandard = document.getElementById('controles_standard');
     
-    // Tanto Creator quanto Cinematic não precisam de controles manuais de pitch/rate na interface limpa
     if(sn.includes("cinematic-") || sn.includes("creator-")) {
         if(painelStandard) painelStandard.classList.add('hidden');
     } else {
