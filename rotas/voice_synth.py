@@ -280,7 +280,7 @@ async def gerar_narracao(
         
         # SALVA NO DISCO
         if not is_preview:
-            pasta_audios = os.path.join("frontend", "static", "audios")
+            pasta_audios = os.path.join("frontend", "static", "audios", "historico")
             os.makedirs(pasta_audios, exist_ok=True)
             nome_arquivo = f"audio_{usuario.id}_{int(time.time())}.mp3"
             caminho_completo = os.path.join(pasta_audios, nome_arquivo)
@@ -293,7 +293,7 @@ async def gerar_narracao(
                 usuario_id=usuario.id,
                 ferramenta=ferramenta_nome,
                 input_usuario=f"Voz: {req.voz} | Tamanho: {tamanho_texto} chars",
-                resultado=f"/static/audios/{nome_arquivo}",
+                resultado=f"/static/audios/historico/{nome_arquivo}",
                 custo_coins=custo_operacao
             )
             db.add(novo_historico)
