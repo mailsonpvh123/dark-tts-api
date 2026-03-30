@@ -82,7 +82,6 @@ async function buscarMidiaHunter() {
     const termo = termoInput.value.trim();
     if(termo === "") return alert("Por favor, insira um termo para buscar!");
 
-    // Se estiver tocando um áudio, ele para na hora ao fazer nova busca
     if(window.hunterAudioAtual) {
         window.hunterAudioAtual.pause();
         window.hunterAudioUrlAtual = null;
@@ -164,9 +163,7 @@ async function buscarMidiaHunter() {
     }
 }
 
-// LÓGICA DO MODAL (TELA DE CINEMA)
 function abrirPreviewHunter(url, type) {
-    // Para o áudio do fundo caso o usuário decida abrir um vídeo enquanto toca música
     if(window.hunterAudioAtual) {
         window.hunterAudioAtual.pause();
         window.hunterAudioUrlAtual = null;
@@ -195,13 +192,10 @@ function fecharModalHunter() {
     
     modal.classList.add('hidden');
     modal.classList.remove('flex');
-    // Ao apagar o HTML interno, o vídeo para de tocar imediatamente
     content.innerHTML = ''; 
 }
 
-// LÓGICA BLINDADA DO ÁUDIO
 function tocarAudioHunter(btn, url) {
-    // 1. Se tem áudio tocando, pausa ele e reseta a interface
     if(window.hunterAudioAtual) {
         window.hunterAudioAtual.pause();
         
@@ -210,24 +204,21 @@ function tocarAudioHunter(btn, url) {
             i.classList.add('fa-play');
         });
         
-        // 2. Se a URL clicada for a mesma que já estava tocando, o usuário só queria pausar. Fim da execução.
         if (window.hunterAudioUrlAtual === url) {
             window.hunterAudioUrlAtual = null; 
             return; 
         }
     }
     
-    // 3. Se chegou até aqui, é para dar play num áudio novo!
     const icon = btn.querySelector('i');
     
     window.hunterAudioAtual = new Audio(url);
-    window.hunterAudioUrlAtual = url; // Guarda a URL para saber quem está tocando
+    window.hunterAudioUrlAtual = url;
     window.hunterAudioAtual.play();
     
     icon.classList.remove('fa-play');
     icon.classList.add('fa-pause');
     
-    // 4. Quando o áudio acabar sozinho, reseta o botão
     window.hunterAudioAtual.onended = () => {
         icon.classList.remove('fa-pause');
         icon.classList.add('fa-play');
@@ -235,6 +226,85 @@ function tocarAudioHunter(btn, url) {
     };
 }
 
+// ==========================================
+// FUNÇÕES DO PARAPHRASER (TEXT TRANSMUTER)
+// ==========================================
+async function transmutarTexto() {
+    const txtOriginal = document.getElementById('texto_original').value;
+    const modo = document.getElementById('estrategia_escrita').value;
+    const nomeCanal = document.getElementById('nome_canal').value;
+    const ganchoExato = document.getElementById('gancho_exato').value;
+    const btn = document.getElementById('btn_transmutar');
+    const txtBtn = document.getElementById('txt_btn_transmutar');
+    const txtResultado = document.getElementById('texto_transmutado');
+    const contadorResultado = document.getElementById('contador_resultado');
+
+    if (!txtOriginal || txtOriginal.trim() === "") {
+        return alert("Por favor, cole o texto original antes de transmutar!");
+    }
+
+    btn.disabled = true;
+    btn.classList.add('opacity-70', 'cursor-not-allowed');
+    const textoOriginalBotao = txtBtn.innerHTML;
+    txtBtn.innerHTML = `Transmutando... <i class="fa-solid fa-circle-notch fa-spin ml-2"></i>`;
+    txtResultado.value = "Os deuses da IA estão reescrevendo e blindando seu texto. Isso pode levar alguns segundos...";
+
+    const payload = {
+        texto: txtOriginal,
+        modo: modo,
+        nome_canal: nomeCanal,
+        gancho_exato: ganchoExato,
+        tom: "Sarcástico e Ácido", 
+        idioma: "Português (Brasil)"
+    };
+
+    try {
+        const res = await fetch("/api/v1/paraphraser", {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        
+        const dados = await res.json();
+        
+        if(!res.ok) {
+            throw new Error(dados.detail || "Erro na comunicação com a IA.");
+        }
+        
+        txtResultado.value = dados.texto_parafrazedo;
+        
+        if(typeof contarPalavrasLocal === 'function' && contadorResultado) {
+            contadorResultado.innerText = contarPalavrasLocal(dados.texto_parafrazedo) + ' palavras';
+        }
+        
+        localStorage.setItem('paraph_resultado', dados.texto_parafrazedo);
+
+        // Atualiza moedas de forma dinâmica se o backend retornar
+        if(dados.novo_saldo !== undefined) {
+            const paineisDeCoins = document.querySelectorAll('.fa-coins');
+            paineisDeCoins.forEach(icone => {
+                const elementoPai = icone.closest('p'); 
+                if(elementoPai) {
+                    elementoPai.innerHTML = `<i class="fa-solid fa-coins"></i> ${dados.novo_saldo.toLocaleString('pt-BR')} coins`;
+                    elementoPai.classList.add('text-emerald-400', 'scale-110');
+                    setTimeout(() => elementoPai.classList.remove('text-emerald-400', 'scale-110'), 500);
+                }
+            });
+        }
+
+    } catch (e) {
+        const isCoinError = e.message.includes('Coins insuficientes');
+        if (isCoinError) {
+            txtResultado.value = `[ERRO DE SALDO]\n\n${e.message}`;
+        } else {
+            txtResultado.value = `[FALHA NA TRANSMUTAÇÃO]\n\nOcorreu um erro no servidor:\n${e.message}`;
+        }
+    } finally {
+        btn.disabled = false;
+        btn.classList.remove('opacity-70', 'cursor-not-allowed');
+        txtBtn.innerHTML = textoOriginalBotao;
+    }
+}
 
 // ==========================================
 // FUNÇÕES DA INTERFACE DO ESTÚDIO DE DUBLAGEM (VOICE SYNTH)
