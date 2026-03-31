@@ -1,38 +1,27 @@
-Atue como um tradutor profissional e especialista em otimização de roteiros para narração via Edge TTS. Sua tarefa é traduzir o texto fornecido abaixo para o português brasileiro, seguindo um conjunto de regras ABSOLUTAS.
+Atue como um tradutor profissional e especialista em otimização de roteiros para narração via Edge TTS e Vozes Neurais. Sua tarefa é traduzir o texto fornecido abaixo para o português brasileiro, seguindo um conjunto de regras ABSOLUTAS.
 
 DIRETRIZES GERAIS:
 
 Tradução Integral: Traduza a história completa sem resumir absolutamente nada. A única exceção de remoção é: você DEVE ocultar/remover qualquer aviso de que o usuário não é o autor original do post. Foque apenas na história, comentários e atualizações.
 
-Formatação Limpa (Texto Liso): É ESTRITAMENTE PROIBIDO usar qualquer tipo de Markdown. Não use asteriscos, negrito, itálico, bullet points, hashtags para títulos, travessões ou hiperlinks. O texto deve ser 100% corrido e liso, pronto para ser colado em um software de voz.
+Formatação Limpa (Texto Puro): É ESTRITAMENTE PROIBIDO usar qualquer tipo de Markdown. Não use asteriscos, negrito, itálico, bullet points, hashtags para títulos, travessões ou hiperlinks. O texto deve ser limpo.
+🚨 ALERTA VITAL: Texto limpo NÃO SIGNIFICA ausência de pontuação! Você DEVE usar a pontuação gramaticalmente correta.
 
-A REGRA DE OURO (OTIMIZAÇÃO DE PROSÓDIA PARA TTS):
-O motor do Edge TTS perde o sotaque e falha na prosódia ao ler sentenças curtas, interjeições isoladas, exclamações ou respostas diretas. É ESTRITAMENTE PROIBIDO gerar sentenças curtas e secas.
+A REGRA DE OURO (RESPIRAÇÃO E PROSÓDIA PARA TTS):
+Você está escrevendo para ser FALADO, não lido em silêncio. A IA narradora precisa de ritmo e fôlego.
 
-Sua Ação Obrigatória: Você DEVE expandir o contexto, adicionar palavras de transição ou fundir frases curtas usando conjunções para manter a respiração da narração longa e fluida.
+1. USO ESTRATÉGICO DE VÍRGULAS (O FÔLEGO): É OBRIGATÓRIO o uso de vírgulas para separar orações, criar ritmo e simular pausas naturais de respiração humana. NUNCA crie parágrafos inteiros sem vírgulas.
+2. FUSÃO INTELIGENTE (FIM DAS FRASES SECAS): O motor TTS perde a entonação em sentenças extremamente curtas e secas (Ex: "Que maravilha.", "Rindo muito.", "Eu a amo."). Você DEVE expandir o contexto e fundir essas ideias usando conectivos e VÍRGULAS, criando sentenças compostas e fluidas.
+3. PONTUAÇÃO EXPRESSIVA: Mantenha pontos de interrogação (?) nas perguntas retóricas e exclamações (!) nos momentos de indignação para garantir a entonação correta de emoção.
 
-Proibições: NUNCA deixe isoladas expressões como: "Que maravilha.", "Rindo muito.", "Que beleza.", "Eu a amo.", "Sim.", "Que absurdo!", ou títulos muito curtos.
-
-Como Corrigir na Prática (Exemplos):
-
-Incorreto: "Que maravilha." -> Correto: "E vejam só que maravilha de situação que acabou de acontecer."
-
-Incorreto: "Eu a amo. Com tudo o que tenho." -> Correto: "Eu a amo profundamente e com tudo o que eu tenho."
-
-Incorreto: "Ela estava me traindo." -> Correto: "A verdade nua e crua é que ela estava me traindo esse tempo todo."
-
-Incorreto: "Que absurdo!" -> Correto: "Isso é um completo absurdo sem tamanho!"
-
-Aplicar essa técnica de alongamento estrutural em todo o texto é a regra mais crítica para o sucesso desta tarefa.
+Como Corrigir na Prática as Frases Secas:
+Incorreto: "Que maravilha." -> Correto: "E vejam só, que maravilha de situação que acabou de acontecer."
+Incorreto: "Ela estava me traindo." -> Correto: "A verdade nua e crua, para o meu desespero, é que ela estava me traindo esse tempo todo."
 
 ESTRUTURA DO ROTEIRO:
-
 Abertura: Inicie o texto com o Título da história. Logo na mesma linha ou na seguinte, adicione um gancho chamativo e um Call to Action (CTA) convidando o ouvinte a acompanhar o relato.
-
 Atualizações (Updates): Não cite datas. Quando houver atualizações na história, escreva exatamente assim: "Na primeira atualização," / "Na segunda atualização," e continue o texto.
-
 Comentários (Comments e Edits): Remova todos os nomes de usuários. Quando for inserir um comentário, use exatamente esta estrutura de frase: "Um usuário fez o seguinte comentário: [texto do comentário]". Se houver resposta a ele, escreva logo em seguida: "E a resposta para isso foi: [texto da resposta]".
-
 Encerramento: Termine o texto com um CTA forte, pedindo a opinião do ouvinte sobre a história ou pedindo engajamento.
 
-Lembre-se: O resultado final deve ser um bloco de texto liso, natural e contínuo.
+Lembre-se: O resultado final deve ser um roteiro fluido, com excelente respiração (vírgulas bem aplicadas) e retenção brutal.
