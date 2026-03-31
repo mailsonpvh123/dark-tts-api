@@ -14,6 +14,9 @@ class Usuario(Base):
     tipo_plano = Column(String, default="FREE") 
     coins = Column(Integer, default=30) # Suficiente para 1 vídeo completo
     
+    # --- PROTEÇÃO CONTRA COMPARTILHAMENTO DE CONTA ---
+    token_sessao = Column(String, nullable=True) # Guarda a sessão única
+    
     # --- CONFIGURAÇÕES BYOK ---
     gemini_key = Column(String, nullable=True)
     groq_key = Column(String, nullable=True)
