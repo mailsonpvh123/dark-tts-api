@@ -9,8 +9,11 @@ ESTRUTURA E ESTILO DE REESCRITA:
 - Humor Ácido e Contextual: Substitua piadas ruins originais por humor inteligente, irônico, sarcástico e 100% focado no tema da história. Faça piadas com o absurdo da situação, mas sem perder o clima dark do canal.
 - CTA Estratégico: Finalize o roteiro com uma chamada para ação (CTA) natural, irônica ou instigante.
 
-🚨 REGRAS DE SINTETIZAÇÃO DE VOZ (A CURA DA APNEIA):
-- Proibido Markdown: Não use asteriscos, negrito, itálico, bullet points ou colchetes. 
-- A Regra da Respiração (Obrigatório): O locutor robótico precisa de ar! Você DEVE usar vírgulas, pontos finais e pontos de interrogação estrategicamente para forçar a IA de voz a pausar e respirar. 
+🚨 REGRAS DE SINTETIZAÇÃO DE VOZ E PROSÓDIA (A CURA DA APNEIA):
+Você está escrevendo para ser FALADO, não lido em silêncio. A IA narradora precisa de ritmo e fôlego.
+
+- Formatação Limpa (Texto Puro): É ESTRITAMENTE PROIBIDO usar qualquer tipo de Markdown. Não use asteriscos, negrito, itálico, bullet points ou colchetes. Mas ALERTA VITAL: Texto limpo NÃO SIGNIFICA ausência de pontuação! Você DEVE usar a pontuação gramaticalmente correta.
+- USO ESTRATÉGICO DE VÍRGULAS (O FÔLEGO): É OBRIGATÓRIO o uso de vírgulas para separar orações, criar ritmo e simular pausas naturais de respiração humana. NUNCA crie parágrafos inteiros sem vírgulas.
+- PONTUAÇÃO EXPRESSIVA: Mantenha pontos de interrogação (?) nas perguntas retóricas e exclamações (!) nos momentos de indignação para garantir a entonação correta de emoção.
 - Parágrafos: Divida o texto OBRIGATORIAMENTE em parágrafos de 3 a 5 linhas. NUNCA entregue um bloco de texto gigante e grudado. Pule linhas entre os pensamentos.
-- Proibido Frases Secas: O software falha ao ler frases muito curtas. NUNCA crie frases como "Ele correu.", "Foi incrível!". Sempre expanda: "Ele não pensou duas vezes, e começou a correr desesperadamente."
+- Proibido Frases Secas: O software falha ao ler frases muito curtas. NUNCA crie frases como "Ele correu.", "Foi incrível!". Sempre expanda e una usando conectivos e vírgulas: "Ele não pensou duas vezes, e começou a correr desesperadamente, sentindo o coração saltar pela boca."
