@@ -1,13 +1,16 @@
+import os
 import re
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
+from google import genai
+from google.genai import types
+
 # Nossos imports internos
 import models
 from database import get_db
 from auth import get_usuario_atual
-from services.ai_service import call_gemini
 
 router = APIRouter(prefix="/api/v1", tags=["Meta & SEO"])
 
@@ -34,6 +37,15 @@ async def process_seo(
 
     if usuario.coins < custo_operacao:
         raise HTTPException(status_code=402, detail=f"Coins insuficientes! Você precisa de {custo_operacao} coins para gerar a arquitetura de SEO.")
+
+    # 2. ROTEAMENTO INTELIGENTE (CHAVE FREE E MODELO DINÂMICO)
+    api_key = os.environ.get("GEMINI_API_KEY_FREE") or os.environ.get("GEMINI_API_KEY")
+    modelo_texto = os.environ.get("GEMINI_MODEL_TEXT", "gemini-2.5-flash")
+
+    if not api_key:
+        raise HTTPException(status_code=500, detail="Chave API (Dark Neural Engine) não configurada no servidor.")
+
+    client = genai.Client(api_key=api_key)
 
     # O Prompt de Elite focado em gabaritar 50/50 no VidIQ
     system_prompt = f"""Você é um mestre em SEO para YouTube e copywriter de canais Dark, especialista em gabaritar a pontuação do VidIQ (50/50). Sua missão é ler o roteiro fornecido e criar 5 PACOTES COMPLETOS de SEO otimizados para o canal '{req.canal}'.
@@ -65,14 +77,23 @@ TAGS:
 
     user_content = f"Palavra-chave Foco Sugerida pelo Usuário: {req.keyword}\n\nROTEIRO/CONTEÚDO PARA ANÁLISE:\n{req.conteudo}"
 
+    # Débito Antecipado para blindar transações simultâneas
+    usuario.coins -= custo_operacao
+    db.commit()
+
     try:
-        resultado = await call_gemini(system_prompt, user_content)
-        texto_limpo = resultado.strip()
+        print(f"📈 Iniciando Meta & SEO (Modelo: {modelo_texto} | Chave: FREE). Custo: {custo_operacao} Coins.")
+
+        response = client.models.generate_content(
+            model=modelo_texto,
+            contents=user_content,
+            config=types.GenerateContentConfig(
+                system_instruction=system_prompt,
+                temperature=0.7
+            )
+        )
         
-        # ==========================================
-        # 2. TRANSAÇÃO FINANCEIRA E HISTÓRICO
-        # ==========================================
-        usuario.coins -= custo_operacao
+        texto_limpo = response.text.strip()
         
         novo_historico = models.Historico(
             usuario_id=usuario.id,
@@ -88,4 +109,8 @@ TAGS:
         # Devolvemos o texto e o novo saldo
         return {"status": "sucesso", "seo_result": texto_limpo, "novo_saldo": usuario.coins}
     except Exception as e:
+        # Reembolsa o utilizador caso a IA falhe
+        usuario.coins += custo_operacao
+        db.commit()
+        print(f"❌ Erro no Meta & SEO: {e}")
         raise HTTPException(status_code=500, detail=str(e))
