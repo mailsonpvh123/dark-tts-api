@@ -1,5 +1,6 @@
 import uvicorn
 import os
+import uuid # <-- Importado para gerar as sessões únicas
 from datetime import datetime
 from fastapi import FastAPI, Request, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -7,6 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from sqlalchemy.orm import Session
+from sqlalchemy import text # <-- Para atualizar o banco de dados
 from passlib.context import CryptContext
 
 # --- IMPORTS DO SISTEMA ---
@@ -78,7 +80,6 @@ async def registrar(request: Request, db: Session = Depends(get_db)):
     if db.query(models.Usuario).filter(models.Usuario.email == email).first():
         return JSONResponse(status_code=400, content={"status": "erro", "message": "E-mail já cadastrado."})
 
-    # Criando usuário com o presente de 300 coins (3 vídeos grátis completos!)
     novo_usuario = models.Usuario(
         email=email,
         senha=pwd_context.hash(senha),
@@ -101,10 +102,15 @@ async def login(request: Request, db: Session = Depends(get_db)):
     if not usuario or not verificar_senha(senha, usuario.senha):
         return JSONResponse(status_code=401, content={"status": "erro", "message": "E-mail ou senha incorretos."})
 
-    token = criar_token_acesso(data={"sub": usuario.email})
+    # GERAR NOVA SESSÃO ÚNICA E SALVAR NO BANCO
+    nova_sessao = uuid.uuid4().hex
+    usuario.token_sessao = nova_sessao
+    db.commit()
+
+    # INCLUIR A SESSÃO NO JWT PARA O COOKIE
+    token = criar_token_acesso(data={"sub": usuario.email, "session_id": nova_sessao})
     
     response = JSONResponse(content={"status": "sucesso", "message": "Bem-vindo!"})
-    # O cookie mantém o cara logado por 7 dias
     response.set_cookie(key="access_token", value=token, httponly=True, max_age=60*60*24*7)
     return response
 
@@ -201,11 +207,20 @@ async def planos_page(request: Request, db: Session = Depends(get_db)):
     return templates.TemplateResponse("planos.html", {"request": request, "title": "Planos e Preços", "user": user})
 
 # --- SETUP INICIAL ADMIN ---
-
-# --- SETUP INICIAL ADMIN ---
 @app.get("/setup-admin")
 def setup_admin(db: Session = Depends(get_db)):
     try:
+        # 1. ATUALIZAÇÃO ESTRUTURAL DO BANCO DE DADOS
+        try:
+            # Tenta injetar a nova coluna caso o banco de dados seja antigo
+            db.execute(text("ALTER TABLE usuarios ADD COLUMN token_sessao VARCHAR"))
+            db.commit()
+            print("Coluna 'token_sessao' adicionada com sucesso ao banco!")
+        except Exception as e:
+            # Se der erro, é porque a coluna já existe. Tudo tranquilo.
+            pass 
+
+        # 2. CRIAÇÃO OU ATUALIZAÇÃO DO ADMIN
         meu_email = "redbull782.mab@gmail.com"
         minha_senha = "18022006Lipe#" 
 
@@ -220,13 +235,13 @@ def setup_admin(db: Session = Depends(get_db)):
             )
             db.add(admin)
             db.commit()
-            return {"msg": "Admin master criado com sucesso!"}
+            return {"msg": "Admin master criado e estrutura de banco atualizada!"}
         else:
             user.senha = pwd_context.hash(minha_senha)
             user.coins = 10000
             user.tipo_plano = "PLUS"
             db.commit()
-            return {"msg": "Credenciais do Admin atualizadas com sucesso! Tente logar agora."}
+            return {"msg": "Estrutura do banco e credenciais do Admin atualizadas com sucesso! Faça login."}
             
     except Exception as e:
         return {"error": str(e)}
