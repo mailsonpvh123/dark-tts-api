@@ -34,12 +34,12 @@
                         </select>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-zinc-400 mb-1.5">Tamanho Esperado <span class="text-orange-500">*</span></label>
-                        <input type="text" id="script_tamanho" oninput="salvarEstado('script_tamanho')" class="w-full bg-[#09090b] border border-zinc-700/80 rounded-lg px-4 py-2.5 text-zinc-200 focus:outline-none focus:border-orange-500 transition-colors shadow-inner" placeholder="Ex: 2000 palavras ou 10 minutos">
+                        <label class="block text-sm font-medium text-zinc-400 mb-1.5">Duração (Minutos) <span class="text-orange-500">*</span></label>
+                        <input type="number" id="script_tamanho" min="1" max="60" oninput="atualizarCustoScript(); salvarEstado('script_tamanho')" class="w-full bg-[#09090b] border border-zinc-700/80 rounded-lg px-4 py-2.5 text-zinc-200 focus:outline-none focus:border-orange-500 transition-colors shadow-inner" placeholder="Ex: 10">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-zinc-400 mb-1.5">Tom da Narrativa <span class="text-orange-500">*</span></label>
-                        <input type="text" id="script_tom" oninput="salvarEstado('script_tom')" class="w-full bg-[#09090b] border border-zinc-700/80 rounded-lg px-4 py-2.5 text-zinc-200 focus:outline-none focus:border-orange-500 transition-colors shadow-inner" placeholder="Ex: Misterioso, Sarcástico, Emocionante...">
+                        <input type="text" id="script_tom" oninput="salvarEstado('script_tom')" class="w-full bg-[#09090b] border border-zinc-700/80 rounded-lg px-4 py-2.5 text-zinc-200 focus:outline-none focus:border-orange-500 transition-colors shadow-inner" placeholder="Ex: Misterioso, Sarcástico...">
                     </div>
                 </div>
 
@@ -58,7 +58,7 @@
 
                 <div class="flex gap-3 mt-6 relative z-10">
                     <button id="btn_gerar_script" onclick="chamarGeradorScript()" class="flex-1 bg-orange-600 hover:bg-orange-500 text-white font-bold py-3 px-4 rounded-lg shadow-[0_0_15px_rgba(249,115,22,0.3)] transition-all flex items-center justify-center gap-2 group border border-orange-500/50">
-                        <i class="fa-solid fa-hammer group-hover:scale-110 transition-transform"></i> <span id="txt_btn_script">Forjar Roteiro Neural (25 Coins)</span>
+                        <i class="fa-solid fa-hammer group-hover:scale-110 transition-transform"></i> <span id="txt_btn_script">Forjar Roteiro Neural (1 Coins)</span>
                     </button>
                     <button onclick="limparScript()" class="bg-zinc-800 hover:bg-red-500/20 text-zinc-400 hover:text-red-400 border border-zinc-700 hover:border-red-500/50 font-bold py-3 px-4 rounded-lg transition-all flex items-center justify-center group" title="Limpar Tela">
                         <i class="fa-solid fa-trash-can group-hover:scale-110 transition-transform"></i>
@@ -86,7 +86,7 @@
                 <div class="relative flex-1 flex flex-col z-10">
                     <div id="loading_overlay" class="hidden absolute inset-0 bg-[#121214]/90 backdrop-blur-sm rounded-lg flex flex-col items-center justify-center z-20 border border-orange-500/20">
                         <i class="fa-solid fa-brain fa-fade text-4xl text-orange-500 mb-4 drop-shadow-[0_0_10px_rgba(249,115,22,0.6)]"></i>
-                        <p class="text-zinc-300 text-sm font-bold animate-pulse">Forjando roteiro viral... (-25 Coins)</p>
+                        <p id="txt_loading_script" class="text-zinc-300 text-sm font-bold animate-pulse">Forjando roteiro viral... (-1 Coins)</p>
                         <p class="text-zinc-500 text-xs mt-2">Isso pode levar alguns segundos.</p>
                     </div>
                     
@@ -98,6 +98,13 @@
 </section>
 
 <script>
+    // JS Mágico para precificação em tempo real
+    function atualizarCustoScript() {
+        const val = parseInt(document.getElementById('script_tamanho').value) || 1;
+        document.getElementById('txt_btn_script').innerText = `Forjar Roteiro Neural (${val} Coins)`;
+        document.getElementById('txt_loading_script').innerText = `Forjando roteiro viral... (-${val} Coins)`;
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
         const campos = ['script_canal', 'script_formato', 'script_tamanho', 'script_tom', 'script_instrucoes', 'script_ideia_base', 'script_final_editavel'];
         campos.forEach(id => {
@@ -107,7 +114,6 @@
             }
         });
         
-        // CORREÇÃO DA CONTAGEM AO CARREGAR A PÁGINA
         const elIn = document.getElementById('script_ideia_base');
         const elOut = document.getElementById('script_final_editavel');
         
@@ -117,6 +123,8 @@
         if (elOut && typeof contarPalavrasLocal === 'function') {
             document.getElementById('contador_script_out').innerText = contarPalavrasLocal(elOut.value) + ' palavras';
         }
+
+        atualizarCustoScript();
     });
 
     function salvarEstado(id) {
@@ -130,9 +138,9 @@
             if(el) { el.value = ''; sessionStorage.removeItem(id); }
         });
         
-        // ZERANDO OS CONTADORES MANUALMENTE
         document.getElementById('contador_script_in').innerText = '0 palavras';
         document.getElementById('contador_script_out').innerText = '0 palavras';
+        atualizarCustoScript();
     }
 
     async function chamarGeradorScript() {
@@ -172,9 +180,6 @@
             const dados = await res.json();
             textAreaFinal.value = dados.roteiro;
             
-            // ==========================================
-            // ATUALIZADOR DE SALDO EM TEMPO REAL
-            // ==========================================
             if(dados.novo_saldo !== undefined) {
                 const paineisDeCoins = document.querySelectorAll('.fa-coins');
                 paineisDeCoins.forEach(icone => {
@@ -188,11 +193,9 @@
                     }
                 });
             }
-            // ==========================================
 
             salvarEstado('script_final_editavel');
             
-            // CORREÇÃO DA CONTAGEM APÓS GERAR O TEXTO
             if (typeof contarPalavrasLocal === 'function') {
                 document.getElementById('contador_script_out').innerText = contarPalavrasLocal(textAreaFinal.value) + ' palavras';
             }
@@ -207,7 +210,7 @@
             overlay.classList.add('hidden');
             btn.disabled = false;
             btn.classList.remove('opacity-70', 'cursor-not-allowed'); 
-            txtBtn.innerText = "Forjar Roteiro Neural (25 Coins)";
+            atualizarCustoScript(); // Retorna o texto original dinâmico do botão
         }
     }
 </script>
