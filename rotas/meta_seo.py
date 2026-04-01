@@ -32,13 +32,13 @@ async def process_seo(
     if not req.conteudo:
         raise HTTPException(status_code=400, detail="O roteiro ou conteúdo é obrigatório.")
 
-    # Custo da ferramenta de SEO
-    custo_operacao = 15
+    # Custo REDUZIDO da ferramenta de SEO (10 Coins)
+    custo_operacao = 10
 
     if usuario.coins < custo_operacao:
         raise HTTPException(status_code=402, detail=f"Coins insuficientes! Você precisa de {custo_operacao} coins para gerar a arquitetura de SEO.")
 
-    # 2. ROTEAMENTO INTELIGENTE (CHAVE FREE E MODELO DINÂMICO)
+    # 2. ROTEAMENTO INTELIGENTE
     api_key = os.environ.get("GEMINI_API_KEY_FREE") or os.environ.get("GEMINI_API_KEY")
     modelo_texto = os.environ.get("GEMINI_MODEL_TEXT", "gemini-2.5-flash")
 
@@ -47,7 +47,6 @@ async def process_seo(
 
     client = genai.Client(api_key=api_key)
 
-    # O Prompt de Elite focado em gabaritar 50/50 no VidIQ
     system_prompt = f"""Você é um mestre em SEO para YouTube e copywriter de canais Dark, especialista em gabaritar a pontuação do VidIQ (50/50). Sua missão é ler o roteiro fornecido e criar 5 PACOTES COMPLETOS de SEO otimizados para o canal '{req.canal}'.
 
 REGRAS ABSOLUTAS DO VIDIQ:
@@ -77,7 +76,6 @@ TAGS:
 
     user_content = f"Palavra-chave Foco Sugerida pelo Usuário: {req.keyword}\n\nROTEIRO/CONTEÚDO PARA ANÁLISE:\n{req.conteudo}"
 
-    # Débito Antecipado para blindar transações simultâneas
     usuario.coins -= custo_operacao
     db.commit()
 
@@ -106,10 +104,8 @@ TAGS:
         db.add(novo_historico)
         db.commit()
         
-        # Devolvemos o texto e o novo saldo
         return {"status": "sucesso", "seo_result": texto_limpo, "novo_saldo": usuario.coins}
     except Exception as e:
-        # Reembolsa o utilizador caso a IA falhe
         usuario.coins += custo_operacao
         db.commit()
         print(f"❌ Erro no Meta & SEO: {e}")
