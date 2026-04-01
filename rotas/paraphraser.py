@@ -1,4 +1,5 @@
 import os
+import math
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -42,18 +43,19 @@ async def gerar_parafraze(
     if not texto_original:
         raise HTTPException(status_code=400, detail="O texto original não pode estar vazio.")
 
-    custo_operacao = 25 
+    # ==========================================
+    # CUSTO DINÂMICO: 1 Coin a cada 2000 Caracteres
+    # ==========================================
+    tamanho_chars = len(texto_original)
+    custo_operacao = max(1, math.ceil(tamanho_chars / 2000.0))
 
     if usuario.coins < custo_operacao:
-        raise HTTPException(status_code=402, detail=f"Coins insuficientes! Você precisa de {custo_operacao} coins para reescrever.")
+        raise HTTPException(status_code=402, detail=f"Coins insuficientes! Você precisa de {custo_operacao} coins para reescrever este texto de {tamanho_chars} caracteres.")
 
     usuario.coins -= custo_operacao
     db.commit()
 
     try:
-        # ==========================================
-        # ROTEAMENTO INTELIGENTE (CHAVE FREE E MODELO DINÂMICO)
-        # ==========================================
         api_key = os.environ.get("GEMINI_API_KEY_FREE") or os.environ.get("GEMINI_API_KEY")
         modelo_texto = os.environ.get("GEMINI_MODEL_TEXT", "gemini-2.5-flash")
 
@@ -67,14 +69,12 @@ async def gerar_parafraze(
         else:
             instrucao_sistema = ler_prompt_arquivo("padrao_mode.txt")
 
-        # CONTAGEM E TRAVA DE VOLUME
         qtd_palavras_originais = len(texto_original.split())
 
         prompt_linhas = []
         prompt_linhas.append(f"Reescreva e adapte o texto abaixo no idioma '{req.idioma}'.")
         prompt_linhas.append(f"Aplique estritamente o tom de voz: {req.tom}.")
         
-        # Arma apontada para a Preguiça Neural (Isso muda tudo)
         prompt_linhas.append(f"\n🚨 REGRA DE OURO DO TAMANHO: A transcrição bruta original contém {qtd_palavras_originais} palavras. O seu roteiro final reescrito DEVE TER NO MÍNIMO a mesma quantidade de palavras ({qtd_palavras_originais}+ palavras) ou ser ainda maior. NUNCA RESUMA. Se remover lixo ou propagandas do texto original, expanda a história principal com descrições e narrativa rica para manter ou aumentar o tempo de retenção do vídeo.")
         
         if req.nome_canal.strip():
@@ -86,14 +86,14 @@ async def gerar_parafraze(
         prompt_linhas.append(f"\nTexto original:\n{texto_original}")
         prompt_final = "\n".join(prompt_linhas)
 
-        print(f"✍️ Iniciando Paraphraser (Modelo: {modelo_texto} | Chave: FREE | Alvo: {qtd_palavras_originais}+ palavras). Custo: {custo_operacao} Coins.")
+        print(f"✍️ Iniciando Paraphraser (Dinâmico: {tamanho_chars} chars). Custo: {custo_operacao} Coins.")
 
         response = client.models.generate_content(
             model=modelo_texto,
             contents=prompt_final,
             config=types.GenerateContentConfig(
                 system_instruction=instrucao_sistema,
-                temperature=0.8 # Temperatura mais alta para incentivar a criatividade e expansão
+                temperature=0.8 
             )
         )
         
@@ -102,7 +102,7 @@ async def gerar_parafraze(
         novo_historico = models.Historico(
             usuario_id=usuario.id,
             ferramenta=f"Paraphraser ({req.modo.upper()})",
-            input_usuario=f"Canal: {req.nome_canal} | Gancho: {req.gancho_exato}\nTexto Original: {texto_original[:100]}...",
+            input_usuario=f"Tamanho: {tamanho_chars} chars | Custo: {custo_operacao} Coins",
             resultado=texto_gerado, 
             custo_coins=custo_operacao
         )
