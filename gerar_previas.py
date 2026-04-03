@@ -50,7 +50,7 @@ VOICES_CINEMATIC = {
 }
 
 async def gerar_todas_as_previas():
-    print("🚀 Iniciando o Gerador de Prévias (Custo Zero para o Front-end)...")
+    print("🚀 Iniciando o Gerador de Prévias (Com Sistema Anti-Rate Limit)...")
     os.makedirs(PASTA_DESTINO, exist_ok=True)
 
     # 1. GERANDO AS PRÉVIAS STANDARD (Edge TTS - Grátis)
@@ -72,6 +72,7 @@ async def gerar_todas_as_previas():
             for voz in VOICES_CREATOR:
                 short_name = f"creator-{voz}"
                 caminho = os.path.join(PASTA_DESTINO, f"{short_name}.mp3")
+                
                 if not os.path.exists(caminho):
                     print(f"   -> Gerando {short_name}...")
                     url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL_VOICE}:generateContent?key={GEMINI_API_KEY}"
@@ -83,25 +84,43 @@ async def gerar_todas_as_previas():
                             "speechConfig": {"voiceConfig": {"prebuiltVoiceConfig": {"voiceName": voz}}}
                         }
                     }
-                    try:
-                        resp = await http_client.post(url, json=data, headers=headers)
-                        if resp.status_code == 200:
-                            resp_json = resp.json()
-                            audio_b64 = None
-                            for part in resp_json.get('candidates', [{}])[0].get('content', {}).get('parts', []):
-                                if 'inlineData' in part and part['inlineData']['mimeType'].startswith('audio/'):
-                                    audio_b64 = part['inlineData']['data']
-                                    break
+                    
+                    max_retries = 4
+                    for attempt in range(max_retries):
+                        try:
+                            resp = await http_client.post(url, json=data, headers=headers)
                             
-                            if audio_b64:
-                                with open(caminho, "wb") as f:
-                                    f.write(base64.b64decode(audio_b64))
+                            if resp.status_code == 200:
+                                resp_json = resp.json()
+                                audio_b64 = None
+                                for part in resp_json.get('candidates', [{}])[0].get('content', {}).get('parts', []):
+                                    if 'inlineData' in part and part['inlineData']['mimeType'].startswith('audio/'):
+                                        audio_b64 = part['inlineData']['data']
+                                        break
+                                
+                                if audio_b64:
+                                    with open(caminho, "wb") as f:
+                                        f.write(base64.b64decode(audio_b64))
+                                    break # Sai do loop de retry, sucesso!
+                                else:
+                                    print(f"   ❌ Erro: Gemini não retornou áudio para a voz {voz}.")
+                                    break
+                                    
+                            elif resp.status_code == 429: # Rate Limit atingido
+                                print(f"      ⚠️ API sobrecarregada (429). Freando por 12 segundos... (Tentativa {attempt+1}/{max_retries})")
+                                await asyncio.sleep(12)
                             else:
-                                print(f"   ❌ Erro: Gemini não retornou áudio para a voz {voz}.")
-                        else:
-                            print(f"   ❌ Erro Gemini ({voz}): {resp.text}")
-                    except Exception as e:
-                        print(f"   ❌ Erro na Requisição Gemini ({voz}): {e}")
+                                print(f"   ❌ Erro Gemini ({voz}): {resp.text}")
+                                break # Erro diferente de rate limit, desiste dessa voz e vai pra próxima
+                                
+                        except Exception as e:
+                            print(f"   ❌ Erro na Requisição Gemini ({voz}): {e}")
+                            await asyncio.sleep(5)
+                    
+                    # Pausa educada de 3 segundos entre as requisições para evitar tomar outro 429 atoa
+                    await asyncio.sleep(3)
+                else:
+                    print(f"   ✅ {short_name} já existe. Pulando...")
     else:
         print("   ⚠️ GEMINI_API_KEY_PAID não encontrada. Pulando Creator.")
 
@@ -112,6 +131,7 @@ async def gerar_todas_as_previas():
             for voz_id, nome in VOICES_CINEMATIC.items():
                 short_name = f"cinematic-{voz_id}"
                 caminho = os.path.join(PASTA_DESTINO, f"{short_name}.mp3")
+                
                 if not os.path.exists(caminho):
                     print(f"   -> Gerando {nome} ({short_name})...")
                     url = f"https://api.elevenlabs.io/v1/text-to-speech/{voz_id}"
@@ -126,6 +146,10 @@ async def gerar_todas_as_previas():
                             print(f"   ❌ Erro ElevenLabs ({nome}): {resp.text}")
                     except Exception as e:
                         print(f"   ❌ Erro na ElevenLabs ({nome}): {e}")
+                    
+                    await asyncio.sleep(1) # Pausa leve na ElevenLabs
+                else:
+                    print(f"   ✅ {short_name} já existe. Pulando...")
     else:
         print("   ⚠️ ELEVENLABS_API_KEY não encontrada. Pulando Cinematic.")
 
