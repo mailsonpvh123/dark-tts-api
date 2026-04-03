@@ -10,12 +10,20 @@ import base64
 TEXTO_PREVIA = "Olá, sou uma voz neural da sua plataforma. Esta é a minha qualidade de narração."
 PASTA_DESTINO = os.path.join("frontend", "static", "audios", "previews")
 
-# Chaves de API (Puxando do Easypanel)
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+# Chaves e Modelos de API (Puxando do Easypanel conforme suas variáveis)
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY_PAID")
+GEMINI_MODEL_VOICE = os.environ.get("GEMINI_MODEL_VOICE", "gemini-2.5-flash")
 ELEVENLABS_API_KEY = os.environ.get("ELEVENLABS_API_KEY")
 
-# Novo Elenco Gemini
-VOICES_CREATOR = ["Aoede", "Charon", "Fenrir", "Kore", "Puck"]
+# Novo Elenco Gemini Completo (30 Vozes)
+VOICES_CREATOR = [
+    "Achernar", "Achird", "Algenib", "Algieba", "Alnilam", "Aoede", 
+    "Autonoe", "Callirrhoe", "Charon", "Despina", "Enceladus", 
+    "Erinome", "Fenrir", "Gacrux", "Iapetus", "Kore", "Laomedeia", 
+    "Leda", "Orus", "Pulcherrima", "Puck", "Rasalgethi", "Sadachbia", 
+    "Sadaltager", "Schedar", "Sulafat", "Umbriel", "Vindemiatrix", 
+    "Zephyr", "Zubenelgenubi"
+]
 
 VOICES_CINEMATIC = {
     "pNInz6obpgDQGcFmaJgB": "Adam",
@@ -57,8 +65,8 @@ async def gerar_todas_as_previas():
                 communicate = edge_tts.Communicate(text=TEXTO_PREVIA, voice=v['ShortName'])
                 await communicate.save(caminho)
 
-    # 2. GERANDO AS PRÉVIAS CREATOR (Gemini 2.5 Flash)
-    print("\n🎬 Gerando vozes Creator (Gemini 2.5 Flash)...")
+    # 2. GERANDO AS PRÉVIAS CREATOR (Gemini TTS)
+    print(f"\n🎬 Gerando vozes Creator ({GEMINI_MODEL_VOICE})...")
     if GEMINI_API_KEY:
         async with httpx.AsyncClient(timeout=60.0) as http_client:
             for voz in VOICES_CREATOR:
@@ -66,7 +74,7 @@ async def gerar_todas_as_previas():
                 caminho = os.path.join(PASTA_DESTINO, f"{short_name}.mp3")
                 if not os.path.exists(caminho):
                     print(f"   -> Gerando {short_name}...")
-                    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
+                    url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL_VOICE}:generateContent?key={GEMINI_API_KEY}"
                     headers = {"Content-Type": "application/json"}
                     data = {
                         "contents": [{"parts": [{"text": TEXTO_PREVIA}]}],
@@ -95,7 +103,7 @@ async def gerar_todas_as_previas():
                     except Exception as e:
                         print(f"   ❌ Erro na Requisição Gemini ({voz}): {e}")
     else:
-        print("   ⚠️ GEMINI_API_KEY não encontrada. Pulando Creator.")
+        print("   ⚠️ GEMINI_API_KEY_PAID não encontrada. Pulando Creator.")
 
     # 3. GERANDO AS PRÉVIAS CINEMATIC (ElevenLabs)
     print("\n⭐ Gerando vozes Cinematic (ElevenLabs)...")
