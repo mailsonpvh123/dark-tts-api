@@ -17,8 +17,15 @@ GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY_PAID")
 GEMINI_MODEL_VOICE = os.environ.get("GEMINI_MODEL_VOICE", "gemini-2.5-flash-tts")
 ELEVENLABS_API_KEY = os.environ.get("ELEVENLABS_API_KEY")
 
-# Elenco Gemini Oficial
-VOICES_CREATOR = ["Aoede", "Charon", "Fenrir", "Kore", "Puck"]
+# As 30 Vozes Oficiais do Gemini TTS
+VOICES_CREATOR = [
+    "Achernar", "Achird", "Algenib", "Algieba", "Alnilam", "Aoede", 
+    "Autonoe", "Callirrhoe", "Charon", "Despina", "Enceladus", 
+    "Erinome", "Fenrir", "Gacrux", "Iapetus", "Kore", "Laomedeia", 
+    "Leda", "Orus", "Pulcherrima", "Puck", "Rasalgethi", "Sadachbia", 
+    "Sadaltager", "Schedar", "Sulafat", "Umbriel", "Vindemiatrix", 
+    "Zephyr", "Zubenelgenubi"
+]
 
 VOICES_CINEMATIC = {
     "pNInz6obpgDQGcFmaJgB": "Adam",
@@ -45,7 +52,7 @@ VOICES_CINEMATIC = {
 }
 
 async def gerar_todas_as_previas():
-    print("🚀 A iniciar o Gerador de Prévias (Limpeza Cirúrgica + PCM Explicíto)...")
+    print("🚀 A iniciar o Gerador de Prévias (30 Vozes + PCM Explícito)...")
     
     if os.path.exists(PASTA_DESTINO):
         print("🧹 A procurar ficheiros obsoletos do Tier Creator...")
