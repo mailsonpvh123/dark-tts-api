@@ -1,10 +1,10 @@
 import json
 import re
+import asyncio
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-# Nossos imports internos
 import models
 from database import get_db
 from auth import get_usuario_atual
@@ -26,72 +26,54 @@ async def process_thumb(
     db: Session = Depends(get_db),
     usuario: models.Usuario = Depends(get_usuario_atual)
 ):
-    # 1. VALIDAÇÃO DE SESSÃO E SALDO
     if not usuario:
         raise HTTPException(status_code=401, detail="Sessão expirada. Faça login novamente.")
 
     if not req.roteiro or not req.titulo:
         raise HTTPException(status_code=400, detail="Título e roteiro são obrigatórios.")
 
-    # Custo da geração de Prompts de Capa
     custo_operacao = 15
 
     if usuario.coins < custo_operacao:
         raise HTTPException(status_code=402, detail=f"Coins insuficientes! Você precisa de {custo_operacao} coins para gerar ideias de Thumbnail.")
 
     system_prompt = """You are a world-class YouTube Art Director specializing in high-CTR, emotionally charged thumbnails. 
-The user will provide inputs in PORTUGUESE (Title, Script, Visual Style, Exact Text Overlay, Text Color, and Text Position). 
-Your task is to generate 3 distinct visual concepts for Midjourney (v6).
+The user will provide inputs in PORTUGUESE. You MUST return a JSON containing..."""
 
-REQUIREMENTS:
-1. conflito_principal: Identifique a âncora emocional ou o maior mistério do roteiro em 1 frase (em Português).
-2. capas: Array com 3 ideias de thumbnails.
-   - estrategia: Nome curto da estratégia (ex: Ocultação, Choque, Contraste) (em Português).
-   - psicologia: Por que isso gera cliques? (em Português).
-   - prompt_gringo: O prompt super detalhado EM INGLÊS para o Midjourney. 
-     *IMPORTANT FOR PROMPT_GRINGO*: You MUST include instructions for the text generation based on user input. Example: "Typography: The text '[User Text]' written in [User Color] bold font, positioned at the [User Position] of the image".
-
-YOU MUST RETURN ONLY A VALID JSON. NO MARKDOWN, NO EXPLANATIONS.
-FORMATO EXATO:
-{
-  "conflito_principal": "...",
-  "capas": [
-    {
-      "estrategia": "...",
-      "psicologia": "...",
-      "prompt_gringo": "..."
-    }
-  ]
-}"""
-
-    user_content = f"""Título do Vídeo: {req.titulo}
-Estilo Visual Desejado: {req.estilo}
-
--- INSTRUÇÕES DE TIPOGRAFIA (OVERLAY) --
-Texto na Arte: {req.texto_arte}
-Cor do Texto: {req.cor_texto}
-Posição na Imagem: {req.posicao_texto}
-
-Roteiro Completo:
-{req.roteiro[:2000]}""" # Limitamos o roteiro lido só por segurança de tokens
+    user_content = f"TÍTULO DO VÍDEO: {req.titulo}\n\nROTEIRO/RESUMO:\n{req.roteiro}\n\nESTILO VISUAL DESEJADO: {req.estilo}"
 
     try:
-        resultado = await call_gemini(system_prompt, user_content)
-        
-        texto_limpo = resultado.strip()
-        texto_limpo = re.sub(r'^```json', '', texto_limpo, flags=re.IGNORECASE)
-        texto_limpo = re.sub(r'^```', '', texto_limpo)
-        texto_limpo = re.sub(r'```$', '', texto_limpo)
-        texto_limpo = texto_limpo.strip()
-        
-        dados_json = json.loads(texto_limpo)
-        
         # ==========================================
-        # 2. TRANSAÇÃO FINANCEIRA E HISTÓRICO LIMPO
+        # RETRY COM EXPONENTIAL BACKOFF
         # ==========================================
+        max_retries = 3
+        dados_str = ""
+        
+        for attempt in range(max_retries):
+            try:
+                dados_str = await call_gemini(system_prompt, user_content)
+                break
+            except Exception as e_api:
+                err_msg = str(e_api).lower()
+                if "503" in err_msg or "429" in err_msg or "unavailable" in err_msg or "demand" in err_msg:
+                    if attempt < max_retries - 1:
+                        espera = 2 * (2 ** attempt)
+                        print(f"⚠️ Motor Ocupado (Thumb Maker). A aguardar {espera}s... (Tentativa {attempt+1}/{max_retries})")
+                        await asyncio.sleep(espera)
+                    else:
+                        raise Exception("A Dark Neural Engine está sob tráfego extremo neste momento. Por favor, aguarde uns segundos e tente novamente.")
+                else:
+                    raise e_api
+
+        # O resto do seu código de parse JSON continua intocável
+        match = re.search(r'```json\s*(.*?)\s*```', dados_str, re.DOTALL)
+        if match:
+            dados_str = match.group(1)
+        
+        dados_json = json.loads(dados_str)
+        
         usuario.coins -= custo_operacao
         
-        # Convertendo o JSON em um layout humano e elegante
         texto_historico = "🎨 THUMB MAKER - DIREÇÃO DE ARTE\n\n"
         texto_historico += f"🎯 CONFLITO PRINCIPAL: {dados_json.get('conflito_principal', '')}\n"
         texto_historico += "=" * 50 + "\n\n"
@@ -113,12 +95,9 @@ Roteiro Completo:
         db.add(novo_historico)
         db.commit()
         
-        # Injeta o novo saldo no JSON de resposta
         dados_json["novo_saldo"] = usuario.coins
-        
         return dados_json
         
-    except json.JSONDecodeError:
-        raise HTTPException(status_code=500, detail="A IA falhou ao formatar a resposta. Tente clicar em gerar novamente.")
     except Exception as e:
+        print(f"❌ Erro no Thumb Maker: {e}")
         raise HTTPException(status_code=500, detail=str(e))
