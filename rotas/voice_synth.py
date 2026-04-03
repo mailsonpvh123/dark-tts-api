@@ -28,38 +28,13 @@ class AudioRequest(BaseModel):
 # ==========================================
 # CATÁLOGOS DE VOZES (SEM CITAR MOTORES NA API)
 # ==========================================
-# O Novo Elenco Creator Completo (30 Vozes Gemini Flash TTS)
+# O Elenco Creator (Gemini 2.5 Flash TTS)
 VOICES_CREATOR = {
-    "Achernar": "Feminino / Neutra e Clara",
-    "Achird": "Masculino / Neutro",
-    "Algenib": "Masculino / Neutro",
-    "Algieba": "Masculino / Neutro",
-    "Alnilam": "Masculino / Neutro",
     "Aoede": "Feminino / Acolhedora e Natural",
-    "Autonoe": "Feminino / Neutra",
-    "Callirrhoe": "Feminino / Neutra",
     "Charon": "Masculino / Denso e Sombrio",
-    "Despina": "Feminino / Quente e Convidativa",
-    "Enceladus": "Masculino / Neutro",
-    "Erinome": "Feminino / Neutra",
     "Fenrir": "Masculino / Intenso e Envolvente",
-    "Gacrux": "Feminino / Neutra",
-    "Iapetus": "Masculino / Neutro",
     "Kore": "Feminino / Clara e Energética",
-    "Laomedeia": "Feminino / Neutra",
-    "Leda": "Feminino / Neutra",
-    "Orus": "Masculino / Neutro",
-    "Pulcherrima": "Feminino / Neutra",
-    "Puck": "Masculino / Versátil e Sarcástico",
-    "Rasalgethi": "Masculino / Neutro",
-    "Sadachbia": "Masculino / Neutro",
-    "Sadaltager": "Masculino / Entusiasta e Profissional",
-    "Schedar": "Masculino / Neutro",
-    "Sulafat": "Feminino / Articulada e Persuasiva",
-    "Umbriel": "Masculino / Neutro",
-    "Vindemiatrix": "Feminino / Madura e Reasseguradora",
-    "Zephyr": "Feminino / Brilhante e Positiva",
-    "Zubenelgenubi": "Masculino / Profundo e Autoritário"
+    "Puck": "Andrógino / Versátil e Sarcástico"
 }
 
 # O Elenco de Elite Completo (21 Vozes Nativas ElevenLabs)
@@ -245,7 +220,7 @@ async def gerar_narracao(
             audio_base64 = base64.b64encode(mp3_io.getvalue()).decode('utf-8')
 
         elif is_creator:
-            # === MOTOR 2: CREATOR (GEMINI TTS) ===
+            # === MOTOR 2: CREATOR (GEMINI 2.5 FLASH TTS) ===
             api_key = os.environ.get("GEMINI_API_KEY_PAID")
             modelo_gemini = os.environ.get("GEMINI_MODEL_VOICE", "gemini-2.5-flash")
             
@@ -293,6 +268,7 @@ async def gerar_narracao(
                             if attempt < max_retries - 1: time.sleep(3)
                             else: raise Exception(f"Falha na API Creator (Gemini): {str(api_err)}")
                     
+                    # CORREÇÃO CRÍTICA: Convertendo o RAW bruto do Gemini para MP3 128k limpo!
                     audio_bytes = base64.b64decode(audio_b64)
                     seg = AudioSegment.from_file(io.BytesIO(audio_bytes))
                     final_audio += (pause_seg + seg) if i > 0 else seg
