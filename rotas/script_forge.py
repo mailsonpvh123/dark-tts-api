@@ -1,5 +1,6 @@
 import re
 import os
+import asyncio
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -7,7 +8,6 @@ from sqlalchemy.orm import Session
 from google import genai
 from google.genai import types
 
-# Nossos imports internos
 import models
 from database import get_db
 from auth import get_usuario_atual
@@ -43,20 +43,20 @@ async def process_script(
     if not req.ideia_base:
         raise HTTPException(status_code=400, detail="A ideia base é obrigatória.")
 
-    # Custo do Roteiro
-    custo_operacao = 25
+    try:
+        minutos = int(re.search(r'\d+', req.tamanho).group())
+    except:
+        minutos = 5
+
+    custo_operacao = max(1, minutos)
 
     if usuario.coins < custo_operacao:
-        raise HTTPException(status_code=402, detail=f"Coins insuficientes! Você precisa de {custo_operacao} coins para forjar este roteiro.")
+        raise HTTPException(status_code=402, detail=f"Coins insuficientes! Você precisa de {custo_operacao} coins para forjar este roteiro de {minutos} minutos.")
 
-    # Débito Antecipado
     usuario.coins -= custo_operacao
     db.commit()
 
     try:
-        # ==========================================
-        # ROTEAMENTO INTELIGENTE (CHAVE FREE E MODELO DINÂMICO)
-        # ==========================================
         api_key = os.environ.get("GEMINI_API_KEY_FREE") or os.environ.get("GEMINI_API_KEY")
         modelo_texto = os.environ.get("GEMINI_MODEL_TEXT", "gemini-2.5-flash")
 
@@ -65,7 +65,6 @@ async def process_script(
 
         client = genai.Client(api_key=api_key)
 
-        # Define as regras condicionais
         if re.search(r'reddit|porão|medoteca', req.canal, re.IGNORECASE):
             modulo_1_regras = """Regras Específicas para Reddit/Relatos:
 - Faça a tradução/adaptação com o mínimo de cortes. Não resuma a essência.
@@ -75,47 +74,61 @@ async def process_script(
         else:
             modulo_1_regras = """Regras Específicas para Documentário/Mistério/Listas:
 - Crie uma narrativa imersiva focada em storytelling cinematográfico.
-- REGRAS DE POSIÇÃO (TOP 10): NUNCA inicie tópicos com números secos (ex: '10.', '9. O Caso'). Use texto corrido: 'Em décimo lugar, temos...', 'Ocupando a nona posição...'.
-- 🚨 TOLERÂNCIA ZERO PARA METALINGUAGEM: O roteiro é o que o narrador vai falar. Você está TERMINANTEMENTE PROIBIDO de usar expressões como "nesta contagem regressiva", "nesta lista", "vamos listar", ou "em ordem decrescente". Não avise o espectador sobre a estrutura mecânica do vídeo, APENAS CONTE A HISTÓRIA."""
+- REGRAS DE POSIÇÃO (TOP 10): NUNCA inicie tópicos com números secos.
+- 🚨 TOLERÂNCIA ZERO PARA METALINGUAGEM: O roteiro é o que o narrador vai falar. Você está TERMINANTEMENTE PROIBIDO de usar expressões como "nesta lista", "vamos listar". APENAS CONTE A HISTÓRIA."""
 
-        # Lê o Template do Prompt
         template_prompt = ler_prompt_arquivo("script_forge.txt")
         if not template_prompt:
             raise ValueError("O arquivo script_forge.txt sumiu da pasta prompts!")
 
-        # Mágica de injeção de variáveis no texto
         prompt_final = template_prompt.format(
             canal=req.canal if req.canal.strip() else "nosso canal",
             formato=req.formato,
-            tamanho=req.tamanho,
+            tamanho=f"{minutos} minutos",
             tom=req.tom,
             instrucoes=req.instrucoes,
             ideia_base=req.ideia_base,
             modulo_1_regras=modulo_1_regras
         )
 
-        print(f"✍️ Iniciando Script Forge (Modelo: {modelo_texto} | Chave: FREE). Custo: {custo_operacao} Coins.")
+        print(f"✍️ Iniciando Script Forge (Dinâmico: {minutos} min). Custo: {custo_operacao} Coins.")
 
-        response = client.models.generate_content(
-            model=modelo_texto,
-            contents=prompt_final,
-            config=types.GenerateContentConfig(
-                temperature=0.7 
-            )
-        )
+        # ==========================================
+        # RETRY COM EXPONENTIAL BACKOFF
+        # ==========================================
+        max_retries = 3
+        texto_limpo = ""
         
-        texto_limpo = response.text.strip()
+        for attempt in range(max_retries):
+            try:
+                response = client.models.generate_content(
+                    model=modelo_texto,
+                    contents=prompt_final,
+                    config=types.GenerateContentConfig(
+                        temperature=0.7 
+                    )
+                )
+                texto_limpo = response.text.strip()
+                break
+            except Exception as e_api:
+                err_msg = str(e_api).lower()
+                if "503" in err_msg or "429" in err_msg or "unavailable" in err_msg or "demand" in err_msg:
+                    if attempt < max_retries - 1:
+                        espera = 2 * (2 ** attempt)
+                        print(f"⚠️ Motor Ocupado (Script Forge). A aguardar {espera}s... (Tentativa {attempt+1}/{max_retries})")
+                        await asyncio.sleep(espera)
+                    else:
+                        raise Exception("A Dark Neural Engine está sob tráfego extremo neste momento. Por favor, aguarde uns segundos e tente novamente.")
+                else:
+                    raise e_api
         
-        # Limpeza fina para o Voice Synthesizer
         texto_limpo = texto_limpo.replace('*', '').replace('#', '')
-        # AQUI FOI REMOVIDA A DESTRUIÇÃO DE INTERROGAÇÕES E EXCLAMAÇÕES!
         texto_limpo = re.sub(r'\.{2,}', '.', texto_limpo)
         
-        # Gravamos o Roteiro Inteiro (texto_limpo) no Histórico
         novo_historico = models.Historico(
             usuario_id=usuario.id,
             ferramenta="Script Forge",
-            input_usuario=f"Canal: {req.canal} | Modelo: {modelo_texto}",
+            input_usuario=f"Canal: {req.canal} | Tempo: {minutos} min",
             resultado=texto_limpo, 
             custo_coins=custo_operacao
         )
@@ -126,7 +139,6 @@ async def process_script(
         return {"status": "sucesso", "roteiro": texto_limpo, "novo_saldo": usuario.coins}
         
     except Exception as e:
-        # Reembolso em caso de falha da IA
         usuario.coins += custo_operacao
         db.commit()
         print(f"❌ Erro no Script Forge: {e}")
