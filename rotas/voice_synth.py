@@ -222,7 +222,6 @@ async def gerar_narracao(
         elif is_creator:
             # === MOTOR 2: CREATOR (GEMINI TTS DIRETO) ===
             api_key = os.environ.get("GEMINI_API_KEY_PAID")
-            # Forçando o fallback seguro caso a variável falhe
             modelo_gemini = os.environ.get("GEMINI_MODEL_VOICE", "gemini-2.5-flash-tts")
             
             if not api_key: raise ValueError("Chave GEMINI_API_KEY_PAID não configurada no Easypanel.")
@@ -269,9 +268,9 @@ async def gerar_narracao(
                             if attempt < max_retries - 1: time.sleep(3)
                             else: raise Exception(f"Falha na API Creator (Gemini): {str(api_err)}")
                     
-                    # Convertendo RAW do Gemini para MP3 128k limpo!
+                    # CARTEIRADA NO PYDUB: Forçamos a leitura como PCM de 24kHz Mono 16-bit
                     audio_bytes = base64.b64decode(audio_b64)
-                    seg = AudioSegment.from_file(io.BytesIO(audio_bytes))
+                    seg = AudioSegment(data=audio_bytes, sample_width=2, frame_rate=24000, channels=1)
                     final_audio += (pause_seg + seg) if i > 0 else seg
 
             mp3_io = io.BytesIO()
