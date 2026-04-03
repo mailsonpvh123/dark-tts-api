@@ -3,6 +3,9 @@ import os
 import edge_tts
 import httpx
 import base64
+import shutil
+import io
+from pydub import AudioSegment
 
 # ==========================================
 # CONFIGURAÇÕES
@@ -10,20 +13,13 @@ import base64
 TEXTO_PREVIA = "Olá, sou uma voz neural da sua plataforma. Esta é a minha qualidade de narração."
 PASTA_DESTINO = os.path.join("frontend", "static", "audios", "previews")
 
-# Chaves e Modelos de API (Puxando do Easypanel conforme suas variáveis)
+# Chaves e Modelos de API
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY_PAID")
 GEMINI_MODEL_VOICE = os.environ.get("GEMINI_MODEL_VOICE", "gemini-2.5-flash")
 ELEVENLABS_API_KEY = os.environ.get("ELEVENLABS_API_KEY")
 
-# Novo Elenco Gemini Completo (30 Vozes)
-VOICES_CREATOR = [
-    "Achernar", "Achird", "Algenib", "Algieba", "Alnilam", "Aoede", 
-    "Autonoe", "Callirrhoe", "Charon", "Despina", "Enceladus", 
-    "Erinome", "Fenrir", "Gacrux", "Iapetus", "Kore", "Laomedeia", 
-    "Leda", "Orus", "Pulcherrima", "Puck", "Rasalgethi", "Sadachbia", 
-    "Sadaltager", "Schedar", "Sulafat", "Umbriel", "Vindemiatrix", 
-    "Zephyr", "Zubenelgenubi"
-]
+# Elenco Gemini Oficial (5 Vozes base, sem gringos da OpenAI)
+VOICES_CREATOR = ["Aoede", "Charon", "Fenrir", "Kore", "Puck"]
 
 VOICES_CINEMATIC = {
     "pNInz6obpgDQGcFmaJgB": "Adam",
@@ -50,7 +46,12 @@ VOICES_CINEMATIC = {
 }
 
 async def gerar_todas_as_previas():
-    print("🚀 Iniciando o Gerador de Prévias (Com Sistema Anti-Rate Limit)...")
+    print("🚀 Iniciando o Gerador de Prévias...")
+    
+    # MATA OS FANTASMAS DA OPENAI (Limpa a pasta antes de gerar)
+    if os.path.exists(PASTA_DESTINO):
+        shutil.rmtree(PASTA_DESTINO)
+        print("🧹 Pasta de prévias limpa com sucesso. Fantasmas eliminados!")
     os.makedirs(PASTA_DESTINO, exist_ok=True)
 
     # 1. GERANDO AS PRÉVIAS STANDARD (Edge TTS - Grátis)
@@ -99,28 +100,27 @@ async def gerar_todas_as_previas():
                                         break
                                 
                                 if audio_b64:
-                                    with open(caminho, "wb") as f:
-                                        f.write(base64.b64decode(audio_b64))
-                                    break # Sai do loop de retry, sucesso!
+                                    # Corrige a codificação para MP3 usando o Pydub!
+                                    audio_bytes = base64.b64decode(audio_b64)
+                                    seg = AudioSegment.from_file(io.BytesIO(audio_bytes))
+                                    seg.export(caminho, format="mp3", bitrate="128k")
+                                    break # Sucesso
                                 else:
                                     print(f"   ❌ Erro: Gemini não retornou áudio para a voz {voz}.")
                                     break
                                     
-                            elif resp.status_code == 429: # Rate Limit atingido
+                            elif resp.status_code == 429:
                                 print(f"      ⚠️ API sobrecarregada (429). Freando por 12 segundos... (Tentativa {attempt+1}/{max_retries})")
                                 await asyncio.sleep(12)
                             else:
                                 print(f"   ❌ Erro Gemini ({voz}): {resp.text}")
-                                break # Erro diferente de rate limit, desiste dessa voz e vai pra próxima
+                                break
                                 
                         except Exception as e:
                             print(f"   ❌ Erro na Requisição Gemini ({voz}): {e}")
                             await asyncio.sleep(5)
                     
-                    # Pausa educada de 3 segundos entre as requisições para evitar tomar outro 429 atoa
-                    await asyncio.sleep(3)
-                else:
-                    print(f"   ✅ {short_name} já existe. Pulando...")
+                    await asyncio.sleep(3) # Pausa educada
     else:
         print("   ⚠️ GEMINI_API_KEY_PAID não encontrada. Pulando Creator.")
 
@@ -147,9 +147,7 @@ async def gerar_todas_as_previas():
                     except Exception as e:
                         print(f"   ❌ Erro na ElevenLabs ({nome}): {e}")
                     
-                    await asyncio.sleep(1) # Pausa leve na ElevenLabs
-                else:
-                    print(f"   ✅ {short_name} já existe. Pulando...")
+                    await asyncio.sleep(1)
     else:
         print("   ⚠️ ELEVENLABS_API_KEY não encontrada. Pulando Cinematic.")
 
