@@ -12,13 +12,12 @@ from pydub import AudioSegment
 TEXTO_PREVIA = "Olá, sou uma voz neural da sua plataforma. Esta é a minha qualidade de narração."
 PASTA_DESTINO = os.path.join("frontend", "static", "audios", "previews")
 
-# Chaves e Modelos de API (A puxar do Easypanel conforme as suas variáveis)
+# Chaves e Modelos de API
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY_PAID")
-# Forçando o fallback seguro caso a variável falhe
 GEMINI_MODEL_VOICE = os.environ.get("GEMINI_MODEL_VOICE", "gemini-2.5-flash-tts")
 ELEVENLABS_API_KEY = os.environ.get("ELEVENLABS_API_KEY")
 
-# Elenco Gemini Oficial (5 Vozes base)
+# Elenco Gemini Oficial
 VOICES_CREATOR = ["Aoede", "Charon", "Fenrir", "Kore", "Puck"]
 
 VOICES_CINEMATIC = {
@@ -46,9 +45,8 @@ VOICES_CINEMATIC = {
 }
 
 async def gerar_todas_as_previas():
-    print("🚀 A iniciar o Gerador de Prévias (Limpeza Cirúrgica + Gemini TTS + Pydub)...")
+    print("🚀 A iniciar o Gerador de Prévias (Limpeza Cirúrgica + PCM Explicíto)...")
     
-    # LIMPEZA CIRÚRGICA: Apaga apenas os fantasmas obsoletos do Creator
     if os.path.exists(PASTA_DESTINO):
         print("🧹 A procurar ficheiros obsoletos do Tier Creator...")
         apagados = 0
@@ -60,7 +58,7 @@ async def gerar_todas_as_previas():
                     apagados += 1
                 except Exception as e:
                     print(f"      ❌ Erro ao apagar {nome_arquivo}: {e}")
-        print(f"✅ {apagados} ficheiros obsoletos do Creator eliminados! Prévias Cinematic e Standard preservadas.")
+        print(f"✅ {apagados} ficheiros obsoletos do Creator eliminados!")
     else:
         os.makedirs(PASTA_DESTINO, exist_ok=True)
 
@@ -76,7 +74,7 @@ async def gerar_todas_as_previas():
                 communicate = edge_tts.Communicate(text=TEXTO_PREVIA, voice=v['ShortName'])
                 await communicate.save(caminho)
             else:
-                pass # Ficheiro já existe, salta silenciosamente
+                pass 
 
     # 2. GERANDO AS PRÉVIAS CREATOR (Gemini TTS)
     print(f"\n🎬 A gerar vozes Creator ({GEMINI_MODEL_VOICE})...")
@@ -112,11 +110,11 @@ async def gerar_todas_as_previas():
                                         break
                                 
                                 if audio_b64:
-                                    # Corrige a codificação para MP3 usando o Pydub!
+                                    # CARTEIRADA NO PYDUB: Forçamos a leitura como PCM de 24kHz Mono 16-bit
                                     audio_bytes = base64.b64decode(audio_b64)
-                                    seg = AudioSegment.from_file(io.BytesIO(audio_bytes))
+                                    seg = AudioSegment(data=audio_bytes, sample_width=2, frame_rate=24000, channels=1)
                                     seg.export(caminho, format="mp3", bitrate="128k")
-                                    break # Sucesso
+                                    break 
                                 else:
                                     print(f"   ❌ Erro: Gemini não devolveu áudio para a voz {voz}.")
                                     break
@@ -132,7 +130,7 @@ async def gerar_todas_as_previas():
                             print(f"   ❌ Erro na Requisição Gemini ({voz}): {e}")
                             await asyncio.sleep(5)
                     
-                    await asyncio.sleep(3) # Pausa educada
+                    await asyncio.sleep(3) 
                 else:
                     print(f"   ✅ {short_name} já existe. A saltar...")
     else:
@@ -163,7 +161,7 @@ async def gerar_todas_as_previas():
                     
                     await asyncio.sleep(1) 
                 else:
-                    print(f"   ✅ {short_name} já existe. Conta intacta, zero créditos gastos!")
+                    print(f"   ✅ {short_name} já existe. Conta intacta!")
     else:
         print("   ⚠️ ELEVENLABS_API_KEY não encontrada. A saltar o nível Cinematic.")
 
