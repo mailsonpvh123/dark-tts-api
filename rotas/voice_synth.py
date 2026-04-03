@@ -28,7 +28,7 @@ class AudioRequest(BaseModel):
 # ==========================================
 # CATÁLOGOS DE VOZES (SEM CITAR MOTORES NA API)
 # ==========================================
-# O Novo Elenco Creator (Gemini 2.5 Flash TTS)
+# O Novo Elenco Creator (Gemini Flash TTS)
 VOICES_CREATOR = {
     "Aoede": "Feminino / Acolhedora e Natural",
     "Charon": "Masculino / Denso e Sombrio (Ideal p/ Dark e Suspense)",
@@ -220,16 +220,18 @@ async def gerar_narracao(
             audio_base64 = base64.b64encode(mp3_io.getvalue()).decode('utf-8')
 
         elif is_creator:
-            # === MOTOR 2: CREATOR (GEMINI 2.5 FLASH TTS) ===
-            api_key = os.environ.get("GEMINI_API_KEY")
-            if not api_key: raise ValueError("Chave GEMINI_API_KEY não configurada no Easypanel.")
+            # === MOTOR 2: CREATOR (GEMINI TTS) ===
+            api_key = os.environ.get("GEMINI_API_KEY_PAID")
+            modelo_gemini = os.environ.get("GEMINI_MODEL_VOICE", "gemini-2.5-flash")
+            
+            if not api_key: raise ValueError("Chave GEMINI_API_KEY_PAID não configurada no Easypanel.")
 
             voz_real = req.voz.replace("creator-", "")
-            print(f"🎙️ Iniciando Síntese Creator (Motor: Gemini 2.5 Flash | Voz: {voz_real})")
+            print(f"🎙️ Iniciando Síntese Creator (Motor: {modelo_gemini} | Voz: {voz_real})")
 
             async with httpx.AsyncClient(timeout=120.0) as client:
                 for i, chunk in enumerate(chunks):
-                    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
+                    url = f"https://generativelanguage.googleapis.com/v1beta/models/{modelo_gemini}:generateContent?key={api_key}"
                     headers = {"Content-Type": "application/json"}
                     data = {
                         "contents": [{"parts": [{"text": chunk}]}],
@@ -266,7 +268,6 @@ async def gerar_narracao(
                             if attempt < max_retries - 1: time.sleep(3)
                             else: raise Exception(f"Falha na API Creator (Gemini): {str(api_err)}")
                     
-                    # O Gemini geralmente retorna áudio cru ou mp3 codificado em base64
                     audio_bytes = base64.b64decode(audio_b64)
                     seg = AudioSegment.from_file(io.BytesIO(audio_bytes))
                     final_audio += (pause_seg + seg) if i > 0 else seg
