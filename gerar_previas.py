@@ -2,7 +2,7 @@ import asyncio
 import os
 import edge_tts
 import httpx
-from openai import AsyncOpenAI
+import base64
 
 # ==========================================
 # CONFIGURAÇÕES
@@ -11,10 +11,11 @@ TEXTO_PREVIA = "Olá, sou uma voz neural da sua plataforma. Esta é a minha qual
 PASTA_DESTINO = os.path.join("frontend", "static", "audios", "previews")
 
 # Chaves de API (Puxando do Easypanel)
-OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 ELEVENLABS_API_KEY = os.environ.get("ELEVENLABS_API_KEY")
 
-VOICES_CREATOR = ["alloy", "echo", "fable", "onyx", "nova", "shimmer", "ash", "coral", "sage"]
+# Novo Elenco Gemini
+VOICES_CREATOR = ["Aoede", "Charon", "Fenrir", "Kore", "Puck"]
 
 VOICES_CINEMATIC = {
     "pNInz6obpgDQGcFmaJgB": "Adam",
@@ -56,23 +57,45 @@ async def gerar_todas_as_previas():
                 communicate = edge_tts.Communicate(text=TEXTO_PREVIA, voice=v['ShortName'])
                 await communicate.save(caminho)
 
-    # 2. GERANDO AS PRÉVIAS CREATOR (OpenAI TTS)
-    print("\n🎬 Gerando vozes Creator (OpenAI)...")
-    if OPENAI_API_KEY:
-        client = AsyncOpenAI(api_key=OPENAI_API_KEY)
-        for voz in VOICES_CREATOR:
-            short_name = f"creator-{voz}"
-            caminho = os.path.join(PASTA_DESTINO, f"{short_name}.mp3")
-            if not os.path.exists(caminho):
-                print(f"   -> Gerando {short_name}...")
-                try:
-                    response = await client.audio.speech.create(model="tts-1", voice=voz, input=TEXTO_PREVIA)
-                    with open(caminho, "wb") as f:
-                        f.write(response.read())
-                except Exception as e:
-                    print(f"   ❌ Erro na OpenAI ({voz}): {e}")
+    # 2. GERANDO AS PRÉVIAS CREATOR (Gemini 2.5 Flash)
+    print("\n🎬 Gerando vozes Creator (Gemini 2.5 Flash)...")
+    if GEMINI_API_KEY:
+        async with httpx.AsyncClient(timeout=60.0) as http_client:
+            for voz in VOICES_CREATOR:
+                short_name = f"creator-{voz}"
+                caminho = os.path.join(PASTA_DESTINO, f"{short_name}.mp3")
+                if not os.path.exists(caminho):
+                    print(f"   -> Gerando {short_name}...")
+                    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
+                    headers = {"Content-Type": "application/json"}
+                    data = {
+                        "contents": [{"parts": [{"text": TEXTO_PREVIA}]}],
+                        "generationConfig": {
+                            "responseModalities": ["AUDIO"],
+                            "speechConfig": {"voiceConfig": {"prebuiltVoiceConfig": {"voiceName": voz}}}
+                        }
+                    }
+                    try:
+                        resp = await http_client.post(url, json=data, headers=headers)
+                        if resp.status_code == 200:
+                            resp_json = resp.json()
+                            audio_b64 = None
+                            for part in resp_json.get('candidates', [{}])[0].get('content', {}).get('parts', []):
+                                if 'inlineData' in part and part['inlineData']['mimeType'].startswith('audio/'):
+                                    audio_b64 = part['inlineData']['data']
+                                    break
+                            
+                            if audio_b64:
+                                with open(caminho, "wb") as f:
+                                    f.write(base64.b64decode(audio_b64))
+                            else:
+                                print(f"   ❌ Erro: Gemini não retornou áudio para a voz {voz}.")
+                        else:
+                            print(f"   ❌ Erro Gemini ({voz}): {resp.text}")
+                    except Exception as e:
+                        print(f"   ❌ Erro na Requisição Gemini ({voz}): {e}")
     else:
-        print("   ⚠️ OPENAI_API_KEY não encontrada. Pulando Creator.")
+        print("   ⚠️ GEMINI_API_KEY não encontrada. Pulando Creator.")
 
     # 3. GERANDO AS PRÉVIAS CINEMATIC (ElevenLabs)
     print("\n⭐ Gerando vozes Cinematic (ElevenLabs)...")
