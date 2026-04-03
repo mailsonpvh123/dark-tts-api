@@ -28,13 +28,38 @@ class AudioRequest(BaseModel):
 # ==========================================
 # CATÁLOGOS DE VOZES (SEM CITAR MOTORES NA API)
 # ==========================================
-# O Novo Elenco Creator (Gemini TTS)
+# O Novo Elenco Creator COMPLETO (30 Vozes Gemini TTS)
 VOICES_CREATOR = {
-    "Aoede": "Feminino / Acolhedora e Natural",
-    "Charon": "Masculino / Denso e Sombrio",
-    "Fenrir": "Masculino / Intenso e Envolvente",
-    "Kore": "Feminino / Clara e Energética",
-    "Puck": "Andrógino / Versátil e Sarcástico"
+    "Achernar": "Suave",
+    "Achird": "Amigável",
+    "Algenib": "Áspero",
+    "Algieba": "Suave",
+    "Alnilam": "Firme",
+    "Aoede": "Breezy e Natural",
+    "Autonoe": "Brilhante (Bright)",
+    "Callirrhoe": "Easy-going",
+    "Charon": "Informativa (Ideal p/ Dark e Suspense)",
+    "Despina": "Smooth",
+    "Enceladus": "Breathy",
+    "Erinome": "Limpa",
+    "Fenrir": "Excitável e Intenso",
+    "Gacrux": "Adulto",
+    "Iapetus": "Limpar",
+    "Kore": "Firme",
+    "Laomedeia": "Upbeat",
+    "Leda": "Juventude",
+    "Orus": "Firm",
+    "Pulcherrima": "Avançar",
+    "Puck": "Upbeat e Sarcástico",
+    "Rasalgethi": "Informativa",
+    "Sadachbia": "Lively",
+    "Sadaltager": "Conhecimento",
+    "Schedar": "Even",
+    "Sulafat": "Quente",
+    "Umbriel": "Tranquilo",
+    "Vindemiatrix": "Gentle",
+    "Zephyr": "Brilhante",
+    "Zubenelgenubi": "Casual"
 }
 
 # O Elenco de Elite Completo (21 Vozes Nativas ElevenLabs)
@@ -79,7 +104,7 @@ async def carregar_vozes_memoria():
                 "tipo": "cinematic"
             })
 
-        # 2. Carrega Creator (Premium)
+        # 2. Carrega Creator (Premium) - Com as descrições da Tabela
         for v_name, v_desc in VOICES_CREATOR.items():
             vozes_cache.append({
                 "name": f"{v_name} ({v_desc})",
