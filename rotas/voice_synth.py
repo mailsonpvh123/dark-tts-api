@@ -28,13 +28,38 @@ class AudioRequest(BaseModel):
 # ==========================================
 # CATÁLOGOS DE VOZES (SEM CITAR MOTORES NA API)
 # ==========================================
-# O Novo Elenco Creator (Gemini Flash TTS)
+# O Novo Elenco Creator Completo (30 Vozes Gemini Flash TTS)
 VOICES_CREATOR = {
+    "Achernar": "Feminino / Neutra e Clara",
+    "Achird": "Masculino / Neutro",
+    "Algenib": "Masculino / Neutro",
+    "Algieba": "Masculino / Neutro",
+    "Alnilam": "Masculino / Neutro",
     "Aoede": "Feminino / Acolhedora e Natural",
-    "Charon": "Masculino / Denso e Sombrio (Ideal p/ Dark e Suspense)",
+    "Autonoe": "Feminino / Neutra",
+    "Callirrhoe": "Feminino / Neutra",
+    "Charon": "Masculino / Denso e Sombrio",
+    "Despina": "Feminino / Quente e Convidativa",
+    "Enceladus": "Masculino / Neutro",
+    "Erinome": "Feminino / Neutra",
     "Fenrir": "Masculino / Intenso e Envolvente",
+    "Gacrux": "Feminino / Neutra",
+    "Iapetus": "Masculino / Neutro",
     "Kore": "Feminino / Clara e Energética",
-    "Puck": "Andrógino / Versátil e Sarcástico"
+    "Laomedeia": "Feminino / Neutra",
+    "Leda": "Feminino / Neutra",
+    "Orus": "Masculino / Neutro",
+    "Pulcherrima": "Feminino / Neutra",
+    "Puck": "Masculino / Versátil e Sarcástico",
+    "Rasalgethi": "Masculino / Neutro",
+    "Sadachbia": "Masculino / Neutro",
+    "Sadaltager": "Masculino / Entusiasta e Profissional",
+    "Schedar": "Masculino / Neutro",
+    "Sulafat": "Feminino / Articulada e Persuasiva",
+    "Umbriel": "Masculino / Neutro",
+    "Vindemiatrix": "Feminino / Madura e Reasseguradora",
+    "Zephyr": "Feminino / Brilhante e Positiva",
+    "Zubenelgenubi": "Masculino / Profundo e Autoritário"
 }
 
 # O Elenco de Elite Completo (21 Vozes Nativas ElevenLabs)
