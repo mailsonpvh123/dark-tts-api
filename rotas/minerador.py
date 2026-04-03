@@ -22,6 +22,8 @@ class MinerRedditRequest(BaseModel):
     min_words: int = 100
     min_score: int = 10
     sem_atualizacao: bool = False
+    sort: str = "top"        # relevance, top, new
+    time_filter: str = "all" # all, year, month
 
 class MinerGenericRequest(BaseModel):
     query: str
@@ -31,7 +33,6 @@ def traduzir_seguro(texto, target='pt'):
     """Tradutor com redundância para evitar Erro 500"""
     if not texto or len(texto.strip()) < 3: return texto
     try:
-        # Se for muito grande, pegamos os primeiros 4000 caracteres para não travar a API
         texto_limpo = texto[:4000]
         return GoogleTranslator(source='auto', target=target).translate(texto_limpo)
     except Exception as e:
@@ -55,7 +56,6 @@ def extrair_texto_da_url(url):
         pass
     return "" 
 
-# Custo Global do Minerador
 CUSTO_MINER = 5
 
 @router.post("/miner/reddit")
@@ -64,15 +64,20 @@ async def miner_reddit(req: MinerRedditRequest, db: Session = Depends(get_db), u
     if usuario.coins < CUSTO_MINER: raise HTTPException(status_code=402, detail=f"Coins insuficientes!")
     
     try:
-        query_en = traduzir_seguro(req.query, target='en')
-        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) DarkCreator/2.0'}
+        # Dica Oculta: Se o usuário já escrever em inglês, não traduz.
+        # Melhora a assertividade de "Golden Child" vs "Filhos Dourados".
+        query_en = req.query if re.match(r'^[a-zA-Z0-9\s\-_]+$', req.query) else traduzir_seguro(req.query, target='en')
+        
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) DarkCreator/3.0'}
         sub = req.sub.strip().replace('r/', '')
         
-        url = f"https://www.reddit.com/r/{sub}/search.json?q={urllib.parse.quote(query_en)}&restrict_sr=1&type=link&limit=25&sort=relevance" if sub else f"https://www.reddit.com/search.json?q={urllib.parse.quote(query_en)}&type=link&limit=25&sort=relevance"
+        # URL MELHORADA: Agora usamos os parâmetros de SORT e TIME (Top All Time gera resultados 100x melhores)
+        base_url = f"https://www.reddit.com/r/{sub}/search.json" if sub else "https://www.reddit.com/search.json"
+        url = f"{base_url}?q={urllib.parse.quote(query_en)}&restrict_sr=1&type=link&limit=40&sort={req.sort}&t={req.time_filter}"
             
         r = requests.get(url, headers=headers, timeout=15)
         if r.status_code != 200:
-            raise Exception("Reddit bloqueou a requisição.")
+            raise Exception("Reddit bloqueou a requisição. Tente novamente.")
             
         data = r.json()
         resultados = []
@@ -80,10 +85,18 @@ async def miner_reddit(req: MinerRedditRequest, db: Session = Depends(get_db), u
         for post in data.get('data', {}).get('children', []):
             p = post['data']
             texto_original = p.get('selftext', '')
-            if len(texto_original.split()) < req.min_words or p.get('score', 0) < req.min_score: continue
+            titulo_original = p.get('title', '')
+            
+            # FILTROS DE QUALIDADE (Mínimo de palavras e Score)
+            if len(texto_original.split()) < req.min_words or p.get('score', 0) < req.min_score: 
+                continue
+                
+            # A TRAVA DE ATUALIZAÇÃO AGORA FUNCIONA
+            if req.sem_atualizacao and re.search(r'\b(update|updated|atualização)\b', titulo_original, re.IGNORECASE):
+                continue
             
             resultados.append({
-                "titulo": p.get('title', ''),
+                "titulo": titulo_original,
                 "texto": texto_original[:300] + "...", 
                 "texto_completo": texto_original,      
                 "url": f"https://reddit.com{p.get('permalink')}",
@@ -99,7 +112,6 @@ async def miner_reddit(req: MinerRedditRequest, db: Session = Depends(get_db), u
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-
 @router.post("/miner/wiki")
 async def miner_wiki(req: MinerGenericRequest, db: Session = Depends(get_db), usuario: models.Usuario = Depends(get_usuario_atual)):
     if not usuario: raise HTTPException(status_code=401, detail="Sessão expirada.")
@@ -107,33 +119,26 @@ async def miner_wiki(req: MinerGenericRequest, db: Session = Depends(get_db), us
 
     try:
         query_en = traduzir_seguro(req.query, target='en')
-        
-        # O CRACHÁ HONESTO QUE A WIKIPEDIA EXIGE DE SERVIDORES
         headers = {'User-Agent': 'DarkCreatorBot/1.0 (https://darkcreator.app; admin@darkcreator.app) python-requests/2.31.0'}
-        
         search_url = f"https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch={urllib.parse.quote(query_en)}&format=json"
         
         r_search = requests.get(search_url, headers=headers, timeout=10)
         
-        # BLINDAGEM MÁXIMA CONTRA JSON ERROR
         try:
             search_res = r_search.json()
         except Exception as json_err:
-            print(f"BLOQUEIO WIKI: Servidor retornou HTML em vez de JSON. Resposta: {r_search.text[:100]}")
-            # Retornamos sucesso com array vazio. Assim a tela mostra "Nenhum resultado" sem explodir Erro 500
             return {"status": "sucesso", "data": [], "novo_saldo": usuario.coins}
         
         resultados = []
         for item in search_res.get('query', {}).get('search', [])[:4]:
             page_title = item['title']
-            
             extract_url = f"https://en.wikipedia.org/w/api.php?action=query&prop=extracts&explaintext=1&titles={urllib.parse.quote(page_title)}&format=json"
             r_ext = requests.get(extract_url, headers=headers, timeout=10)
             
             try:
                 ext_res = r_ext.json()
             except:
-                continue # Pula para o próximo se este JSON vier quebrado
+                continue
                 
             pages = ext_res.get('query', {}).get('pages', {})
             
@@ -156,7 +161,6 @@ async def miner_wiki(req: MinerGenericRequest, db: Session = Depends(get_db), us
                     "fonte": "Wikipedia Org."
                 })
 
-        # Só cobra coin se achou alguma coisa
         if len(resultados) > 0:
             usuario.coins -= CUSTO_MINER
             novo_historico = models.Historico(usuario_id=usuario.id, ferramenta="Data Miner", input_usuario=f"Fonte: Wiki | Query: {req.query}", resultado=f"{len(resultados)} fatos.", custo_coins=CUSTO_MINER)
@@ -165,9 +169,7 @@ async def miner_wiki(req: MinerGenericRequest, db: Session = Depends(get_db), us
 
         return {"status": "sucesso", "data": resultados, "novo_saldo": usuario.coins}
     except Exception as e:
-        print(f"CRÍTICO WIKI: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Erro Wiki: Tente outro termo de busca.")
-
 
 @router.post("/miner/news")
 async def miner_news(req: MinerGenericRequest, db: Session = Depends(get_db), usuario: models.Usuario = Depends(get_usuario_atual)):
@@ -177,7 +179,6 @@ async def miner_news(req: MinerGenericRequest, db: Session = Depends(get_db), us
     try:
         query_en = traduzir_seguro(req.query, target='en')
         url = f"https://news.google.com/rss/search?q={urllib.parse.quote(query_en)}&hl=en-US&gl=US&ceid=US:en"
-        # Sem Jina AI. 100% focado em velocidade e extração de resumo do RSS (Sua ordem!)
         r = requests.get(url, timeout=10)
         root = ET.fromstring(r.text)
         resultados = []
@@ -214,7 +215,6 @@ async def miner_news(req: MinerGenericRequest, db: Session = Depends(get_db), us
         return {"status": "sucesso", "data": resultados, "novo_saldo": usuario.coins}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro News: {str(e)}")
-
 
 @router.post("/miner/web")
 async def miner_web(req: MinerGenericRequest, db: Session = Depends(get_db), usuario: models.Usuario = Depends(get_usuario_atual)):
