@@ -32,28 +32,28 @@
                     <h3 class="text-[10px] font-bold text-purple-400 uppercase tracking-widest mb-4 flex items-center gap-2"><i class="fa-solid fa-sliders"></i> Ajustes Standard</h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                         <div>
-                            <label class="flex justify-between text-[10px] font-bold text-zinc-400 uppercase mb-1">Velocidade <span id="val_v" class="text-white font-mono bg-zinc-800 px-2 rounded">1.0x</span></label>
+                            <label class="flex justify-between text-[10px] font-bold text-zinc-400 uppercase mb-1">Velocidade <span id="val_v_std" class="text-white font-mono bg-zinc-800 px-2 rounded">1.0x</span></label>
                             <p class="text-[10px] text-zinc-500 mb-3 leading-relaxed">Muda a rapidez da fala. Valores acima de 1.0x aceleram a narração.</p>
                             <div class="flex items-center gap-2">
-                                <button onclick="ajustarVelocidade(-0.1)" class="w-8 h-8 rounded-lg bg-zinc-800 text-zinc-400 hover:text-white hover:bg-purple-600 transition-colors border border-zinc-700"><i class="fa-solid fa-minus text-xs"></i></button>
-                                <input type="range" id="velocidade" min="0.5" max="2.0" step="0.1" value="1.0" class="w-full accent-purple-500" oninput="document.getElementById('val_v').innerText = this.value + 'x'">
-                                <button onclick="ajustarVelocidade(0.1)" class="w-8 h-8 rounded-lg bg-zinc-800 text-zinc-400 hover:text-white hover:bg-purple-600 transition-colors border border-zinc-700"><i class="fa-solid fa-plus text-xs"></i></button>
+                                <button onclick="ajustarSlider('velocidade_std', 'val_v_std', -0.1, 0.5, 2.0, 'x')" class="w-8 h-8 rounded-lg bg-zinc-800 text-zinc-400 hover:text-white hover:bg-purple-600 transition-colors border border-zinc-700"><i class="fa-solid fa-minus text-xs"></i></button>
+                                <input type="range" id="velocidade_std" min="0.5" max="2.0" step="0.1" value="1.0" class="w-full accent-purple-500" oninput="document.getElementById('val_v_std').innerText = this.value + 'x'">
+                                <button onclick="ajustarSlider('velocidade_std', 'val_v_std', 0.1, 0.5, 2.0, 'x')" class="w-8 h-8 rounded-lg bg-zinc-800 text-zinc-400 hover:text-white hover:bg-purple-600 transition-colors border border-zinc-700"><i class="fa-solid fa-plus text-xs"></i></button>
                             </div>
                         </div>
                         <div>
-                            <label class="flex justify-between text-[10px] font-bold text-zinc-400 uppercase mb-1">Tom (Pitch) <span id="val_p" class="text-white font-mono bg-zinc-800 px-2 rounded">0Hz</span></label>
+                            <label class="flex justify-between text-[10px] font-bold text-zinc-400 uppercase mb-1">Tom (Pitch) <span id="val_p_std" class="text-white font-mono bg-zinc-800 px-2 rounded">0Hz</span></label>
                             <p class="text-[10px] text-zinc-500 mb-3 leading-relaxed">Altera a frequência. Valores negativos deixam a voz mais grave e assustadora.</p>
                             <div class="flex items-center gap-2">
-                                <button onclick="ajustarPitch(-5)" class="w-8 h-8 rounded-lg bg-zinc-800 text-zinc-400 hover:text-white hover:bg-purple-600 transition-colors border border-zinc-700"><i class="fa-solid fa-minus text-xs"></i></button>
-                                <input type="range" id="pitch" min="-50" max="50" step="5" value="0" class="w-full accent-purple-500" oninput="document.getElementById('val_p').innerText = this.value + 'Hz'">
-                                <button onclick="ajustarPitch(5)" class="w-8 h-8 rounded-lg bg-zinc-800 text-zinc-400 hover:text-white hover:bg-purple-600 transition-colors border border-zinc-700"><i class="fa-solid fa-plus text-xs"></i></button>
+                                <button onclick="ajustarSlider('pitch_std', 'val_p_std', -5, -50, 50, 'Hz')" class="w-8 h-8 rounded-lg bg-zinc-800 text-zinc-400 hover:text-white hover:bg-purple-600 transition-colors border border-zinc-700"><i class="fa-solid fa-minus text-xs"></i></button>
+                                <input type="range" id="pitch_std" min="-50" max="50" step="5" value="0" class="w-full accent-purple-500" oninput="document.getElementById('val_p_std').innerText = this.value + 'Hz'">
+                                <button onclick="ajustarSlider('pitch_std', 'val_p_std', 5, -50, 50, 'Hz')" class="w-8 h-8 rounded-lg bg-zinc-800 text-zinc-400 hover:text-white hover:bg-purple-600 transition-colors border border-zinc-700"><i class="fa-solid fa-plus text-xs"></i></button>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 <div id="controles_creator" class="mt-6 p-5 bg-[#09090b] rounded-xl border border-blue-500/20 shadow-inner relative z-10 hidden">
-                    <h3 class="text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-4 flex items-center gap-2"><i class="fa-solid fa-sliders"></i> Ajustes Creator (Gemini)</h3>
+                    <h3 class="text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-4 flex items-center gap-2"><i class="fa-solid fa-sliders"></i> Ajustes Creator</h3>
                     <div class="grid grid-cols-1 gap-6">
                         <div>
                             <label class="flex justify-between text-[10px] font-bold text-zinc-400 uppercase mb-1">Temperatura Emocional <span id="val_temp" class="text-white font-mono bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2 rounded">0.7</span></label>
@@ -64,17 +64,28 @@
                 </div>
 
                 <div id="controles_cinematic" class="mt-6 p-5 bg-[#09090b] rounded-xl border border-amber-500/20 shadow-inner relative z-10 hidden">
-                    <h3 class="text-[10px] font-bold text-amber-500 uppercase tracking-widest mb-4 flex items-center gap-2"><i class="fa-solid fa-sliders"></i> Ajustes Cinematic (ElevenLabs)</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <h3 class="text-[10px] font-bold text-amber-500 uppercase tracking-widest mb-4 flex items-center gap-2"><i class="fa-solid fa-sliders"></i> Ajustes Cinematic</h3>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-6">
                         <div>
                             <label class="flex justify-between text-[10px] font-bold text-zinc-400 uppercase mb-1">Estabilidade <span id="val_estab" class="text-white font-mono bg-amber-500/20 text-amber-400 border border-amber-500/30 px-2 rounded">50%</span></label>
-                            <p class="text-[10px] text-zinc-500 mb-3 leading-relaxed">Valores baixos trazem mais emoção e naturalidade (bom para histórias dramáticas). Valores altos forçam a voz a ser muito consistente e robótica.</p>
+                            <p class="text-[10px] text-zinc-500 mb-3 leading-relaxed">Valores baixos trazem mais emoção e naturalidade (bom para histórias). Valores altos forçam a voz a ser muito consistente e linear.</p>
                             <input type="range" id="estabilidade" min="0.0" max="1.0" step="0.05" value="0.50" class="w-full accent-amber-500" oninput="document.getElementById('val_estab').innerText = Math.round(this.value * 100) + '%'">
                         </div>
                         <div>
                             <label class="flex justify-between text-[10px] font-bold text-zinc-400 uppercase mb-1">Similaridade <span id="val_simil" class="text-white font-mono bg-amber-500/20 text-amber-400 border border-amber-500/30 px-2 rounded">75%</span></label>
-                            <p class="text-[10px] text-zinc-500 mb-3 leading-relaxed">Define o quanto a voz deve soar como a amostra original do autor. Alto remove ruídos de fundo, mas pode soar artificial se passar dos 85%.</p>
+                            <p class="text-[10px] text-zinc-500 mb-3 leading-relaxed">Define o quanto a voz deve soar "perfeita". Alto remove ruídos, mas pode soar artificial se passar dos 85%.</p>
                             <input type="range" id="similaridade" min="0.0" max="1.0" step="0.05" value="0.75" class="w-full accent-amber-500" oninput="document.getElementById('val_simil').innerText = Math.round(this.value * 100) + '%'">
+                        </div>
+                    </div>
+                    
+                    <div class="border-t border-zinc-800/80 pt-4">
+                        <label class="flex justify-between text-[10px] font-bold text-zinc-400 uppercase mb-1">Aceleração <span id="val_v_cin" class="text-white font-mono bg-amber-500/20 text-amber-400 border border-amber-500/30 px-2 rounded">1.0x</span></label>
+                        <p class="text-[10px] text-zinc-500 mb-3 leading-relaxed">Útil para acelerar documentários de ritmo lento.</p>
+                        <div class="flex items-center gap-2">
+                            <button onclick="ajustarSlider('velocidade_cin', 'val_v_cin', -0.1, 0.5, 2.0, 'x')" class="w-8 h-8 rounded-lg bg-zinc-800 text-zinc-400 hover:text-white hover:bg-amber-500 transition-colors border border-zinc-700"><i class="fa-solid fa-minus text-xs"></i></button>
+                            <input type="range" id="velocidade_cin" min="0.5" max="2.0" step="0.1" value="1.0" class="w-full accent-amber-500" oninput="document.getElementById('val_v_cin').innerText = parseFloat(this.value).toFixed(1) + 'x'">
+                            <button onclick="ajustarSlider('velocidade_cin', 'val_v_cin', 0.1, 0.5, 2.0, 'x')" class="w-8 h-8 rounded-lg bg-zinc-800 text-zinc-400 hover:text-white hover:bg-amber-500 transition-colors border border-zinc-700"><i class="fa-solid fa-plus text-xs"></i></button>
                         </div>
                     </div>
                 </div>
@@ -148,35 +159,31 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 });
 
-function ajustarVelocidade(delta) {
-    const el = document.getElementById('velocidade');
+function ajustarSlider(idInput, idLabel, delta, min, max, suffix) {
+    const el = document.getElementById(idInput);
     let newVal = parseFloat(el.value) + delta;
-    if (newVal < 0.5) newVal = 0.5;
-    if (newVal > 2.0) newVal = 2.0;
-    el.value = newVal.toFixed(1);
-    document.getElementById('val_v').innerText = el.value + 'x';
-}
-
-function ajustarPitch(delta) {
-    const el = document.getElementById('pitch');
-    let newVal = parseInt(el.value) + delta;
-    if (newVal < -50) newVal = -50;
-    if (newVal > 50) newVal = 50;
-    el.value = newVal;
-    document.getElementById('val_p').innerText = el.value + 'Hz';
+    if (newVal < min) newVal = min;
+    if (newVal > max) newVal = max;
+    
+    if (Number.isInteger(min) && Number.isInteger(max) && Number.isInteger(delta)) {
+        el.value = Math.round(newVal);
+        document.getElementById(idLabel).innerText = el.value + suffix;
+    } else {
+        el.value = newVal.toFixed(1);
+        document.getElementById(idLabel).innerText = el.value + suffix;
+    }
 }
 
 function alternarAbaVozes(tipo) {
     abaVozAtiva = tipo;
     
-    const btnPadrao = document.getElementById('aba_btn_padrao');
-    const btnCreator = document.getElementById('aba_btn_creator');
-    const btnCinematic = document.getElementById('aba_btn_cinematic');
-    
-    // Ocultar todos os painéis de controlo primeiro
     document.getElementById('controles_standard').classList.add('hidden');
     document.getElementById('controles_creator').classList.add('hidden');
     document.getElementById('controles_cinematic').classList.add('hidden');
+    
+    const btnPadrao = document.getElementById('aba_btn_padrao');
+    const btnCreator = document.getElementById('aba_btn_creator');
+    const btnCinematic = document.getElementById('aba_btn_cinematic');
     
     btnPadrao.className = "flex-1 py-2 text-xs font-bold rounded-lg transition-all border border-transparent text-zinc-500 hover:text-white";
     btnCreator.className = "flex-1 py-2 text-xs font-bold rounded-lg transition-all border border-transparent text-zinc-500 hover:text-white";
@@ -184,17 +191,17 @@ function alternarAbaVozes(tipo) {
 
     if (tipo === 'padrao') {
         btnPadrao.className = "flex-1 py-2 text-xs font-bold rounded-lg bg-zinc-800 text-white shadow-sm transition-all border border-zinc-700/50";
-        document.getElementById('info_tier').innerHTML = `<div class="bg-zinc-800/50 border border-zinc-700 p-3 rounded-lg"><p class="text-xs text-zinc-400"><strong>Standard Tier:</strong> Sintetizador rápido e barato. Ótimo para testes ou canais iniciais.</p></div>`;
+        document.getElementById('info_tier').innerHTML = `<div class="bg-zinc-800/50 border border-zinc-700 p-3 rounded-lg"><p class="text-xs text-zinc-400"><strong>Standard Tier:</strong> Sintetizador rápido. Ótimo para testes ou canais iniciais.</p></div>`;
         document.getElementById('controles_standard').classList.remove('hidden');
         
     } else if (tipo === 'creator') {
         btnCreator.className = "flex-1 py-2 text-xs font-bold rounded-lg bg-zinc-800 text-white shadow-sm transition-all border border-zinc-700/50";
-        document.getElementById('info_tier').innerHTML = `<div class="bg-blue-500/10 border border-blue-500/20 p-3 rounded-lg"><p class="text-xs text-blue-400"><strong>Creator Tier (Gemini 2.5 TTS):</strong> Vozes naturais e emocionais. Focado em alta retenção de Storytelling.</p></div>`;
+        document.getElementById('info_tier').innerHTML = `<div class="bg-blue-500/10 border border-blue-500/20 p-3 rounded-lg"><p class="text-xs text-blue-400"><strong>Creator Tier:</strong> Vozes naturais e emocionais. Focado em alta retenção de Storytelling.</p></div>`;
         document.getElementById('controles_creator').classList.remove('hidden');
         
     } else {
         btnCinematic.className = "flex-1 py-2 text-xs font-bold rounded-lg bg-amber-500/20 text-amber-400 shadow-sm transition-all border border-amber-500/50";
-        document.getElementById('info_tier').innerHTML = `<div class="bg-amber-500/10 border border-amber-500/20 p-3 rounded-lg"><p class="text-xs text-amber-500"><strong>Cinematic Tier (ElevenLabs):</strong> Qualidade Ultra-Realista de cinema. Perfeito para documentários densos.</p></div>`;
+        document.getElementById('info_tier').innerHTML = `<div class="bg-amber-500/10 border border-amber-500/20 p-3 rounded-lg"><p class="text-xs text-amber-500"><strong>Cinematic Tier:</strong> Qualidade Ultra-Realista de cinema. Perfeito para documentários densos.</p></div>`;
         document.getElementById('controles_cinematic').classList.remove('hidden');
     }
 
@@ -298,8 +305,10 @@ async function gerarAudioCompleto() {
     const texto = document.getElementById('texto_voz').value;
     if (!texto) return alert("Cole o texto do roteiro primeiro!");
     
-    const velocidade = parseFloat(document.getElementById('velocidade').value) || 1.0;
-    const pitch = parseInt(document.getElementById('pitch').value) || 0;
+    // Captura dos Inputs por ID Específico do Painel
+    const velocidade = abaVozAtiva === 'padrao' ? parseFloat(document.getElementById('velocidade_std').value) : (abaVozAtiva === 'cinematic' ? parseFloat(document.getElementById('velocidade_cin').value) : 1.0);
+    const pitch = abaVozAtiva === 'padrao' ? parseInt(document.getElementById('pitch_std').value) : 0;
+    
     const temperatura = parseFloat(document.getElementById('temperatura').value) || 0.7;
     const estabilidade = parseFloat(document.getElementById('estabilidade').value) || 0.5;
     const similaridade = parseFloat(document.getElementById('similaridade').value) || 0.75;
@@ -321,8 +330,8 @@ async function gerarAudioCompleto() {
             body: JSON.stringify({
                 texto: texto,
                 voz: vozSelecionada,
-                velocidade: abaVozAtiva === 'padrao' ? velocidade : 1.0,
-                pitch: abaVozAtiva === 'padrao' ? pitch : 0,
+                velocidade: velocidade,
+                pitch: pitch,
                 temperatura: temperatura,
                 estabilidade: estabilidade,
                 similaridade: similaridade
@@ -363,10 +372,10 @@ async function gerarAudioCompleto() {
             
             <div class="flex flex-col sm:flex-row gap-3 border-t border-zinc-800/80 pt-4 mt-2">
                 <button onclick="baixarSRT()" class="flex-1 bg-[#09090b] hover:bg-emerald-600 text-emerald-400 hover:text-white font-bold py-3.5 rounded-xl border border-emerald-500/30 hover:border-emerald-500 transition-all text-xs flex items-center justify-center gap-2 shadow-inner hover:shadow-[0_0_15px_rgba(16,185,129,0.4)] group">
-                    <i class="fa-solid fa-download group-hover:-translate-y-1 transition-transform"></i> Baixar .SRT
+                    <i class=\"fa-solid fa-download group-hover:-translate-y-1 transition-transform\"></i> Baixar .SRT
                 </button>
                 <button onclick="enviarParaMetaSEO()" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-black py-3.5 rounded-xl border border-blue-500/50 transition-all text-xs flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(59,130,246,0.4)] group">
-                    <i class="fa-solid fa-rocket group-hover:translate-x-1 transition-transform"></i> Gerar Meta & SEO
+                    <i class=\"fa-solid fa-rocket group-hover:translate-x-1 transition-transform\"></i> Gerar Meta & SEO
                 </button>
             </div>
         `;
