@@ -17,7 +17,6 @@ import models
 from database import get_db
 from auth import get_usuario_atual
 
-# ATENÇÃO: Rota na raiz (sem prefixo) para casar perfeitamente com o fetch do seu main.js!
 router = APIRouter(tags=["Voice Synthesizer"])
 
 class AudioRequest(BaseModel):
