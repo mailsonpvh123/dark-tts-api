@@ -28,7 +28,7 @@
                     <textarea id="texto_voz" oninput="recalcularCustoVoz()" class="w-full h-[220px] bg-[#09090b] border border-zinc-700/80 rounded-xl px-5 py-4 text-zinc-200 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/50 outline-none transition-all shadow-inner resize-none text-sm leading-relaxed custom-scrollbar" placeholder="Cole aqui o seu roteiro blindado final para iniciar a gravação..."></textarea>
                 </div>
 
-                <div id="controles_standard" class="mt-6 p-5 bg-[#09090b] rounded-xl border border-zinc-800 shadow-inner relative z-10">
+                <div id="controles_standard" class="mt-6 p-5 bg-[#09090b] rounded-xl border border-zinc-800 shadow-inner relative z-10 hidden">
                     <h3 class="text-[10px] font-bold text-purple-400 uppercase tracking-widest mb-4 flex items-center gap-2"><i class="fa-solid fa-sliders"></i> Ajustes Standard</h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                         <div>
@@ -36,13 +36,13 @@
                             <p class="text-[10px] text-zinc-500 mb-3 leading-relaxed">Muda a rapidez da fala. Valores acima de 1.0x aceleram a narração.</p>
                             <div class="flex items-center gap-2">
                                 <button onclick="ajustarSlider('velocidade_std', 'val_v_std', -0.1, 0.5, 2.0, 'x')" class="w-8 h-8 rounded-lg bg-zinc-800 text-zinc-400 hover:text-white hover:bg-purple-600 transition-colors border border-zinc-700"><i class="fa-solid fa-minus text-xs"></i></button>
-                                <input type="range" id="velocidade_std" min="0.5" max="2.0" step="0.1" value="1.0" class="w-full accent-purple-500" oninput="document.getElementById('val_v_std').innerText = this.value + 'x'">
+                                <input type="range" id="velocidade_std" min="0.5" max="2.0" step="0.1" value="1.0" class="w-full accent-purple-500" oninput="document.getElementById('val_v_std').innerText = parseFloat(this.value).toFixed(1) + 'x'">
                                 <button onclick="ajustarSlider('velocidade_std', 'val_v_std', 0.1, 0.5, 2.0, 'x')" class="w-8 h-8 rounded-lg bg-zinc-800 text-zinc-400 hover:text-white hover:bg-purple-600 transition-colors border border-zinc-700"><i class="fa-solid fa-plus text-xs"></i></button>
                             </div>
                         </div>
                         <div>
                             <label class="flex justify-between text-[10px] font-bold text-zinc-400 uppercase mb-1">Tom (Pitch) <span id="val_p_std" class="text-white font-mono bg-zinc-800 px-2 rounded">0Hz</span></label>
-                            <p class="text-[10px] text-zinc-500 mb-3 leading-relaxed">Valores negativos deixam a voz mais grave e assustadora.</p>
+                            <p class="text-[10px] text-zinc-500 mb-3 leading-relaxed">Altera a frequência. Valores negativos deixam a voz mais grave e assustadora.</p>
                             <div class="flex items-center gap-2">
                                 <button onclick="ajustarSlider('pitch_std', 'val_p_std', -5, -50, 50, 'Hz')" class="w-8 h-8 rounded-lg bg-zinc-800 text-zinc-400 hover:text-white hover:bg-purple-600 transition-colors border border-zinc-700"><i class="fa-solid fa-minus text-xs"></i></button>
                                 <input type="range" id="pitch_std" min="-50" max="50" step="5" value="0" class="w-full accent-purple-500" oninput="document.getElementById('val_p_std').innerText = this.value + 'Hz'">
@@ -57,7 +57,7 @@
                     <div class="grid grid-cols-1 gap-6">
                         <div>
                             <label class="flex justify-between text-[10px] font-bold text-zinc-400 uppercase mb-1">Temperatura Emocional <span id="val_temp" class="text-white font-mono bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2 rounded">0.7</span></label>
-                            <p class="text-[10px] text-zinc-500 mb-3 leading-relaxed">Controla a aleatoriedade. Valores altos (ex: 0.9) geram vozes imprevisíveis e emocionais. Valores baixos (ex: 0.2) deixam a voz mais linear.</p>
+                            <p class="text-[10px] text-zinc-500 mb-3 leading-relaxed">Controla a aleatoriedade. Valores altos (ex: 0.9) geram vozes dinâmicas e emocionais. Valores baixos (ex: 0.2) deixam a voz mais linear e focada.</p>
                             <input type="range" id="temperatura" min="0.0" max="1.0" step="0.1" value="0.7" class="w-full accent-blue-500" oninput="document.getElementById('val_temp').innerText = this.value">
                         </div>
                     </div>
@@ -65,21 +65,24 @@
 
                 <div id="controles_cinematic" class="mt-6 p-5 bg-[#09090b] rounded-xl border border-amber-500/20 shadow-inner relative z-10 hidden">
                     <h3 class="text-[10px] font-bold text-amber-500 uppercase tracking-widest mb-4 flex items-center gap-2"><i class="fa-solid fa-sliders"></i> Ajustes Cinematic (ElevenLabs)</h3>
+                    
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-6">
                         <div>
                             <label class="flex justify-between text-[10px] font-bold text-zinc-400 uppercase mb-1">Estabilidade <span id="val_estab" class="text-white font-mono bg-amber-500/20 text-amber-400 border border-amber-500/30 px-2 rounded">50%</span></label>
-                            <p class="text-[10px] text-zinc-500 mb-3 leading-relaxed">Valores baixos trazem mais naturalidade. Valores altos forçam consistência.</p>
+                            <p class="text-[10px] text-zinc-500 mb-3 leading-relaxed">Valores baixos trazem mais emoção e naturalidade (bom para histórias). Valores altos forçam consistência e linearidade.</p>
                             <input type="range" id="estabilidade" min="0.0" max="1.0" step="0.05" value="0.50" class="w-full accent-amber-500" oninput="document.getElementById('val_estab').innerText = Math.round(this.value * 100) + '%'">
                         </div>
                         <div>
                             <label class="flex justify-between text-[10px] font-bold text-zinc-400 uppercase mb-1">Similaridade <span id="val_simil" class="text-white font-mono bg-amber-500/20 text-amber-400 border border-amber-500/30 px-2 rounded">75%</span></label>
-                            <p class="text-[10px] text-zinc-500 mb-3 leading-relaxed">Remove ruídos de fundo. Acima de 85% pode soar artificial.</p>
+                            <p class="text-[10px] text-zinc-500 mb-3 leading-relaxed">Define o quanto a voz deve soar como a amostra original do autor. Acima de 85% pode soar artificial em alguns textos.</p>
                             <input type="range" id="similaridade" min="0.0" max="1.0" step="0.05" value="0.75" class="w-full accent-amber-500" oninput="document.getElementById('val_simil').innerText = Math.round(this.value * 100) + '%'">
                         </div>
                     </div>
+                    
                     <div class="border-t border-zinc-800/80 pt-4">
                         <label class="flex justify-between text-[10px] font-bold text-zinc-400 uppercase mb-1">Aceleração de Documentário <span id="val_v_cin" class="text-white font-mono bg-amber-500/20 text-amber-400 border border-amber-500/30 px-2 rounded">1.0x</span></label>
-                        <div class="flex items-center gap-2 mt-2">
+                        <p class="text-[10px] text-zinc-500 mb-3 leading-relaxed">Útil para acelerar a leitura mantendo o tom denso de documentário.</p>
+                        <div class="flex items-center gap-2">
                             <button onclick="ajustarSlider('velocidade_cin', 'val_v_cin', -0.1, 0.5, 2.0, 'x')" class="w-8 h-8 rounded-lg bg-zinc-800 text-zinc-400 hover:text-white hover:bg-amber-500 transition-colors border border-zinc-700"><i class="fa-solid fa-minus text-xs"></i></button>
                             <input type="range" id="velocidade_cin" min="0.5" max="2.0" step="0.1" value="1.0" class="w-full accent-amber-500" oninput="document.getElementById('val_v_cin').innerText = parseFloat(this.value).toFixed(1) + 'x'">
                             <button onclick="ajustarSlider('velocidade_cin', 'val_v_cin', 0.1, 0.5, 2.0, 'x')" class="w-8 h-8 rounded-lg bg-zinc-800 text-zinc-400 hover:text-white hover:bg-amber-500 transition-colors border border-zinc-700"><i class="fa-solid fa-plus text-xs"></i></button>
@@ -88,7 +91,7 @@
                 </div>
 
                 <div id="player_container" class="mt-6 p-5 bg-[#09090b] rounded-xl border border-emerald-500/30 hidden shadow-[0_0_15px_rgba(16,185,129,0.1)] relative z-10 transition-all duration-500">
-                </div>
+                    </div>
 
                 <button id="btn_gerar_voz" onclick="gerarAudioCompleto()" class="w-full mt-6 bg-purple-600 hover:bg-purple-500 text-white font-black py-4 px-4 rounded-xl shadow-[0_0_20px_rgba(147,51,234,0.4)] transition-all flex items-center justify-center gap-2 group border border-purple-500/50 relative z-10">
                     <i class="fa-solid fa-bolt group-hover:scale-110 transition-transform"></i> <span id="txt_btn_voz">Sintetizar Standard (30 Coins)</span>
@@ -121,309 +124,9 @@
                 </div>
 
                 <div id="info_tier" class="mt-4 relative z-10">
-                </div>
+                    </div>
             </div>
         </div>
     </div>
 </section>
-
-<script>
-const URL_API_VOZES = "/api/v1/vozes"; 
-const URL_API_DIRETA = "/api/v1/gerar_narracao"; 
-let vozesData = [];
-let vozSelecionada = "padrao-pt-BR-AntonioNeural"; 
-let srtGlobal = ""; 
-let timerDebounceCusto = null; 
-let abaVozAtiva = "padrao";
-
-// SISTEMA DE PREVIEW 
-let playerPreviewAtual = null;
-
-document.addEventListener('DOMContentLoaded', async function() {
-    const textoPendente = localStorage.getItem('texto_pendente_voz');
-    if (textoPendente) {
-        document.getElementById('texto_voz').value = textoPendente;
-        localStorage.removeItem('texto_pendente_voz');
-    } else if (sessionStorage.getItem('texto_voz')) {
-        document.getElementById('texto_voz').value = sessionStorage.getItem('texto_voz');
-    }
-    
-    recalcularCustoVoz();
-
-    try {
-        const response = await fetch(URL_API_VOZES);
-        const jsonRes = await response.json();
-        vozesData = jsonRes.vozes;
-        alternarAbaVozes('padrao'); 
-    } catch (error) {
-        document.getElementById('lista_vozes').innerHTML = '<p class="text-red-500 text-xs font-bold text-center">Erro ao carregar as vozes.</p>';
-    }
-});
-
-async function tocarPreview(event, shortName) {
-    event.stopPropagation();
-    
-    if (window.playerPreviewAtual) {
-        window.playerPreviewAtual.pause();
-        document.querySelectorAll('[id^="play_icon_"]').forEach(i => i.className = "fa-solid fa-play text-xs ml-0.5");
-    }
-
-    const icon = document.getElementById(`play_icon_${shortName}`);
-    icon.className = "fa-solid fa-circle-notch fa-spin text-white"; 
-    
-    try {
-        const audioUrl = `/static/audios/preview/${shortName}.mp3`;
-        const playerPreview = new Audio(audioUrl);
-        window.playerPreviewAtual = playerPreview; 
-        
-        await playerPreview.play();
-        icon.className = "fa-solid fa-volume-high text-xs ml-0.5 text-emerald-400"; 
-        
-        playerPreview.onended = () => { 
-            icon.className = "fa-solid fa-play text-xs ml-0.5"; 
-        };
-
-    } catch(e) {
-        icon.className = "fa-solid fa-play text-xs ml-0.5 text-red-500"; 
-    } 
-}
-
-function ajustarSlider(idInput, idLabel, delta, min, max, suffix) {
-    const el = document.getElementById(idInput);
-    let newVal = parseFloat(el.value) + delta;
-    if (newVal < min) newVal = min;
-    if (newVal > max) newVal = max;
-    
-    if (Number.isInteger(min) && Number.isInteger(max) && Number.isInteger(delta)) {
-        el.value = Math.round(newVal);
-        document.getElementById(idLabel).innerText = el.value + suffix;
-    } else {
-        el.value = newVal.toFixed(1);
-        document.getElementById(idLabel).innerText = el.value + suffix;
-    }
-}
-
-function alternarAbaVozes(tipo) {
-    abaVozAtiva = tipo;
-    
-    document.getElementById('controles_standard').classList.add('hidden');
-    document.getElementById('controles_creator').classList.add('hidden');
-    document.getElementById('controles_cinematic').classList.add('hidden');
-    
-    const btnPadrao = document.getElementById('aba_btn_padrao');
-    const btnCreator = document.getElementById('aba_btn_creator');
-    const btnCinematic = document.getElementById('aba_btn_cinematic');
-    
-    btnPadrao.className = "flex-1 py-2 text-xs font-bold rounded-lg transition-all border border-transparent text-zinc-500 hover:text-white";
-    btnCreator.className = "flex-1 py-2 text-xs font-bold rounded-lg transition-all border border-transparent text-zinc-500 hover:text-white";
-    btnCinematic.className = "flex-1 py-2 text-xs font-bold rounded-lg transition-all border border-transparent text-zinc-500 hover:text-white";
-
-    if (tipo === 'padrao') {
-        btnPadrao.className = "flex-1 py-2 text-xs font-bold rounded-lg bg-zinc-800 text-white shadow-sm transition-all border border-zinc-700/50";
-        document.getElementById('info_tier').innerHTML = `<div class="bg-zinc-800/50 border border-zinc-700 p-3 rounded-lg"><p class="text-xs text-zinc-400"><strong>Standard Tier:</strong> Sintetizador rápido. Ótimo para testes ou canais iniciais.</p></div>`;
-        document.getElementById('controles_standard').classList.remove('hidden');
-        
-    } else if (tipo === 'creator') {
-        btnCreator.className = "flex-1 py-2 text-xs font-bold rounded-lg bg-zinc-800 text-white shadow-sm transition-all border border-zinc-700/50";
-        document.getElementById('info_tier').innerHTML = `<div class="bg-blue-500/10 border border-blue-500/20 p-3 rounded-lg"><p class="text-xs text-blue-400"><strong>Creator Tier:</strong> Vozes naturais e emocionais. Focado em alta retenção de Storytelling.</p></div>`;
-        document.getElementById('controles_creator').classList.remove('hidden');
-        
-    } else {
-        btnCinematic.className = "flex-1 py-2 text-xs font-bold rounded-lg bg-amber-500/20 text-amber-400 shadow-sm transition-all border border-amber-500/50";
-        document.getElementById('info_tier').innerHTML = `<div class="bg-amber-500/10 border border-amber-500/20 p-3 rounded-lg"><p class="text-xs text-amber-500"><strong>Cinematic Tier:</strong> Qualidade Ultra-Realista de cinema. Perfeito para documentários densos.</p></div>`;
-        document.getElementById('controles_cinematic').classList.remove('hidden');
-    }
-
-    renderizarListaVozes(tipo);
-    
-    const primeiraVoz = vozesData.find(v => v.tipo === tipo);
-    if (primeiraVoz) {
-        selecionarVoz(primeiraVoz.shortName, `card_voz_${primeiraVoz.shortName}`);
-    }
-}
-
-function renderizarListaVozes(tier) {
-    const lista = document.getElementById('lista_vozes');
-    lista.innerHTML = '';
-    
-    const vozesFiltradas = vozesData.filter(v => v.tipo === tier);
-    
-    vozesFiltradas.forEach(voz => {
-        const div = document.createElement('div');
-        div.className = `p-3 rounded-xl border cursor-pointer transition-all flex justify-between items-center group
-                         ${voz.shortName === vozSelecionada ? 'bg-purple-500/20 border-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.2)]' : 'bg-[#09090b] border-zinc-800 hover:border-purple-500/50 hover:bg-[#121214]'}`;
-        div.id = `card_voz_${voz.shortName}`;
-        div.onclick = () => selecionarVoz(voz.shortName, div.id);
-        
-        const labelGenero = voz.gender.includes("Female") || voz.gender.includes("Feminino") ? '<i class="fa-solid fa-venus text-pink-400"></i>' : (voz.gender.includes("Male") || voz.gender.includes("Masculino") ? '<i class="fa-solid fa-mars text-blue-400"></i>' : '<i class="fa-solid fa-robot text-purple-400"></i>');
-        
-        div.innerHTML = `
-            <div class="flex items-center gap-3">
-                <div class="w-8 h-8 rounded-full bg-zinc-900 border border-zinc-700 flex items-center justify-center shadow-inner shrink-0">
-                    ${labelGenero}
-                </div>
-                <div>
-                    <p class="text-sm font-bold text-zinc-200 group-hover:text-purple-400 transition-colors">${voz.name}</p>
-                    <p class="text-[10px] text-zinc-500 font-mono">${voz.gender} | ${voz.desc}</p>
-                </div>
-            </div>
-            <div class="flex items-center gap-3 shrink-0">
-                <button onclick="tocarPreview(event, '${voz.shortName}')" class="w-8 h-8 rounded-lg bg-zinc-800 hover:bg-purple-600 text-zinc-400 hover:text-white transition-colors border border-zinc-700 flex items-center justify-center shadow-inner" title="Ouvir Prévia">
-                    <i id="play_icon_${voz.shortName}" class="fa-solid fa-play text-xs ml-0.5"></i>
-                </button>
-                ${voz.shortName === vozSelecionada ? '<i class="fa-solid fa-circle-check text-purple-500 text-lg"></i>' : '<i class="fa-solid fa-circle text-zinc-800 group-hover:text-zinc-600 transition-colors text-lg"></i>'}
-            </div>
-        `;
-        lista.appendChild(div);
-    });
-}
-
-function selecionarVoz(idVoz, cardId) {
-    if(window.playerPreviewAtual) { window.playerPreviewAtual.pause(); window.playerPreviewAtual = null; document.querySelectorAll('[id^="play_icon_"]').forEach(i => i.className = 'fa-solid fa-play text-xs ml-0.5'); }
-    vozSelecionada = idVoz;
-    renderizarListaVozes(abaVozAtiva);
-    recalcularCustoVoz();
-}
-
-function recalcularCustoVoz() {
-    clearTimeout(timerDebounceCusto);
-    timerDebounceCusto = setTimeout(() => {
-        const texto = document.getElementById('texto_voz').value;
-        const caracteres = texto.length;
-        
-        sessionStorage.setItem('texto_voz', texto);
-        document.getElementById('contador_caracteres_voz').innerText = `${caracteres} caracteres`;
-
-        let custo = 0;
-        let tierName = "Standard";
-        
-        if (abaVozAtiva === 'cinematic') {
-            custo = Math.max(1, Math.ceil((caracteres / 900.0) * 50));
-            tierName = "Cinematic";
-        } else if (abaVozAtiva === 'creator') {
-            custo = Math.max(1, Math.ceil((caracteres / 900.0) * 12));
-            tierName = "Creator";
-        } else {
-            custo = 30;
-            tierName = "Standard";
-        }
-
-        const btn = document.getElementById('txt_btn_voz');
-        if (btn) btn.innerText = `Sintetizar ${tierName} (${custo} Coins)`;
-        
-    }, 500);
-}
-
-function baixarSRT() {
-    if(!srtGlobal) return alert("SRT não disponível para este áudio.");
-    const blob = new Blob([srtGlobal], { type: 'text/plain' });
-    const link = document.createElement('a'); 
-    link.href = URL.createObjectURL(blob);
-    link.download = `Legenda_${new Date().getTime()}.srt`;
-    link.click();
-}
-
-function enviarParaMetaSEO() {
-    const roteiro = document.getElementById('texto_voz').value;
-    if (!roteiro) return alert("O Roteiro está vazio.");
-    
-    let conteudoFinal = `ROTEIRO COMPLETO:\n${roteiro}\n\n`;
-    if (srtGlobal) {
-        conteudoFinal += `TIMELINE EXATA (USE PARA GERAR OS CAPÍTULOS NO YOUTUBE):\n${srtGlobal}`;
-    }
-    
-    sessionStorage.setItem('seo_conteudo', conteudoFinal);
-    window.location.href = '/meta-seo';
-}
-
-async function gerarAudioCompleto() {
-    const texto = document.getElementById('texto_voz').value;
-    if (!texto) return alert("Cole o texto do roteiro primeiro!");
-    
-    const velocidade = abaVozAtiva === 'padrao' ? parseFloat(document.getElementById('velocidade_std').value) : (abaVozAtiva === 'cinematic' ? parseFloat(document.getElementById('velocidade_cin').value) : 1.0);
-    const pitch = abaVozAtiva === 'padrao' ? parseInt(document.getElementById('pitch_std').value) : 0;
-    const temperatura = parseFloat(document.getElementById('temperatura').value) || 0.7;
-    const estabilidade = parseFloat(document.getElementById('estabilidade').value) || 0.5;
-    const similaridade = parseFloat(document.getElementById('similaridade').value) || 0.75;
-
-    const btn = document.getElementById('btn_gerar_voz');
-    const txtBtn = document.getElementById('txt_btn_voz');
-    const originalText = txtBtn.innerText;
-    const playerContainer = document.getElementById('player_container');
-
-    btn.disabled = true;
-    btn.classList.add('opacity-70', 'cursor-not-allowed');
-    txtBtn.innerHTML = `Sintetizando Locução... <i class="fa-solid fa-compact-disc fa-spin ml-2"></i>`;
-    playerContainer.classList.add('hidden');
-
-    try {
-        const response = await fetch(URL_API_DIRETA, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                texto: texto,
-                voz: vozSelecionada,
-                velocidade: velocidade,
-                pitch: pitch,
-                temperatura: temperatura,
-                estabilidade: estabilidade,
-                similaridade: similaridade
-            })
-        });
-
-        if (!response.ok) {
-            let erroMsg = "Erro ao gerar áudio.";
-            try { const errObj = await response.json(); erroMsg = errObj.detail || erroMsg; } catch (e) {}
-            throw new Error(erroMsg);
-        }
-
-        const dados = await response.json();
-        srtGlobal = dados.srt || "";
-
-        if(dados.novo_saldo !== undefined) {
-            const paineisDeCoins = document.querySelectorAll('.fa-coins');
-            paineisDeCoins.forEach(icone => {
-                const elementoPai = icone.closest('p'); 
-                if(elementoPai) {
-                    const textoSaldo = dados.novo_saldo.toLocaleString('pt-BR');
-                    elementoPai.innerHTML = `<i class="fa-solid fa-coins"></i> ${textoSaldo} coins`;
-                    elementoPai.classList.add('text-purple-400', 'scale-110');
-                    setTimeout(() => elementoPai.classList.remove('text-purple-400', 'scale-110'), 500);
-                }
-            });
-        }
-
-        playerContainer.classList.remove('hidden');
-        playerContainer.innerHTML = `
-            <div class="flex items-center gap-2 mb-3">
-                <i class="fa-solid fa-circle-check text-emerald-400 drop-shadow-[0_0_5px_rgba(16,185,129,0.8)]"></i>
-                <p class="text-xs text-emerald-400 font-bold uppercase tracking-wider">Locução Finalizada</p>
-            </div>
-            <audio controls class="w-full h-12 bg-zinc-900 rounded-lg outline-none shadow-inner mb-5">
-                <source src="data:audio/mp3;base64,${dados.audio_base64}" type="audio/mp3">
-            </audio>
-            
-            <div class="flex flex-col sm:flex-row gap-3 border-t border-zinc-800/80 pt-4 mt-2">
-                <button onclick="baixarSRT()" class="flex-1 bg-[#09090b] hover:bg-emerald-600 text-emerald-400 hover:text-white font-bold py-3.5 rounded-xl border border-emerald-500/30 hover:border-emerald-500 transition-all text-xs flex items-center justify-center gap-2 shadow-inner hover:shadow-[0_0_15px_rgba(16,185,129,0.4)] group">
-                    <i class="fa-solid fa-download group-hover:-translate-y-1 transition-transform"></i> Baixar .SRT
-                </button>
-                <button onclick="enviarParaMetaSEO()" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-black py-3.5 rounded-xl border border-blue-500/50 transition-all text-xs flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(59,130,246,0.4)] group">
-                    <i class="fa-solid fa-rocket group-hover:translate-x-1 transition-transform"></i> Gerar Meta & SEO
-                </button>
-            </div>
-        `;
-    } catch (error) {
-        playerContainer.classList.remove('hidden');
-        if(error.message.includes('Coins insuficientes')) {
-            playerContainer.innerHTML = `<div class="text-yellow-400 bg-yellow-500/10 border border-yellow-500/20 p-4 rounded-xl text-center font-bold text-sm shadow-inner"><i class="fa-solid fa-triangle-exclamation text-2xl mb-2 block"></i> ${error.message}</div>`;
-        } else {
-            playerContainer.innerHTML = `<div class="text-red-400 bg-red-500/10 border border-red-500/20 p-4 rounded-xl text-center font-bold text-sm"><i class="fa-solid fa-triangle-exclamation mr-2"></i> ${error.message}</div>`;
-        }
-    } finally {
-        btn.disabled = false;
-        btn.classList.remove('opacity-70', 'cursor-not-allowed');
-        txtBtn.innerText = originalText;
-    }
-}
-</script>
 {% endblock %}
