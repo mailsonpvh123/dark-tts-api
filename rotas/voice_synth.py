@@ -19,72 +19,76 @@ from auth import get_usuario_atual
 
 router = APIRouter(tags=["Voice Synthesizer"])
 
+# ==========================================
+# ESTRUTURA DE DADOS COM OS NOVOS CONTROLES
+# ==========================================
 class AudioRequest(BaseModel):
     texto: str
     voz: str = "padrao-pt-BR-AntonioNeural"
     velocidade: float = 1.0
     pitch: int = 0
+    temperatura: float = 0.7       
+    estabilidade: float = 0.5      
+    similaridade: float = 0.75     
 
 # ==========================================
-# CATÁLOGOS DE VOZES (SEM CITAR MOTORES NA API)
+# CATÁLOGOS DE VOZES (COM GÊNERO E DESCRIÇÃO)
 # ==========================================
-# O Novo Elenco Creator COMPLETO (30 Vozes Gemini TTS)
 VOICES_CREATOR = {
-    "Achernar": "Suave",
-    "Achird": "Amigável",
-    "Algenib": "Áspero",
-    "Algieba": "Suave",
-    "Alnilam": "Firme",
-    "Aoede": "Breezy e Natural",
-    "Autonoe": "Brilhante (Bright)",
-    "Callirrhoe": "Easy-going",
-    "Charon": "Informativa (Ideal p/ Dark e Suspense)",
-    "Despina": "Smooth",
-    "Enceladus": "Breathy",
-    "Erinome": "Limpa",
-    "Fenrir": "Excitável e Intenso",
-    "Gacrux": "Adulto",
-    "Iapetus": "Limpar",
-    "Kore": "Firme",
-    "Laomedeia": "Upbeat",
-    "Leda": "Juventude",
-    "Orus": "Firm",
-    "Pulcherrima": "Avançar",
-    "Puck": "Upbeat e Sarcástico",
-    "Rasalgethi": "Informativa",
-    "Sadachbia": "Lively",
-    "Sadaltager": "Conhecimento",
-    "Schedar": "Even",
-    "Sulafat": "Quente",
-    "Umbriel": "Tranquilo",
-    "Vindemiatrix": "Gentle",
-    "Zephyr": "Brilhante",
-    "Zubenelgenubi": "Casual"
+    "Achernar": ("Masculino", "Suave"),
+    "Achird": ("Feminino", "Amigável"),
+    "Algenib": ("Masculino", "Áspero"),
+    "Algieba": ("Feminino", "Suave"),
+    "Alnilam": ("Masculino", "Firme"),
+    "Aoede": ("Feminino", "Breezy e Natural"),
+    "Autonoe": ("Feminino", "Brilhante (Bright)"),
+    "Callirrhoe": ("Feminino", "Easy-going"),
+    "Charon": ("Masculino", "Informativa (Ideal p/ Dark e Suspense)"),
+    "Despina": ("Feminino", "Smooth"),
+    "Enceladus": ("Masculino", "Breathy"),
+    "Erinome": ("Feminino", "Limpa"),
+    "Fenrir": ("Masculino", "Excitável e Intenso"),
+    "Gacrux": ("Masculino", "Adulto"),
+    "Iapetus": ("Masculino", "Limpar"),
+    "Kore": ("Feminino", "Firme"),
+    "Laomedeia": ("Feminino", "Upbeat"),
+    "Leda": ("Feminino", "Juventude"),
+    "Orus": ("Masculino", "Firm"),
+    "Pulcherrima": ("Feminino", "Avançar"),
+    "Puck": ("Masculino", "Upbeat e Sarcástico"),
+    "Rasalgethi": ("Masculino", "Informativa"),
+    "Sadachbia": ("Feminino", "Lively"),
+    "Sadaltager": ("Masculino", "Conhecimento"),
+    "Schedar": ("Masculino", "Even"),
+    "Sulafat": ("Feminino", "Quente"),
+    "Umbriel": ("Masculino", "Tranquilo"),
+    "Vindemiatrix": ("Feminino", "Gentle"),
+    "Zephyr": ("Masculino", "Brilhante"),
+    "Zubenelgenubi": ("Masculino", "Casual")
 }
 
-# O Elenco de Elite Completo (21 Vozes Nativas ElevenLabs)
 VOICES_CINEMATIC = {
-    "pNInz6obpgDQGcFmaJgB": {"nome": "Adam", "desc": "Dominante e Firme"},
-    "Xb7hH8MSUJpSbSDYk0k2": {"nome": "Alice", "desc": "Clara, Educadora Envolvente"},
-    "hpp4J3VqNfWAUOO0d1Us": {"nome": "Bella", "desc": "Profissional, Vibrante e Acolhedora"},
-    "pqHfZKP75CvOlQylNhV4": {"nome": "Bill", "desc": "Sábio, Maduro e Equilibrado"},
-    "nPczCjzI2devNBz1zQrb": {"nome": "Brian", "desc": "Profundo, Ressonante e Confortante"},
-    "N2lVS1w4EtoT3dr4eOWO": {"nome": "Callum", "desc": "Rouco, Irreverente e Cativante"},
-    "IKne3meq5aSn9XLyUdCD": {"nome": "Charlie", "desc": "Profundo, Confiante e Energético"},
-    "iP95p4xoKVk53GoZ742B": {"nome": "Chris", "desc": "Charmoso e Pé no Chão"},
-    "onwK4e9ZLuTAKqWW03F9": {"nome": "Daniel", "desc": "Locutor Estável e Seguro"},
-    "cjVigY5qzO86Huf0OWal": {"nome": "Eric", "desc": "Suave e Confiável"},
-    "JBFqnCBsd6RMkjVDRZzb": {"nome": "George", "desc": "Acolhedor, Narrador Cativante"},
-    "SOYHLrjzK2X1ezoPC6cr": {"nome": "Harry", "desc": "Intenso e Feroz (Narrativa Épica)"},
-    "cgSgspJ2msm6clMCkdW9": {"nome": "Jessica", "desc": "Divertida, Vibrante e Acolhedora"},
-    "FGY2WhTYpPnrIDTdsKH5": {"nome": "Laura", "desc": "Entusiasta e Cheia de Atitude"},
-    "TX3LPaxmHKxFdv7VOQHJ": {"nome": "Liam", "desc": "Energético (Criador de Conteúdo)"},
-    "pFZP5JQG7iQjIQuC4Bku": {"nome": "Lily", "desc": "Voz Aveludada e Teatral"},
-    "XrExE9yKIg1WjnnlVkGX": {"nome": "Matilda", "desc": "Profissional e Culta"},
-    "SAz9YHcvj6GT2YYXdXww": {"nome": "River", "desc": "Relaxado, Neutro e Informativo"},
-    "CwhRBWXzGAHq8TQ4Fs17": {"nome": "Roger", "desc": "Descontraído, Casual e Ressonante"},
-    "EXAVITQu4vr4xnSDxMaL": {"nome": "Sarah", "desc": "Madura, Tranquilizadora e Confiante"},
-    "bIHbv24MWmeRgasZH58o": {"nome": "Will", "desc": "Otimista e Relaxado"}
+    "pNInz6obpgDQGcFmaJgB": {"nome": "Adam", "desc": "Dominante e Firme", "genero": "Masculino"},
+    "Xb7hH8MSUJpSbSDYk0k2": {"nome": "Alice", "desc": "Clara, Educadora Envolvente", "genero": "Feminino"},
+    "hpp4J3VqNfWAUOO0d1Us": {"nome": "Bella", "desc": "Profissional, Vibrante e Acolhedora", "genero": "Feminino"},
+    "pqHfZKP75CvOlQylNhV4": {"nome": "Bill", "desc": "Sábio, Maduro e Equilibrado", "genero": "Masculino"},
+    "nPczCjzI2devNBz1zQrb": {"nome": "Brian", "desc": "Profundo, Ressonante e Confortante", "genero": "Masculino"},
+    "N2lVS1w4EtoT3dr4eOWO": {"nome": "Callum", "desc": "Rouco, Irreverente e Cativante", "genero": "Masculino"},
+    "IKne3meq5aSn9XLyUdCD": {"nome": "Charlie", "desc": "Profundo, Confiante e Energético", "genero": "Masculino"},
+    "iP95p4xoKVk53GoZ742B": {"nome": "Chris", "desc": "Charmoso e Pé no Chão", "genero": "Masculino"},
+    "onwK4e9ZLuTAKqWW03F9": {"nome": "Daniel", "desc": "Locutor Estável e Seguro", "genero": "Masculino"},
+    "cjVigY5qzO86Huf0OWal": {"nome": "Eric", "desc": "Suave e Confiável", "genero": "Masculino"},
+    "JBFqnCBsd6RMkjVDRZzb": {"nome": "George", "desc": "Acolhedor, Narrador Cativante", "genero": "Masculino"},
+    "SOYHLrjzK2X1ezoPC6cr": {"nome": "Harry", "desc": "Intenso e Feroz (Narrativa Épica)", "genero": "Masculino"},
+    "cgSgspJ2msm6clMCkdW9": {"nome": "Jessica", "desc": "Divertida, Vibrante e Acolhedora", "genero": "Feminino"},
+    "FGY2WhTYpPnrIDTdsKH5": {"nome": "Laura", "desc": "Entusiasta e Cheia de Atitude", "genero": "Feminino"},
+    "TX3LPaxmHKxFdv7VOQHJ": {"nome": "Liam", "desc": "Energético (Criador de Conteúdo)", "genero": "Masculino"},
+    "pFZP5JQG7iQjIQuC4Bku": {"nome": "Lily", "desc": "Voz Aveludada e Teatral", "genero": "Feminino"},
+    "XrExE9yKIg1WjnnlVkGX": {"nome": "Matilda", "desc": "Profissional e Culta", "genero": "Feminino"},
+    "SAz9YHcvj6GT2YYXdXww": {"nome": "River", "desc": "Relaxado, Neutro e Informativo", "genero": "Masculino"},
+    "CwhRBWXzGAHq8TQ4Fs17": {"nome": "Roger", "desc": "Descontraído, Casual e Ressonante", "genero": "Masculino"},
+    "EXAVITQu4vr4xnSDxMaL": {"nome": "Sarah", "desc": "Madura, Tranquilizadora e Confiante", "genero": "Feminino"},
+    "bIHbv24MWmeRgasZH58o": {"nome": "Will", "desc": "Otimista e Relaxado", "genero": "Masculino"}
 }
 
 vozes_cache = []
@@ -98,18 +102,20 @@ async def carregar_vozes_memoria():
         # 1. Carrega Cinematic (Elite)
         for v_id, info in VOICES_CINEMATIC.items():
             vozes_cache.append({
-                "name": f"{info['nome']} ({info['desc']})",
+                "name": info['nome'],
                 "shortName": f"cinematic-{v_id}",
-                "gender": "Neutral",
+                "gender": info['genero'],
+                "desc": info['desc'],
                 "tipo": "cinematic"
             })
 
-        # 2. Carrega Creator (Premium) - Com as descrições da Tabela
-        for v_name, v_desc in VOICES_CREATOR.items():
+        # 2. Carrega Creator (Premium)
+        for v_name, v_info in VOICES_CREATOR.items():
             vozes_cache.append({
-                "name": f"{v_name} ({v_desc})",
+                "name": v_name,
                 "shortName": f"creator-{v_name}",
-                "gender": "Neutral",
+                "gender": v_info[0],
+                "desc": v_info[1],
                 "tipo": "creator"
             })
         
@@ -117,10 +123,12 @@ async def carregar_vozes_memoria():
         voices = await edge_tts.list_voices()
         for v in voices:
             if v["Locale"].startswith("pt-") or "Multilingual" in v["ShortName"]:
+                genero_pt = "Feminino" if v["Gender"] == "Female" else "Masculino"
                 vozes_cache.append({
                     "name": v["Name"],
                     "shortName": f"padrao-{v['ShortName']}",
-                    "gender": v["Gender"],
+                    "gender": genero_pt,
+                    "desc": "Voz Digital Neural",
                     "tipo": "padrao"
                 })
         print(f"✅ {len(vozes_cache)} Vozes carregadas com sucesso na memória!")
@@ -133,9 +141,55 @@ async def listar_vozes():
         return {"status": "sucesso", "vozes": vozes_cache}
     return {"status": "erro", "mensagem": "Vozes ainda não carregadas no servidor."}
 
+def limpar_texto_para_voz(texto: str) -> str:
+    t = texto.replace('*', '').replace('#', '').replace('_', '')
+    t = re.sub(r'\[.*?\]', '', t)
+    t = re.sub(r'\(.*?\)', '', t)
+    return t.strip()
+
 # ==========================================
-# O CHUNKER UNIVERSAL (4000 chars)
+# MOTOR MATEMÁTICO DE SRT PARA GEMINI/ELEVENLABS
 # ==========================================
+def gerar_srt_matematico(texto, audio_bytes):
+    try:
+        audio_seg = AudioSegment.from_file(io.BytesIO(audio_bytes))
+        total_ms = len(audio_seg)
+    except Exception as e:
+        total_ms = len(texto) * 65 
+    
+    palavras = texto.split()
+    if not palavras: return ""
+    
+    ms_por_palavra = total_ms / max(1, len(palavras))
+    
+    srt_output = []
+    indice = 1
+    tempo_atual_ms = 0
+    tamanho_grupo = 6 
+    
+    for i in range(0, len(palavras), tamanho_grupo):
+        grupo = palavras[i:i+tamanho_grupo]
+        duracao_grupo = ms_por_palavra * len(grupo)
+        
+        inicio_ms = tempo_atual_ms
+        fim_ms = tempo_atual_ms + duracao_grupo
+        
+        def ms_to_srt_time(ms):
+            s, ms = divmod(int(ms), 1000)
+            m, s = divmod(s, 60)
+            h, m = divmod(m, 60)
+            return f"{h:02d}:{m:02d}:{s:02d},{ms:03d}"
+        
+        srt_output.append(f"{indice}")
+        srt_output.append(f"{ms_to_srt_time(inicio_ms)} --> {ms_to_srt_time(fim_ms)}")
+        srt_output.append(" ".join(grupo))
+        srt_output.append("")
+        
+        tempo_atual_ms = fim_ms
+        indice += 1
+        
+    return "\n".join(srt_output)
+
 def split_text_for_api(texto, max_chars=4000):
     texto = texto.replace('\n', ' ')
     frases = re.split(r'(?<=[.!?]) +', texto)
@@ -157,9 +211,6 @@ def split_text_for_api(texto, max_chars=4000):
     if chunk_atual: chunks.append(chunk_atual.strip())
     return chunks
 
-# ==========================================
-# ROTA PRINCIPAL DE GERAÇÃO
-# ==========================================
 @router.post("/gerar_narracao")
 async def gerar_narracao(
     req: AudioRequest,
@@ -173,17 +224,14 @@ async def gerar_narracao(
     if not texto:
         raise HTTPException(status_code=400, detail="O texto para narração é obrigatório.")
 
-    # MODO FANTASMA (Previews)
     is_preview = texto.startswith("Olá, sou uma voz neural da sua plataforma.")
     
-    # Roteamento Inteligente
     is_cinematic = req.voz.startswith("cinematic-")
     is_creator = req.voz.startswith("creator-")
     is_padrao = req.voz.startswith("padrao-")
     
     tamanho_texto = len(texto)
 
-    # PRECIFICAÇÃO DE CEO
     if is_preview:
         custo_operacao = 0
     elif is_cinematic:
@@ -191,7 +239,7 @@ async def gerar_narracao(
     elif is_creator:
         custo_operacao = max(1, math.ceil((tamanho_texto / 900.0) * 12))
     else:
-        custo_operacao = 30 # Standard fixo
+        custo_operacao = 30 
 
     if not is_preview:
         if usuario.coins < custo_operacao:
@@ -208,28 +256,22 @@ async def gerar_narracao(
         pause_seg = AudioSegment.silent(duration=300)
 
         if is_cinematic:
-            # === MOTOR 3: CINEMATIC (ELEVENLABS) ===
             api_key = os.environ.get("ELEVENLABS_API_KEY")
             modelo_eleven = os.environ.get("ELEVENLABS_MODEL_ID", "eleven_turbo_v2_5")
-            
             if not api_key: raise ValueError("Chave ELEVENLABS_API_KEY não configurada no Easypanel.")
             
             voz_real = req.voz.replace("cinematic-", "")
-            print(f"🎬 Iniciando Dublagem Cinematic (Modelo: {modelo_eleven} | Voz ID: {voz_real} | Partes: {len(chunks)})")
-
+            
             async with httpx.AsyncClient(timeout=120.0) as client:
                 for i, chunk in enumerate(chunks):
                     url = f"https://api.elevenlabs.io/v1/text-to-speech/{voz_real}"
-                    headers = {
-                        "xi-api-key": api_key,
-                        "Content-Type": "application/json"
-                    }
+                    headers = {"xi-api-key": api_key, "Content-Type": "application/json"}
                     data = {
                         "text": chunk,
                         "model_id": modelo_eleven,
                         "voice_settings": {
-                            "stability": 0.5,
-                            "similarity_boost": 0.75
+                            "stability": req.estabilidade,
+                            "similarity_boost": req.similaridade
                         }
                     }
                     
@@ -240,19 +282,22 @@ async def gerar_narracao(
                     seg = AudioSegment.from_file(io.BytesIO(response.content), format="mp3")
                     final_audio += (pause_seg + seg) if i > 0 else seg
 
+            # Aplica Aceleração/Desaceleração
+            if req.velocidade != 1.0:
+                final_audio = final_audio._spawn(final_audio.raw_data, overrides={"frame_rate": int(final_audio.frame_rate * req.velocidade)}).set_frame_rate(final_audio.frame_rate)
+
             mp3_io = io.BytesIO()
             final_audio.export(mp3_io, format="mp3", bitrate="128k")
-            audio_base64 = base64.b64encode(mp3_io.getvalue()).decode('utf-8')
+            audio_final_bytes = mp3_io.getvalue()
+            audio_base64 = base64.b64encode(audio_final_bytes).decode('utf-8')
+            srt_content = gerar_srt_matematico(texto, audio_final_bytes)
 
         elif is_creator:
-            # === MOTOR 2: CREATOR (GEMINI TTS DIRETO) ===
             api_key = os.environ.get("GEMINI_API_KEY_PAID")
             modelo_gemini = os.environ.get("GEMINI_MODEL_VOICE", "gemini-2.5-flash-tts")
-            
-            if not api_key: raise ValueError("Chave GEMINI_API_KEY_PAID não configurada no Easypanel.")
+            if not api_key: raise ValueError("Chave GEMINI_API_KEY_PAID não configurada.")
 
             voz_real = req.voz.replace("creator-", "")
-            print(f"🎙️ Iniciando Síntese Creator (Motor: {modelo_gemini} | Voz: {voz_real})")
 
             async with httpx.AsyncClient(timeout=120.0) as client:
                 for i, chunk in enumerate(chunks):
@@ -261,6 +306,7 @@ async def gerar_narracao(
                     data = {
                         "contents": [{"parts": [{"text": chunk}]}],
                         "generationConfig": {
+                            "temperature": req.temperatura,
                             "responseModalities": ["AUDIO"],
                             "speechConfig": {
                                 "voiceConfig": {
@@ -275,35 +321,29 @@ async def gerar_narracao(
                     for attempt in range(max_retries):
                         try:
                             response = await client.post(url, json=data, headers=headers)
-                            if response.status_code != 200:
-                                raise Exception(response.text)
-                            
+                            if response.status_code != 200: raise Exception(response.text)
                             resp_json = response.json()
                             for part in resp_json.get('candidates', [{}])[0].get('content', {}).get('parts', []):
                                 if 'inlineData' in part and part['inlineData']['mimeType'].startswith('audio/'):
                                     audio_b64 = part['inlineData']['data']
                                     break
-                                    
-                            if audio_b64:
-                                break
-                            else:
-                                raise Exception("A API do Gemini não retornou dados de áudio.")
-                                
+                            if audio_b64: break
+                            else: raise Exception("A API do Gemini não retornou dados de áudio.")
                         except Exception as api_err:
                             if attempt < max_retries - 1: time.sleep(3)
-                            else: raise Exception(f"Falha na API Creator (Gemini): {str(api_err)}")
+                            else: raise Exception(f"Falha na API Creator: {str(api_err)}")
                     
-                    # CARTEIRADA NO PYDUB: Forçamos a leitura como PCM de 24kHz Mono 16-bit
                     audio_bytes = base64.b64decode(audio_b64)
                     seg = AudioSegment(data=audio_bytes, sample_width=2, frame_rate=24000, channels=1)
                     final_audio += (pause_seg + seg) if i > 0 else seg
 
             mp3_io = io.BytesIO()
             final_audio.export(mp3_io, format="mp3", bitrate="128k")
-            audio_base64 = base64.b64encode(mp3_io.getvalue()).decode('utf-8')
+            audio_final_bytes = mp3_io.getvalue()
+            audio_base64 = base64.b64encode(audio_final_bytes).decode('utf-8')
+            srt_content = gerar_srt_matematico(texto, audio_final_bytes)
 
         else:
-            # === MOTOR 1: STANDARD (EDGE TTS) ===
             voz_engine = req.voz.replace("padrao-", "") 
             velocidade_formatada = f"{int((req.velocidade - 1.0) * 100):+d}%"
             pitch_formatado = f"{req.pitch:+d}Hz"
