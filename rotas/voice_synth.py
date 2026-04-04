@@ -17,54 +17,52 @@ import models
 from database import get_db
 from auth import get_usuario_atual
 
+# ATENÇÃO: Rota na raiz (sem prefixo) para casar perfeitamente com o fetch do seu main.js!
 router = APIRouter(tags=["Voice Synthesizer"])
 
-# ==========================================
-# ESTRUTURA DE DADOS COM OS NOVOS CONTROLES
-# ==========================================
 class AudioRequest(BaseModel):
     texto: str
     voz: str = "padrao-pt-BR-AntonioNeural"
     velocidade: float = 1.0
     pitch: int = 0
-    temperatura: float = 0.7       
-    estabilidade: float = 0.5      
-    similaridade: float = 0.75     
+    temperatura: float = 0.7
+    estabilidade: float = 0.5
+    similaridade: float = 0.75
 
 # ==========================================
-# CATÁLOGOS DE VOZES (COM GÊNERO E DESCRIÇÃO)
+# CATÁLOGOS DE VOZES ENRIQUECIDOS (Com Gênero e Personalidade)
 # ==========================================
 VOICES_CREATOR = {
-    "Achernar": ("Masculino", "Suave"),
-    "Achird": ("Feminino", "Amigável"),
-    "Algenib": ("Masculino", "Áspero"),
-    "Algieba": ("Feminino", "Suave"),
-    "Alnilam": ("Masculino", "Firme"),
-    "Aoede": ("Feminino", "Breezy e Natural"),
-    "Autonoe": ("Feminino", "Brilhante (Bright)"),
-    "Callirrhoe": ("Feminino", "Easy-going"),
-    "Charon": ("Masculino", "Informativa (Ideal p/ Dark e Suspense)"),
-    "Despina": ("Feminino", "Smooth"),
-    "Enceladus": ("Masculino", "Breathy"),
-    "Erinome": ("Feminino", "Limpa"),
-    "Fenrir": ("Masculino", "Excitável e Intenso"),
-    "Gacrux": ("Masculino", "Adulto"),
-    "Iapetus": ("Masculino", "Limpar"),
-    "Kore": ("Feminino", "Firme"),
-    "Laomedeia": ("Feminino", "Upbeat"),
-    "Leda": ("Feminino", "Juventude"),
-    "Orus": ("Masculino", "Firm"),
-    "Pulcherrima": ("Feminino", "Avançar"),
-    "Puck": ("Masculino", "Upbeat e Sarcástico"),
-    "Rasalgethi": ("Masculino", "Informativa"),
-    "Sadachbia": ("Feminino", "Lively"),
-    "Sadaltager": ("Masculino", "Conhecimento"),
-    "Schedar": ("Masculino", "Even"),
-    "Sulafat": ("Feminino", "Quente"),
-    "Umbriel": ("Masculino", "Tranquilo"),
-    "Vindemiatrix": ("Feminino", "Gentle"),
-    "Zephyr": ("Masculino", "Brilhante"),
-    "Zubenelgenubi": ("Masculino", "Casual")
+    "Achernar": {"desc": "Suave", "genero": "Masculino"},
+    "Achird": {"desc": "Amigável", "genero": "Feminino"},
+    "Algenib": {"desc": "Áspero", "genero": "Masculino"},
+    "Algieba": {"desc": "Suave", "genero": "Feminino"},
+    "Alnilam": {"desc": "Firme", "genero": "Masculino"},
+    "Aoede": {"desc": "Breezy e Natural", "genero": "Feminino"},
+    "Autonoe": {"desc": "Brilhante (Bright)", "genero": "Feminino"},
+    "Callirrhoe": {"desc": "Easy-going", "genero": "Feminino"},
+    "Charon": {"desc": "Informativa (Dark/Suspense)", "genero": "Masculino"},
+    "Despina": {"desc": "Smooth", "genero": "Feminino"},
+    "Enceladus": {"desc": "Breathy", "genero": "Masculino"},
+    "Erinome": {"desc": "Limpa", "genero": "Feminino"},
+    "Fenrir": {"desc": "Excitável e Intenso", "genero": "Masculino"},
+    "Gacrux": {"desc": "Adulto", "genero": "Masculino"},
+    "Iapetus": {"desc": "Limpo", "genero": "Masculino"},
+    "Kore": {"desc": "Firme", "genero": "Feminino"},
+    "Laomedeia": {"desc": "Upbeat", "genero": "Feminino"},
+    "Leda": {"desc": "Juventude", "genero": "Feminino"},
+    "Orus": {"desc": "Firme", "genero": "Masculino"},
+    "Pulcherrima": {"desc": "Avançar", "genero": "Feminino"},
+    "Puck": {"desc": "Upbeat e Sarcástico", "genero": "Masculino"},
+    "Rasalgethi": {"desc": "Informativa", "genero": "Masculino"},
+    "Sadachbia": {"desc": "Lively", "genero": "Feminino"},
+    "Sadaltager": {"desc": "Conhecimento", "genero": "Masculino"},
+    "Schedar": {"desc": "Equilibrado", "genero": "Masculino"},
+    "Sulafat": {"desc": "Quente", "genero": "Feminino"},
+    "Umbriel": {"desc": "Tranquilo", "genero": "Masculino"},
+    "Vindemiatrix": {"desc": "Gentle", "genero": "Feminino"},
+    "Zephyr": {"desc": "Brilhante", "genero": "Masculino"},
+    "Zubenelgenubi": {"desc": "Casual", "genero": "Masculino"}
 }
 
 VOICES_CINEMATIC = {
@@ -99,7 +97,6 @@ async def carregar_vozes_memoria():
     vozes_cache.clear() 
     
     try:
-        # 1. Carrega Cinematic (Elite)
         for v_id, info in VOICES_CINEMATIC.items():
             vozes_cache.append({
                 "name": info['nome'],
@@ -109,25 +106,24 @@ async def carregar_vozes_memoria():
                 "tipo": "cinematic"
             })
 
-        # 2. Carrega Creator (Premium)
         for v_name, v_info in VOICES_CREATOR.items():
             vozes_cache.append({
                 "name": v_name,
                 "shortName": f"creator-{v_name}",
-                "gender": v_info[0],
-                "desc": v_info[1],
+                "gender": v_info['genero'],
+                "desc": v_info['desc'],
                 "tipo": "creator"
             })
         
-        # 3. Carrega Standard (Padrão)
         voices = await edge_tts.list_voices()
         for v in voices:
             if v["Locale"].startswith("pt-") or "Multilingual" in v["ShortName"]:
-                genero_pt = "Feminino" if v["Gender"] == "Female" else "Masculino"
+                gen_pt = "Feminino" if v["Gender"] == "Female" else "Masculino"
+                nome_limpo = v["ShortName"].replace('pt-BR-', '').replace('pt-PT-', '').replace('Neural', '').replace('Multilingual', '')
                 vozes_cache.append({
-                    "name": v["Name"],
+                    "name": nome_limpo,
                     "shortName": f"padrao-{v['ShortName']}",
-                    "gender": genero_pt,
+                    "gender": gen_pt,
                     "desc": "Voz Digital Neural",
                     "tipo": "padrao"
                 })
@@ -147,9 +143,6 @@ def limpar_texto_para_voz(texto: str) -> str:
     t = re.sub(r'\(.*?\)', '', t)
     return t.strip()
 
-# ==========================================
-# MOTOR MATEMÁTICO DE SRT PARA GEMINI/ELEVENLABS
-# ==========================================
 def gerar_srt_matematico(texto, audio_bytes):
     try:
         audio_seg = AudioSegment.from_file(io.BytesIO(audio_bytes))
@@ -282,7 +275,6 @@ async def gerar_narracao(
                     seg = AudioSegment.from_file(io.BytesIO(response.content), format="mp3")
                     final_audio += (pause_seg + seg) if i > 0 else seg
 
-            # Aplica Aceleração/Desaceleração
             if req.velocidade != 1.0:
                 final_audio = final_audio._spawn(final_audio.raw_data, overrides={"frame_rate": int(final_audio.frame_rate * req.velocidade)}).set_frame_rate(final_audio.frame_rate)
 
@@ -361,7 +353,6 @@ async def gerar_narracao(
             srt_content = submaker.get_srt()
             audio_base64 = base64.b64encode(audio_data).decode('utf-8')
         
-        # SALVA NO DISCO
         if not is_preview:
             pasta_audios = os.path.join("frontend", "static", "audios", "historico")
             os.makedirs(pasta_audios, exist_ok=True)
