@@ -16,11 +16,10 @@ import models
 from database import get_db
 from auth import get_usuario_atual
 
-# AQUI ESTAVA O ERRO 404! Prefixo adicionado com sucesso.
 router = APIRouter(prefix="/api/v1", tags=["Voice Synthesizer"])
 
 # ==========================================
-# ESTRUTURA DE DADOS (AGORA COM VELOCIDADE NO CINEMATIC)
+# ESTRUTURA DE DADOS (COM TODOS OS CONTROLES)
 # ==========================================
 class AudioRequest(BaseModel):
     texto: str
@@ -32,8 +31,9 @@ class AudioRequest(BaseModel):
     similaridade: float = 0.75     
 
 # ==========================================
-# CATÁLOGOS DE VOZES (100% WHITE-LABEL)
+# CATÁLOGOS DE VOZES (GÉNERO + DESCRIÇÃO)
 # ==========================================
+# O Novo Elenco Creator COMPLETO (30 Vozes Gemini TTS)
 VOICES_CREATOR = {
     "Achernar": ("Masculino", "Suave"),
     "Achird": ("Feminino", "Amigável"),
@@ -49,35 +49,47 @@ VOICES_CREATOR = {
     "Erinome": ("Feminino", "Limpa"),
     "Fenrir": ("Masculino", "Excitável e Intenso"),
     "Gacrux": ("Masculino", "Adulto"),
-    "Isonoe": ("Feminino", "Calma"),
-    "Kore": ("Feminino", "Dinâmica"),
-    "Kuma": ("Masculino", "Estável"),
-    "Leda": ("Feminino", "Relaxada"),
-    "Liriope": ("Feminino", "Acolhedora"),
-    "Lysithea": ("Feminino", "Energética"),
-    "Megaclite": ("Feminino", "Inquisitiva"),
-    "Minkar": ("Masculino", "Autoridade (Documentários)"),
-    "Nembus": ("Masculino", "Profunda e Grave"),
-    "Puck": ("Masculino", "Expressiva e Contadora de Histórias"),
-    "Puck (Recomendada)": ("Masculino", "Expressiva e Contadora de Histórias"),
-    "Sinope": ("Feminino", "Ponderada"),
-    "Sponde": ("Feminino", "Afiada"),
-    "Surtur": ("Masculino", "Rasposa/Gravelly (Assustadora)"),
-    "Tarqeq": ("Masculino", "Ressonante"),
-    "Thebe": ("Feminino", "Quente e Acolhedora")
+    "Iapetus": ("Masculino", "Limpar"),
+    "Kore": ("Feminino", "Firme"),
+    "Laomedeia": ("Feminino", "Upbeat"),
+    "Leda": ("Feminino", "Juventude"),
+    "Orus": ("Masculino", "Firm"),
+    "Pulcherrima": ("Feminino", "Avançar"),
+    "Puck": ("Masculino", "Upbeat e Sarcástico"),
+    "Rasalgethi": ("Masculino", "Informativa"),
+    "Sadachbia": ("Feminino", "Lively"),
+    "Sadaltager": ("Masculino", "Conhecimento"),
+    "Schedar": ("Masculino", "Even"),
+    "Sulafat": ("Feminino", "Quente"),
+    "Umbriel": ("Masculino", "Tranquilo"),
+    "Vindemiatrix": ("Feminino", "Gentle"),
+    "Zephyr": ("Masculino", "Brilhante"),
+    "Zubenelgenubi": ("Masculino", "Casual")
 }
 
+# O Elenco de Elite Completo (21 Vozes Nativas ElevenLabs) -> Chave amigável, Tupla contém o ID real
 VOICES_CINEMATIC = {
-    "eleven-marcus": ("Masculino", "Autoridade/Narrador Épico"),
-    "eleven-adam": ("Masculino", "Profundo/Misterioso"),
-    "eleven-antoni": ("Masculino", "Dinâmico/Jovem"),
-    "eleven-arnold": ("Masculino", "Rouco/Suspense Sombrio"),
-    "eleven-callum": ("Masculino", "Intenso/Cinematográfico"),
-    "eleven-charlie": ("Masculino", "Casual/Conversacional"),
-    "eleven-clyde": ("Masculino", "Grave/Documentário Guerra"),
-    "eleven-daniel": ("Masculino", "Impactante/Jornalístico"),
-    "eleven-domi": ("Feminino", "Forte/Agressiva"),
-    "eleven-fin": ("Masculino", "Narrador de True Crime")
+    "Adam": ("Masculino", "Dominante e Firme", "pNInz6obpgDQGcFmaJgB"),
+    "Alice": ("Feminino", "Clara, Educadora Envolvente", "Xb7hH8MSUJpSbSDYk0k2"),
+    "Bella": ("Feminino", "Profissional, Vibrante e Acolhedora", "hpp4J3VqNfWAUOO0d1Us"),
+    "Bill": ("Masculino", "Sábio, Maduro e Equilibrado", "pqHfZKP75CvOlQylNhV4"),
+    "Brian": ("Masculino", "Profundo, Ressonante e Confortante", "nPczCjzI2devNBz1zQrb"),
+    "Callum": ("Masculino", "Rouco, Irreverente e Cativante", "N2lVS1w4EtoT3dr4eOWO"),
+    "Charlie": ("Masculino", "Profundo, Confiante e Energético", "IKne3meq5aSn9XLyUdCD"),
+    "Chris": ("Masculino", "Charmoso e Pé no Chão", "iP95p4xoKVk53GoZ742B"),
+    "Daniel": ("Masculino", "Locutor Estável e Seguro", "onwK4e9ZLuTAKqWW03F9"),
+    "Eric": ("Masculino", "Suave e Confiável", "cjVigY5qzO86Huf0OWal"),
+    "George": ("Masculino", "Acolhedor, Narrador Cativante", "JBFqnCBsd6RMkjVDRZzb"),
+    "Harry": ("Masculino", "Intenso e Feroz (Narrativa Épica)", "SOYHLrjzK2X1ezoPC6cr"),
+    "Jessica": ("Feminino", "Divertida, Vibrante e Acolhedora", "cgSgspJ2msm6clMCkdW9"),
+    "Laura": ("Feminino", "Entusiasta e Cheia de Atitude", "FGY2WhTYpPnrIDTdsKH5"),
+    "Liam": ("Masculino", "Energético (Criador de Conteúdo)", "TX3LPaxmHKxFdv7VOQHJ"),
+    "Lily": ("Feminino", "Voz Aveludada e Teatral", "pFZP5JQG7iQjIQuC4Bku"),
+    "Matilda": ("Feminino", "Profissional e Culta", "XrExE9yKIg1WjnnlVkGX"),
+    "River": ("Masculino", "Relaxado, Neutro e Informativo", "SAz9YHcvj6GT2YYXdXww"),
+    "Roger": ("Masculino", "Descontraído, Casual e Ressonante", "CwhRBWXzGAHq8TQ4Fs17"),
+    "Sarah": ("Feminino", "Madura, Tranquilizadora e Confiante", "EXAVITQu4vr4xnSDxMaL"),
+    "Will": ("Masculino", "Otimista e Relaxado", "bIHbv24MWmeRgasZH58o")
 }
 
 def limpar_texto_para_voz(texto: str) -> str:
@@ -197,14 +209,8 @@ async def gerar_narracao(
             eleven_key = os.environ.get("ELEVENLABS_API_KEY")
             if not eleven_key: raise Exception("Motor Cinematic não configurado no servidor.")
             
-            voice_id_map = {
-                "eleven-marcus": "nPczCjzI2devNBz1zQrb", "eleven-adam": "pNInz6obpgDQGcFmaJgB",
-                "eleven-antoni": "ErXwobaYiN019PkySvjV", "eleven-arnold": "VR6AewLTigWG4xSOukaG",
-                "eleven-callum": "N2lVS1w4EtoT3dr4eOWO", "eleven-charlie": "IKne3meq5aSn9XLyUdCD",
-                "eleven-clyde": "2EiwWnXFnvU5JabPnv8n", "eleven-daniel": "onwK4e9ZLuTAKqWW03F9",
-                "eleven-domi": "AZnzlk1XvdvUeBnXmlld", "eleven-fin": "D38z5RcWu1voky8WS1ja"
-            }
-            voice_id = voice_id_map.get(req.voz, "pNInz6obpgDQGcFmaJgB")
+            # Puxa o ID real mapeado na Tupla
+            voice_id = VOICES_CINEMATIC[req.voz][2]
             
             url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
             headers = {"Accept": "audio/mpeg", "Content-Type": "application/json", "xi-api-key": eleven_key}
@@ -225,11 +231,10 @@ async def gerar_narracao(
                 if r.status_code != 200: raise Exception("Falha na geração do áudio. Tente novamente.")
                 audio_data = r.content
 
-            # Aplicação matemática de Velocidade (caso usuário mude no Cinematic)
+            # Aplicação matemática de Velocidade
             if req.velocidade != 1.0:
                 try:
                     seg = AudioSegment.from_file(io.BytesIO(audio_data), format="mp3")
-                    # Ajuste de frame rate (Acelera sem perder qualidade no Pydub)
                     seg_mod = seg._spawn(seg.raw_data, overrides={"frame_rate": int(seg.frame_rate * req.velocidade)}).set_frame_rate(seg.frame_rate)
                     out = io.BytesIO()
                     seg_mod.export(out, format="mp3")
@@ -245,7 +250,7 @@ async def gerar_narracao(
             api_key = os.environ.get("GEMINI_API_KEY_FREE") or os.environ.get("GEMINI_API_KEY")
             if not api_key: raise Exception("Motor Creator não configurado.")
             
-            voz_id = req.voz.replace(" (Recomendada)", "")
+            voz_id = req.voz
             url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-preview-tts:predict?key={api_key}"
             headers = {"Content-Type": "application/json"}
             
