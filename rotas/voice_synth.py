@@ -16,24 +16,24 @@ import models
 from database import get_db
 from auth import get_usuario_atual
 
-router = APIRouter(tags=["Voice Synthesizer"])
+# AQUI ESTAVA O ERRO 404! Prefixo adicionado com sucesso.
+router = APIRouter(prefix="/api/v1", tags=["Voice Synthesizer"])
 
 # ==========================================
-# ESTRUTURA DE DADOS COM PARÂMETROS AVANÇADOS
+# ESTRUTURA DE DADOS (AGORA COM VELOCIDADE NO CINEMATIC)
 # ==========================================
 class AudioRequest(BaseModel):
     texto: str
     voz: str = "padrao-pt-BR-AntonioNeural"
     velocidade: float = 1.0
     pitch: int = 0
-    temperatura: float = 0.7       # Parâmetro Exclusivo Gemini
-    estabilidade: float = 0.5      # Parâmetro Exclusivo ElevenLabs
-    similaridade: float = 0.75     # Parâmetro Exclusivo ElevenLabs
+    temperatura: float = 0.7       
+    estabilidade: float = 0.5      
+    similaridade: float = 0.75     
 
 # ==========================================
-# CATÁLOGOS DE VOZES (GÉNERO + PERSONALIDADE)
+# CATÁLOGOS DE VOZES (100% WHITE-LABEL)
 # ==========================================
-# O Novo Elenco Creator COMPLETO (30 Vozes Gemini TTS)
 VOICES_CREATOR = {
     "Achernar": ("Masculino", "Suave"),
     "Achird": ("Feminino", "Amigável"),
@@ -86,9 +86,6 @@ def limpar_texto_para_voz(texto: str) -> str:
     t = re.sub(r'\(.*?\)', '', t)
     return t.strip()
 
-# ==========================================
-# MOTOR MATEMÁTICO DE SRT PARA GEMINI/ELEVENLABS
-# ==========================================
 def gerar_srt_matematico(texto, audio_bytes):
     try:
         audio_seg = AudioSegment.from_file(io.BytesIO(audio_bytes))
@@ -134,7 +131,7 @@ def gerar_srt_matematico(texto, audio_bytes):
 # ==========================================
 @router.get("/vozes")
 async def listar_vozes():
-    # 1. Padrão (Edge TTS)
+    # 1. Padrão
     edge_voices = await edge_tts.list_voices()
     vozes_ptbr = []
     for v in edge_voices:
@@ -142,17 +139,17 @@ async def listar_vozes():
             genero_br = "Feminino" if v["Gender"] == "Female" else "Masculino"
             vozes_ptbr.append({
                 "Nome": v["ShortName"], 
-                "Genero": f"{genero_br} | Padrão da Internet", 
+                "Genero": f"{genero_br} | Voz Digital Neural", 
                 "Tier": "padrao"
             })
     
-    # 2. Creator (Gemini)
+    # 2. Creator
     vozes_creator = [
         {"Nome": k, "Genero": f"{v[0]} | {v[1]}", "Tier": "creator"} 
         for k, v in VOICES_CREATOR.items()
     ]
     
-    # 3. Cinematic (ElevenLabs)
+    # 3. Cinematic
     vozes_cinematic = [
         {"Nome": k, "Genero": f"{v[0]} | {v[1]}", "Tier": "cinematic"} 
         for k, v in VOICES_CINEMATIC.items()
@@ -195,10 +192,10 @@ async def gerar_narracao(
         audio_data = b""
         srt_content = ""
         
-        # 1. TIER CINEMATIC (ElevenLabs)
+        # 1. TIER CINEMATIC
         if is_cinematic:
             eleven_key = os.environ.get("ELEVENLABS_API_KEY")
-            if not eleven_key: raise Exception("ElevenLabs API Key ausente no servidor.")
+            if not eleven_key: raise Exception("Motor Cinematic não configurado no servidor.")
             
             voice_id_map = {
                 "eleven-marcus": "nPczCjzI2devNBz1zQrb", "eleven-adam": "pNInz6obpgDQGcFmaJgB",
@@ -225,16 +222,28 @@ async def gerar_narracao(
             
             async with httpx.AsyncClient(timeout=120.0) as client:
                 r = await client.post(url, json=data, headers=headers)
-                if r.status_code != 200: raise Exception(f"Erro ElevenLabs: {r.text}")
+                if r.status_code != 200: raise Exception("Falha na geração do áudio. Tente novamente.")
                 audio_data = r.content
+
+            # Aplicação matemática de Velocidade (caso usuário mude no Cinematic)
+            if req.velocidade != 1.0:
+                try:
+                    seg = AudioSegment.from_file(io.BytesIO(audio_data), format="mp3")
+                    # Ajuste de frame rate (Acelera sem perder qualidade no Pydub)
+                    seg_mod = seg._spawn(seg.raw_data, overrides={"frame_rate": int(seg.frame_rate * req.velocidade)}).set_frame_rate(seg.frame_rate)
+                    out = io.BytesIO()
+                    seg_mod.export(out, format="mp3")
+                    audio_data = out.getvalue()
+                except Exception as err_speed:
+                    print(f"Aviso: Não foi possível alterar a velocidade do áudio. {err_speed}")
             
             srt_content = gerar_srt_matematico(texto_limpo, audio_data)
             audio_base64 = base64.b64encode(audio_data).decode('utf-8')
 
-        # 2. TIER CREATOR (Gemini TTS)
+        # 2. TIER CREATOR
         elif is_creator:
             api_key = os.environ.get("GEMINI_API_KEY_FREE") or os.environ.get("GEMINI_API_KEY")
-            if not api_key: raise Exception("Gemini API Key ausente.")
+            if not api_key: raise Exception("Motor Creator não configurado.")
             
             voz_id = req.voz.replace(" (Recomendada)", "")
             url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-preview-tts:predict?key={api_key}"
@@ -250,17 +259,17 @@ async def gerar_narracao(
             
             async with httpx.AsyncClient(timeout=120.0) as client:
                 r = await client.post(url, json=payload, headers=headers)
-                if r.status_code != 200: raise Exception(f"Erro Gemini TTS: {r.text}")
+                if r.status_code != 200: raise Exception("Falha no servidor Neural Creator.")
                 res_json = r.json()
                 try:
                     audio_base64 = res_json['predictions'][0]['audioContent']
                     audio_data = base64.b64decode(audio_base64)
                 except:
-                    raise Exception("Falha ao extrair áudio da resposta do Gemini.")
+                    raise Exception("Falha ao extrair áudio da resposta.")
             
             srt_content = gerar_srt_matematico(texto_limpo, audio_data)
 
-        # 3. TIER STANDARD (Edge TTS)
+        # 3. TIER STANDARD
         else:
             communicate = edge_tts.Communicate(texto_limpo, req.voz, rate=f"{req.velocidade:+d}%", pitch=f"{req.pitch:+d}Hz")
             submaker = edge_tts.SubMaker()
