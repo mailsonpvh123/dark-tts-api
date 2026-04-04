@@ -19,7 +19,7 @@ from auth import get_usuario_atual
 router = APIRouter(tags=["Voice Synthesizer"])
 
 # ==========================================
-# NOVA ESTRUTURA DE DADOS COM PARÂMETROS AVANÇADOS
+# ESTRUTURA DE DADOS COM PARÂMETROS AVANÇADOS
 # ==========================================
 class AudioRequest(BaseModel):
     texto: str
@@ -31,25 +31,53 @@ class AudioRequest(BaseModel):
     similaridade: float = 0.75     # Parâmetro Exclusivo ElevenLabs
 
 # ==========================================
-# CATÁLOGOS DE VOZES
+# CATÁLOGOS DE VOZES (GÉNERO + PERSONALIDADE)
 # ==========================================
+# O Novo Elenco Creator COMPLETO (30 Vozes Gemini TTS)
 VOICES_CREATOR = {
-    "Achernar": "Suave", "Achird": "Amigável", "Algenib": "Áspero", "Algieba": "Suave",
-    "Alnilam": "Firme", "Aoede": "Breezy e Natural", "Autonoe": "Brilhante", "Callirrhoe": "Easy-going",
-    "Charon": "Informativa (Dark/Suspense)", "Despina": "Smooth", "Enceladus": "Breathy", "Erinome": "Limpa",
-    "Fenrir": "Excitável e Intenso", "Gacrux": "Adulto", "Isonoe": "Calma", "Kore": "Dinâmica",
-    "Kuma": "Estável", "Leda": "Relaxada", "Liriope": "Acolhedora", "Lysithea": "Energética",
-    "Megaclite": "Inquisitiva", "Minkar": "Authoritative", "Nembus": "Profunda", "Puck": "Expressiva e Contadora de Histórias",
-    "Puck (Recomendada)": "Expressiva e Contadora de Histórias", "Sinope": "Ponderada", "Sponde": "Afiada",
-    "Surtur": "Rasposa/Gravelly", "Tarqeq": "Ressonante", "Thebe": "Quente"
+    "Achernar": ("Masculino", "Suave"),
+    "Achird": ("Feminino", "Amigável"),
+    "Algenib": ("Masculino", "Áspero"),
+    "Algieba": ("Feminino", "Suave"),
+    "Alnilam": ("Masculino", "Firme"),
+    "Aoede": ("Feminino", "Breezy e Natural"),
+    "Autonoe": ("Feminino", "Brilhante (Bright)"),
+    "Callirrhoe": ("Feminino", "Easy-going"),
+    "Charon": ("Masculino", "Informativa (Ideal p/ Dark e Suspense)"),
+    "Despina": ("Feminino", "Smooth"),
+    "Enceladus": ("Masculino", "Breathy"),
+    "Erinome": ("Feminino", "Limpa"),
+    "Fenrir": ("Masculino", "Excitável e Intenso"),
+    "Gacrux": ("Masculino", "Adulto"),
+    "Isonoe": ("Feminino", "Calma"),
+    "Kore": ("Feminino", "Dinâmica"),
+    "Kuma": ("Masculino", "Estável"),
+    "Leda": ("Feminino", "Relaxada"),
+    "Liriope": ("Feminino", "Acolhedora"),
+    "Lysithea": ("Feminino", "Energética"),
+    "Megaclite": ("Feminino", "Inquisitiva"),
+    "Minkar": ("Masculino", "Autoridade (Documentários)"),
+    "Nembus": ("Masculino", "Profunda e Grave"),
+    "Puck": ("Masculino", "Expressiva e Contadora de Histórias"),
+    "Puck (Recomendada)": ("Masculino", "Expressiva e Contadora de Histórias"),
+    "Sinope": ("Feminino", "Ponderada"),
+    "Sponde": ("Feminino", "Afiada"),
+    "Surtur": ("Masculino", "Rasposa/Gravelly (Assustadora)"),
+    "Tarqeq": ("Masculino", "Ressonante"),
+    "Thebe": ("Feminino", "Quente e Acolhedora")
 }
 
 VOICES_CINEMATIC = {
-    "eleven-marcus": "Marcus (Autoridade/Narrador)", "eleven-adam": "Adam (Profundo/Misterioso)",
-    "eleven-antoni": "Antoni (Dinâmico)", "eleven-arnold": "Arnold (Rouco/Suspense)",
-    "eleven-callum": "Callum (Intenso/Cinematográfico)", "eleven-charlie": "Charlie (Jovem/Casual)",
-    "eleven-clyde": "Callum (Grave/Documentário)", "eleven-daniel": "Daniel (Impactante/Sério)",
-    "eleven-domi": "Domi (Forte/Agressivo)", "eleven-fin": "Fin (Narrador Sombrio)"
+    "eleven-marcus": ("Masculino", "Autoridade/Narrador Épico"),
+    "eleven-adam": ("Masculino", "Profundo/Misterioso"),
+    "eleven-antoni": ("Masculino", "Dinâmico/Jovem"),
+    "eleven-arnold": ("Masculino", "Rouco/Suspense Sombrio"),
+    "eleven-callum": ("Masculino", "Intenso/Cinematográfico"),
+    "eleven-charlie": ("Masculino", "Casual/Conversacional"),
+    "eleven-clyde": ("Masculino", "Grave/Documentário Guerra"),
+    "eleven-daniel": ("Masculino", "Impactante/Jornalístico"),
+    "eleven-domi": ("Feminino", "Forte/Agressiva"),
+    "eleven-fin": ("Masculino", "Narrador de True Crime")
 }
 
 def limpar_texto_para_voz(texto: str) -> str:
@@ -58,6 +86,9 @@ def limpar_texto_para_voz(texto: str) -> str:
     t = re.sub(r'\(.*?\)', '', t)
     return t.strip()
 
+# ==========================================
+# MOTOR MATEMÁTICO DE SRT PARA GEMINI/ELEVENLABS
+# ==========================================
 def gerar_srt_matematico(texto, audio_bytes):
     try:
         audio_seg = AudioSegment.from_file(io.BytesIO(audio_bytes))
@@ -98,14 +129,34 @@ def gerar_srt_matematico(texto, audio_bytes):
         
     return "\n".join(srt_output)
 
-
+# ==========================================
+# ROTAS DA API
+# ==========================================
 @router.get("/vozes")
 async def listar_vozes():
+    # 1. Padrão (Edge TTS)
     edge_voices = await edge_tts.list_voices()
-    vozes_ptbr = [{"Nome": v["ShortName"], "Genero": v["Gender"], "Tier": "padrao"} for v in edge_voices if "pt-BR" in v["Locale"]]
+    vozes_ptbr = []
+    for v in edge_voices:
+        if "pt-BR" in v["Locale"]:
+            genero_br = "Feminino" if v["Gender"] == "Female" else "Masculino"
+            vozes_ptbr.append({
+                "Nome": v["ShortName"], 
+                "Genero": f"{genero_br} | Padrão da Internet", 
+                "Tier": "padrao"
+            })
     
-    vozes_creator = [{"Nome": k, "Genero": v, "Tier": "creator"} for k, v in VOICES_CREATOR.items()]
-    vozes_cinematic = [{"Nome": k, "Genero": v, "Tier": "cinematic"} for k, v in VOICES_CINEMATIC.items()]
+    # 2. Creator (Gemini)
+    vozes_creator = [
+        {"Nome": k, "Genero": f"{v[0]} | {v[1]}", "Tier": "creator"} 
+        for k, v in VOICES_CREATOR.items()
+    ]
+    
+    # 3. Cinematic (ElevenLabs)
+    vozes_cinematic = [
+        {"Nome": k, "Genero": f"{v[0]} | {v[1]}", "Tier": "cinematic"} 
+        for k, v in VOICES_CINEMATIC.items()
+    ]
     
     return vozes_ptbr + vozes_creator + vozes_cinematic
 
@@ -161,7 +212,6 @@ async def gerar_narracao(
             url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
             headers = {"Accept": "audio/mpeg", "Content-Type": "application/json", "xi-api-key": eleven_key}
             
-            # INJEÇÃO DOS PARÂMETROS DO ELEVENLABS
             data = {
                 "text": texto_limpo, 
                 "model_id": "eleven_multilingual_v2", 
@@ -190,7 +240,6 @@ async def gerar_narracao(
             url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-preview-tts:predict?key={api_key}"
             headers = {"Content-Type": "application/json"}
             
-            # INJEÇÃO DA TEMPERATURA NO GEMINI
             payload = {
                 "instances": [{"text": texto_limpo}],
                 "parameters": {
@@ -227,6 +276,7 @@ async def gerar_narracao(
             srt_content = submaker.get_srt()
             audio_base64 = base64.b64encode(audio_data).decode('utf-8')
         
+        # SALVA NO DISCO
         pasta_audios = os.path.join("frontend", "static", "audios", "historico")
         os.makedirs(pasta_audios, exist_ok=True)
         nome_arquivo = f"audio_{usuario.id}_{int(time.time())}.mp3"
