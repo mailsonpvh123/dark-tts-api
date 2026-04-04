@@ -312,14 +312,6 @@ async function transmutarTexto() {
 function alternarAbaVozes(tipo) {
     abaVozAtiva = tipo;
     
-    // Oculta todos os painéis
-    const panelStd = document.getElementById('controles_standard');
-    const panelCre = document.getElementById('controles_creator');
-    const panelCin = document.getElementById('controles_cinematic');
-    if(panelStd) panelStd.classList.add('hidden');
-    if(panelCre) panelCre.classList.add('hidden');
-    if(panelCin) panelCin.classList.add('hidden');
-    
     const btnPadrao = document.getElementById('aba_btn_padrao');
     const btnCreator = document.getElementById('aba_btn_creator');
     const btnCinematic = document.getElementById('aba_btn_cinematic');
@@ -331,15 +323,12 @@ function alternarAbaVozes(tipo) {
     if (tipo === 'padrao') {
         if(btnPadrao) btnPadrao.className = "flex-1 py-2 text-xs font-bold rounded-md bg-zinc-800 text-white shadow-sm transition-all";
         atualizarInfoTier("Qualidade Standard", "Vozes sintéticas de alta eficiência. Ideais para testes, rascunhos ou canais de curiosidades com alto volume de postagem.", "text-purple-400", "border-purple-500/20");
-        if(panelStd) panelStd.classList.remove('hidden');
     } else if (tipo === 'creator') {
         if(btnCreator) btnCreator.className = "flex-1 py-2 text-xs font-bold rounded-md bg-zinc-800 text-blue-400 shadow-sm transition-all";
         atualizarInfoTier("Qualidade Creator", "Vozes neurais altamente estáveis, previsíveis e com ritmo uniforme. A escolha definitiva e de ótimo custo-benefício para quem já monetiza.", "text-blue-400", "border-blue-500/20");
-        if(panelCre) panelCre.classList.remove('hidden');
     } else if (tipo === 'cinematic') {
         if(btnCinematic) btnCinematic.className = "flex-1 py-2 text-xs font-bold rounded-md bg-zinc-800 text-amber-400 shadow-sm transition-all";
         atualizarInfoTier("Qualidade Cinematic (Ultra-Realista)", "Atuação de estúdio e realismo absoluto. Vozes que respiram e se adaptam naturalmente ao texto. Recomendado para documentários de elite e canais Dark premium.", "text-amber-500", "border-amber-500/30");
-        if(panelCin) panelCin.classList.remove('hidden');
     }
     
     const primeiraDaLista = vozesData.find(v => v.tipo === tipo);
@@ -377,12 +366,12 @@ function renderizarListaVozes() {
             ? "border-emerald-500 bg-emerald-500/10 shadow-[0_0_20px_rgba(16,185,129,0.15)]" 
             : `border-zinc-800 ${baseClass}`;
             
-        let iconClass = isCinematic ? 'fa-star text-amber-400' : (isCreator ? 'fa-clapperboard text-blue-400' : (v.gender.includes('Feminino') ? 'fa-face-smile-beam text-pink-400' : 'fa-user-astronaut text-purple-400'));
+        let iconClass = isCinematic ? 'fa-star text-amber-400' : (isCreator ? 'fa-clapperboard text-blue-400' : (v.gender === 'Female' ? 'fa-face-smile-beam text-pink-400' : 'fa-user-astronaut text-purple-400'));
         
         let tagsHtml = "";
         if (isCinematic) tagsHtml = '<span class="text-[10px] font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">Cinematic</span>';
         else if (isCreator) tagsHtml = '<span class="text-[10px] font-bold text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20">Creator</span>';
-        else tagsHtml = (v.gender.includes('Feminino') ? '<span class="text-[10px] font-bold text-pink-400 bg-pink-500/10 px-2 py-0.5 rounded border border-pink-500/20">Feminino</span>' : '<span class="text-[10px] font-bold text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded border border-purple-500/20">Masculino</span>');
+        else tagsHtml = (v.gender === 'Female' ? '<span class="text-[10px] font-bold text-pink-400 bg-pink-500/10 px-2 py-0.5 rounded border border-pink-500/20">Feminino</span>' : '<span class="text-[10px] font-bold text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded border border-purple-500/20">Masculino</span>');
 
         let nomeDisplay = v.name;
         if (!isCinematic && !isCreator) {
@@ -401,26 +390,29 @@ function renderizarListaVozes() {
                     </div>
                     <div>
                         <p class="text-[13px] font-bold text-white group-hover:text-emerald-300 transition-colors leading-tight mb-1">${nomeDisplay}</p>
-                        <p class="text-[10px] text-zinc-500 font-mono">${v.gender} | ${v.desc}</p>
+                        <div class="flex items-center gap-2">
+                            ${tagsHtml}
+                        </div>
                     </div>
                 </div>
-                <div class="flex items-center gap-3 shrink-0">
-                    <button class="w-8 h-8 rounded-full bg-zinc-800 border border-zinc-700/50 flex items-center justify-center text-zinc-400 hover:bg-emerald-500 hover:text-white hover:border-emerald-400 transition-all shadow-md shrink-0" title="Ouvir Prévia" onclick="tocarPreview(event, '${v.shortName}')">
-                        <i id="play_icon_${v.shortName}" class="fa-solid fa-play text-xs ml-0.5"></i>
-                    </button>
-                    ${isSelected ? '<i class="fa-solid fa-circle-check text-emerald-500 text-lg"></i>' : '<i class="fa-solid fa-circle text-zinc-800 group-hover:text-zinc-600 transition-colors text-lg"></i>'}
-                </div>
+                <button class="w-8 h-8 rounded-full bg-zinc-800 border border-zinc-700/50 flex items-center justify-center text-zinc-400 hover:bg-emerald-500 hover:text-white hover:border-emerald-400 transition-all shadow-md shrink-0" onclick="tocarPreview(event, '${v.shortName}')">
+                    <i id="play_icon_${v.shortName}" class="fa-solid fa-play text-xs ml-0.5"></i>
+                </button>
             </div>`;
     });
 }
 
 function selecionarVoz(sn) { 
-    if(window.playerPreviewAtual) { 
-        window.playerPreviewAtual.pause(); 
-        window.playerPreviewAtual = null; 
-        document.querySelectorAll('[id^="play_icon_"]').forEach(i => i.className = 'fa-solid fa-play text-xs ml-0.5'); 
-    }
     vozSelecionada = sn; 
+    
+    const painelStandard = document.getElementById('controles_standard');
+    
+    if(sn.includes("cinematic-") || sn.includes("creator-")) {
+        if(painelStandard) painelStandard.classList.add('hidden');
+    } else {
+        if(painelStandard) painelStandard.classList.remove('hidden');
+    }
+    
     renderizarListaVozes(); 
     recalcularCustoVoz(); 
 }
@@ -458,22 +450,30 @@ function recalcularCustoVoz() {
     }, 300); 
 }
 
-function ajustarSlider(idInput, idLabel, delta, min, max, suffix) {
-    const el = document.getElementById(idInput);
-    if(!el) return;
-    let newVal = parseFloat(el.value) + delta;
-    if (newVal < min) newVal = min;
-    if (newVal > max) newVal = max;
-    
-    if (Number.isInteger(min) && Number.isInteger(max) && Number.isInteger(delta)) {
-        el.value = Math.round(newVal);
-        document.getElementById(idLabel).innerText = el.value + suffix;
-    } else {
-        el.value = newVal.toFixed(1);
-        document.getElementById(idLabel).innerText = el.value + suffix;
-    }
+// ==========================================
+// CONTROLES DE SLIDERS (Edge)
+// ==========================================
+function ajustarVelocidade(delta) {
+    const slider = document.getElementById('velocidade');
+    let newVal = parseFloat(slider.value) + delta;
+    if(newVal > 2.0) newVal = 2.0;
+    if(newVal < 0.5) newVal = 0.5;
+    slider.value = newVal.toFixed(1);
+    document.getElementById('val_v').innerText = slider.value + 'x';
 }
 
+function ajustarPitch(delta) {
+    const slider = document.getElementById('pitch');
+    let newVal = parseInt(slider.value) + delta;
+    if(newVal > 50) newVal = 50;
+    if(newVal < -50) newVal = -50;
+    slider.value = newVal;
+    document.getElementById('val_p').innerText = slider.value + 'Hz';
+}
+
+// ==========================================
+// INTEGRAÇÃO DE PRÉVIAS E GERAÇÃO DE VOZ
+// ==========================================
 async function tocarPreview(event, shortName) {
     event.stopPropagation();
     
@@ -486,7 +486,7 @@ async function tocarPreview(event, shortName) {
     icon.className = "fa-solid fa-circle-notch fa-spin text-white"; 
     
     try {
-        const audioUrl = `/static/audios/preview/${shortName}.mp3`;
+        const audioUrl = `/static/audios/previews/${shortName}.mp3`;
         const playerPreview = new Audio(audioUrl);
         window.playerPreviewAtual = playerPreview; 
         
@@ -498,34 +498,9 @@ async function tocarPreview(event, shortName) {
         };
 
     } catch(e) {
-        alert(`Arquivo de prévia não encontrado no servidor!\n\n(Dica: O ficheiro /static/audios/preview/${shortName}.mp3 precisa estar alojado).`);
+        alert(`Arquivo de prévia não encontrado no servidor!\n\n(Dica técnica: Você precisa rodar o script gerar_previas.py para baixar o arquivo "${shortName}.mp3").`);
         icon.className = "fa-solid fa-play text-xs ml-0.5"; 
     } 
-}
-
-// ==========================================
-// FUNÇÕES DE EXPORTAÇÃO E SRT
-// ==========================================
-function baixarSRT() {
-    if(!srtGlobal) return alert("A legenda (SRT) ainda não está disponível. Gere o áudio primeiro.");
-    const blob = new Blob([srtGlobal], { type: 'text/plain' });
-    const link = document.createElement('a'); 
-    link.href = URL.createObjectURL(blob);
-    link.download = `Legenda_${new Date().getTime()}.srt`;
-    link.click();
-}
-
-function enviarParaMetaSEO() {
-    const roteiro = document.getElementById('texto_voz').value;
-    if (!roteiro) return alert("O Roteiro está vazio.");
-    
-    let conteudoFinal = `ROTEIRO COMPLETO:\n${roteiro}\n\n`;
-    if (srtGlobal) {
-        conteudoFinal += `TIMELINE EXATA (USE PARA GERAR OS CAPÍTULOS NO YOUTUBE):\n${srtGlobal}`;
-    }
-    
-    sessionStorage.setItem('seo_conteudo', conteudoFinal);
-    window.location.href = '/meta-seo';
 }
 
 async function gerarAudioCompleto() {
@@ -536,41 +511,25 @@ async function gerarAudioCompleto() {
     
     if(!texto.trim()) return alert("Digite um texto antes de sintetizar!");
 
-    // CAPTURA INTELIGENTE DOS NOVOS PARÂMETROS COM BASE NA ABA
-    const isCinematic = vozSelecionada.includes("cinematic-");
-    const isCreator = vozSelecionada.includes("creator-");
-
-    let velocidade = 1.0;
-    if(abaVozAtiva === 'padrao') velocidade = parseFloat(document.getElementById('velocidade_std').value);
-    if(abaVozAtiva === 'cinematic') velocidade = parseFloat(document.getElementById('velocidade_cin').value);
-    
-    const pitch = abaVozAtiva === 'padrao' ? parseInt(document.getElementById('pitch_std').value) : 0;
-    const tempInput = document.getElementById('temperatura');
-    const temperatura = tempInput ? parseFloat(tempInput.value) : 0.7;
-    const estabInput = document.getElementById('estabilidade');
-    const estabilidade = estabInput ? parseFloat(estabInput.value) : 0.5;
-    const similInput = document.getElementById('similaridade');
-    const similaridade = similInput ? parseFloat(similInput.value) : 0.75;
-
     btn.disabled = true;
     btn.classList.add('opacity-70', 'cursor-not-allowed');
     
+    const isCinematic = vozSelecionada.includes("cinematic-");
+    const isCreator = vozSelecionada.includes("creator-");
+
     txtBtn.innerHTML = `Processando no Estúdio... <i class="fa-solid fa-circle-notch fa-spin ml-2"></i>`;
     playerContainer.classList.remove('hidden');
     
     let icone = isCinematic ? "fa-star text-amber-400" : (isCreator ? "fa-clapperboard text-blue-400" : "fa-microphone-lines text-purple-400");
-    let msgExtra = texto.length > 4000 ? "<br><span class='text-[10px] text-zinc-500'>O roteiro longo está sendo renderizado por partes para manter a qualidade.</span>" : "";
+    let msgExtra = texto.length > 4000 ? "<br><span class='text-[10px] text-zinc-500'>O roteiro longo está sendo renderizado por partes para garantir a qualidade. Aguarde.</span>" : "";
     
     playerContainer.innerHTML = `<p class="animate-pulse text-center font-bold text-sm"><i class="fa-solid ${icone} fa-fade mr-2"></i> Renderizando o seu áudio...${msgExtra}</p>`;
 
     const payload = { 
         texto: texto, 
         voz: vozSelecionada, 
-        velocidade: velocidade, 
-        pitch: pitch,
-        temperatura: temperatura,
-        estabilidade: estabilidade,
-        similaridade: similaridade
+        velocidade: parseFloat(document.getElementById('velocidade').value), 
+        pitch: parseInt(document.getElementById('pitch').value)
     };
 
     try {
@@ -587,9 +546,6 @@ async function gerarAudioCompleto() {
         }
         
         const dados = await res.json();
-        
-        // SALVA O SRT GERADO PARA OS BOTÕES
-        srtGlobal = dados.srt || "";
 
         if(dados.novo_saldo !== undefined) {
             const paineisDeCoins = document.querySelectorAll('.fa-coins');
@@ -603,7 +559,6 @@ async function gerarAudioCompleto() {
             });
         }
 
-        // INJETA O PLAYER E OS DOIS NOVOS BOTÕES!
         playerContainer.innerHTML = `
             <div class="flex items-center gap-2 mb-3">
                 <i class="fa-solid fa-circle-check text-emerald-400 drop-shadow-[0_0_5px_rgba(16,185,129,0.8)]"></i>
@@ -612,15 +567,6 @@ async function gerarAudioCompleto() {
             <audio controls class="w-full h-12 bg-zinc-900 rounded-lg outline-none shadow-inner">
                 <source src="data:audio/mp3;base64,${dados.audio_base64}" type="audio/mp3">
             </audio>
-            
-            <div class="flex flex-col sm:flex-row gap-3 border-t border-zinc-800/80 pt-4 mt-4">
-                <button onclick="baixarSRT()" class="flex-1 bg-[#09090b] hover:bg-emerald-600 text-emerald-400 hover:text-white font-bold py-3.5 rounded-xl border border-emerald-500/30 hover:border-emerald-500 transition-all text-xs flex items-center justify-center gap-2 shadow-inner hover:shadow-[0_0_15px_rgba(16,185,129,0.4)] group">
-                    <i class="fa-solid fa-download group-hover:-translate-y-1 transition-transform"></i> Baixar .SRT
-                </button>
-                <button onclick="enviarParaMetaSEO()" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-black py-3.5 rounded-xl border border-blue-500/50 transition-all text-xs flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(59,130,246,0.4)] group">
-                    <i class="fa-solid fa-rocket group-hover:translate-x-1 transition-transform"></i> Gerar Meta & SEO
-                </button>
-            </div>
         `;
     } catch (e) {
         const isCoinError = e.message.includes('Coins insuficientes');
@@ -637,5 +583,3 @@ function contarPalavrasLocal(texto) {
     if (!texto || texto.trim() === "") return 0;
     return texto.trim().split(/\s+/).length;
 }
-</script>
-{% endblock %}
