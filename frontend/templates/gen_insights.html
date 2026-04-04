@@ -122,7 +122,8 @@
             const res = await fetch("/api/v1/gen-insights", {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ nicho: nicho, publico: publico })
+                // CORREÇÃO APLICADA AQUI ABAIXO: publico_alvo
+                body: JSON.stringify({ nicho: nicho, publico_alvo: publico })
             });
             
             if(!res.ok) {
@@ -186,7 +187,7 @@
             
             container.innerHTML = `
             <div class="flex items-center justify-center h-full">
-                <p class="${erroClass} font-bold p-5 rounded-xl relative z-10 text-center shadow-lg border">
+                <p class="${erroClass} border font-bold p-5 rounded-lg relative z-10 text-center shadow-lg">
                     <i class="fa-solid fa-triangle-exclamation text-2xl mb-2 block"></i> 
                     ${error.message}
                 </p>
