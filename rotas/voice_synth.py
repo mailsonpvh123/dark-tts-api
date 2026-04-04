@@ -23,7 +23,7 @@ router = APIRouter(prefix="/api/v1", tags=["Voice Synthesizer"])
 # ==========================================
 class AudioRequest(BaseModel):
     texto: str
-    voz: str = "padrao-pt-BR-AntonioNeural"
+    voz: str = "pt-BR-AntonioNeural"
     velocidade: float = 1.0
     pitch: int = 0
     temperatura: float = 0.7       
@@ -31,9 +31,34 @@ class AudioRequest(BaseModel):
     similaridade: float = 0.75     
 
 # ==========================================
-# CATÁLOGOS DE VOZES (GÉNERO + DESCRIÇÃO)
+# CATÁLOGOS DE VOZES RESTAURADOS E BLINDADOS
 # ==========================================
-# O Novo Elenco Creator COMPLETO (30 Vozes Gemini TTS)
+VOICES_STANDARD = {
+    "pt-BR-AntonioNeural": "Masculino",
+    "pt-BR-BrendaNeural": "Feminino",
+    "pt-BR-DonatoNeural": "Masculino",
+    "pt-BR-ElzaNeural": "Feminino",
+    "pt-BR-FabioNeural": "Masculino",
+    "pt-BR-GiovannaNeural": "Feminino",
+    "pt-BR-HumbertoNeural": "Masculino",
+    "pt-BR-JulioNeural": "Masculino",
+    "pt-BR-LeilaNeural": "Feminino",
+    "pt-BR-LeticiaNeural": "Feminino",
+    "pt-BR-ManuelaNeural": "Feminino",
+    "pt-BR-NicolauNeural": "Masculino",
+    "pt-BR-ValerioNeural": "Masculino",
+    "pt-BR-YaraNeural": "Feminino",
+    "pt-PT-DuarteNeural": "Masculino",
+    "pt-PT-FernandaNeural": "Feminino",
+    "pt-PT-RaquelNeural": "Feminino",
+    "en-US-AriaNeural": "Feminino (Inglês)",
+    "en-US-ChristopherNeural": "Masculino (Inglês)",
+    "en-US-EricNeural": "Masculino (Inglês)",
+    "en-US-GuyNeural": "Masculino (Inglês)",
+    "en-US-JennyNeural": "Feminino (Inglês)",
+    "en-US-MichelleNeural": "Feminino (Inglês)"
+}
+
 VOICES_CREATOR = {
     "Achernar": ("Masculino", "Suave"),
     "Achird": ("Feminino", "Amigável"),
@@ -49,7 +74,7 @@ VOICES_CREATOR = {
     "Erinome": ("Feminino", "Limpa"),
     "Fenrir": ("Masculino", "Excitável e Intenso"),
     "Gacrux": ("Masculino", "Adulto"),
-    "Iapetus": ("Masculino", "Limpar"),
+    "Iapetus": ("Masculino", "Limpo"),
     "Kore": ("Feminino", "Firme"),
     "Laomedeia": ("Feminino", "Upbeat"),
     "Leda": ("Feminino", "Juventude"),
@@ -67,7 +92,6 @@ VOICES_CREATOR = {
     "Zubenelgenubi": ("Masculino", "Casual")
 }
 
-# O Elenco de Elite Completo (21 Vozes Nativas ElevenLabs) -> Chave amigável, Tupla contém o ID real
 VOICES_CINEMATIC = {
     "Adam": ("Masculino", "Dominante e Firme", "pNInz6obpgDQGcFmaJgB"),
     "Alice": ("Feminino", "Clara, Educadora Envolvente", "Xb7hH8MSUJpSbSDYk0k2"),
@@ -138,32 +162,21 @@ def gerar_srt_matematico(texto, audio_bytes):
         
     return "\n".join(srt_output)
 
-# ==========================================
-# ROTAS DA API
-# ==========================================
 @router.get("/vozes")
 async def listar_vozes():
-    # 1. Padrão
-    edge_voices = await edge_tts.list_voices()
-    vozes_ptbr = []
-    for v in edge_voices:
-        if "pt-BR" in v["Locale"]:
-            genero_br = "Feminino" if v["Gender"] == "Female" else "Masculino"
-            vozes_ptbr.append({
-                "Nome": v["ShortName"], 
-                "Genero": f"{genero_br} | Voz Digital Neural", 
-                "Tier": "padrao"
-            })
+    # Retorna o ID original para buscar o preview e gerar a voz, mas um Nome limpo para o front
+    vozes_ptbr = [
+        {"Id": k, "Nome": k.replace('pt-BR-', '').replace('pt-PT-', '').replace('en-US-', '').replace('Neural', ''), "Genero": f"{v} | Padrão da Internet", "Tier": "padrao"} 
+        for k, v in VOICES_STANDARD.items()
+    ]
     
-    # 2. Creator
     vozes_creator = [
-        {"Nome": k, "Genero": f"{v[0]} | {v[1]}", "Tier": "creator"} 
+        {"Id": k, "Nome": k.replace(" (Recomendada)", ""), "Genero": f"{v[0]} | {v[1]}", "Tier": "creator"} 
         for k, v in VOICES_CREATOR.items()
     ]
     
-    # 3. Cinematic
     vozes_cinematic = [
-        {"Nome": k, "Genero": f"{v[0]} | {v[1]}", "Tier": "cinematic"} 
+        {"Id": k, "Nome": k, "Genero": f"{v[0]} | {v[1]}", "Tier": "cinematic"} 
         for k, v in VOICES_CINEMATIC.items()
     ]
     
@@ -209,9 +222,7 @@ async def gerar_narracao(
             eleven_key = os.environ.get("ELEVENLABS_API_KEY")
             if not eleven_key: raise Exception("Motor Cinematic não configurado no servidor.")
             
-            # Puxa o ID real mapeado na Tupla
             voice_id = VOICES_CINEMATIC[req.voz][2]
-            
             url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
             headers = {"Accept": "audio/mpeg", "Content-Type": "application/json", "xi-api-key": eleven_key}
             
@@ -231,7 +242,6 @@ async def gerar_narracao(
                 if r.status_code != 200: raise Exception("Falha na geração do áudio. Tente novamente.")
                 audio_data = r.content
 
-            # Aplicação matemática de Velocidade
             if req.velocidade != 1.0:
                 try:
                     seg = AudioSegment.from_file(io.BytesIO(audio_data), format="mp3")
@@ -240,7 +250,7 @@ async def gerar_narracao(
                     seg_mod.export(out, format="mp3")
                     audio_data = out.getvalue()
                 except Exception as err_speed:
-                    print(f"Aviso: Não foi possível alterar a velocidade do áudio. {err_speed}")
+                    print(f"Aviso de velocidade: {err_speed}")
             
             srt_content = gerar_srt_matematico(texto_limpo, audio_data)
             audio_base64 = base64.b64encode(audio_data).decode('utf-8')
@@ -250,7 +260,7 @@ async def gerar_narracao(
             api_key = os.environ.get("GEMINI_API_KEY_FREE") or os.environ.get("GEMINI_API_KEY")
             if not api_key: raise Exception("Motor Creator não configurado.")
             
-            voz_id = req.voz
+            voz_id = req.voz.replace(" (Recomendada)", "")
             url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-preview-tts:predict?key={api_key}"
             headers = {"Content-Type": "application/json"}
             
@@ -290,7 +300,6 @@ async def gerar_narracao(
             srt_content = submaker.get_srt()
             audio_base64 = base64.b64encode(audio_data).decode('utf-8')
         
-        # SALVA NO DISCO
         pasta_audios = os.path.join("frontend", "static", "audios", "historico")
         os.makedirs(pasta_audios, exist_ok=True)
         nome_arquivo = f"audio_{usuario.id}_{int(time.time())}.mp3"
