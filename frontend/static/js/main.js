@@ -279,7 +279,6 @@ async function transmutarTexto() {
         
         localStorage.setItem('paraph_resultado', dados.texto_parafrazedo);
 
-        // Atualiza moedas de forma dinâmica se o backend retornar
         if(dados.novo_saldo !== undefined) {
             const paineisDeCoins = document.querySelectorAll('.fa-coins');
             paineisDeCoins.forEach(icone => {
@@ -325,20 +324,20 @@ function alternarAbaVozes(tipo) {
     const btnCinematic = document.getElementById('aba_btn_cinematic');
     
     [btnPadrao, btnCreator, btnCinematic].forEach(btn => {
-        if(btn) btn.className = "flex-1 py-2 text-xs font-bold rounded-md text-zinc-500 hover:text-white transition-all";
+        if(btn) btn.className = "flex-1 py-2 text-xs font-bold rounded-lg text-zinc-500 hover:text-white transition-all";
     });
     
     if (tipo === 'padrao') {
-        if(btnPadrao) btnPadrao.className = "flex-1 py-2 text-xs font-bold rounded-md bg-zinc-800 text-white shadow-sm transition-all border border-zinc-700/50";
-        atualizarInfoTier("Qualidade Standard", "Vozes sintéticas de alta eficiência. Ideais para testes, rascunhos ou canais de curiosidades com alto volume de postagem.");
+        if(btnPadrao) btnPadrao.className = "flex-1 py-2 text-xs font-bold rounded-lg bg-zinc-800 text-white shadow-sm transition-all border border-zinc-700/50";
+        atualizarInfoTier("Qualidade Standard", "Vozes sintéticas de alta eficiência. Ideais para testes ou canais com alto volume de postagem.");
         if(panelStd) panelStd.classList.remove('hidden');
     } else if (tipo === 'creator') {
-        if(btnCreator) btnCreator.className = "flex-1 py-2 text-xs font-bold rounded-md bg-zinc-800 text-white shadow-sm transition-all border border-zinc-700/50";
-        atualizarInfoTier("Qualidade Creator (Gemini TTS)", "Vozes neurais naturais e emocionais. Focado em alta retenção e Storytelling. Use a temperatura para dar mais vida.");
+        if(btnCreator) btnCreator.className = "flex-1 py-2 text-xs font-bold rounded-lg bg-zinc-800 text-blue-400 shadow-sm transition-all border border-zinc-700/50";
+        atualizarInfoTier("Qualidade Creator", "Vozes neurais naturais e emocionais. Focado em alta retenção e Storytelling.");
         if(panelCre) panelCre.classList.remove('hidden');
     } else if (tipo === 'cinematic') {
-        if(btnCinematic) btnCinematic.className = "flex-1 py-2 text-xs font-bold rounded-md bg-amber-500/20 text-amber-400 shadow-sm transition-all border border-amber-500/50";
-        atualizarInfoTier("Qualidade Cinematic (ElevenLabs)", "Qualidade Ultra-Realista de cinema. Perfeito para documentários densos. Ajuste a estabilidade para mais naturalidade.");
+        if(btnCinematic) btnCinematic.className = "flex-1 py-2 text-xs font-bold rounded-lg bg-amber-500/20 text-amber-400 shadow-sm transition-all border border-amber-500/50";
+        atualizarInfoTier("Qualidade Cinematic", "Qualidade Ultra-Realista de cinema. Perfeito para documentários densos.");
         if(panelCin) panelCin.classList.remove('hidden');
     }
     
@@ -353,7 +352,7 @@ function atualizarInfoTier(titulo, desc) {
     if(!infoContainer) return;
     
     infoContainer.innerHTML = `
-        <div class="bg-zinc-800/50 border border-zinc-700 p-4 rounded-lg shadow-inner mt-4">
+        <div class="bg-zinc-800/50 border border-zinc-700 p-4 rounded-lg shadow-inner mt-4 relative z-10">
             <p class="text-xs font-bold text-white mb-1"><i class="fa-solid fa-circle-info text-purple-400 mr-1"></i> ${titulo}</p>
             <p class="text-[11px] text-zinc-400 leading-relaxed">${desc}</p>
         </div>
@@ -475,6 +474,7 @@ function ajustarSlider(idInput, idLabel, delta, min, max, suffix) {
     }
 }
 
+// O ERRO ESTAVA AQUI! (pasta previews/ corrigida)
 async function tocarPreview(event, shortName) {
     event.stopPropagation();
     
@@ -487,7 +487,8 @@ async function tocarPreview(event, shortName) {
     if(icon) icon.className = "fa-solid fa-circle-notch fa-spin text-white"; 
     
     try {
-        const audioUrl = `/static/audios/preview/${shortName}.mp3`;
+        // A SUA PASTA REAL É "previews" NO PLURAL
+        const audioUrl = `/static/audios/previews/${shortName}.mp3`;
         const playerPreview = new Audio(audioUrl);
         window.playerPreviewAtual = playerPreview; 
         
@@ -499,13 +500,13 @@ async function tocarPreview(event, shortName) {
         };
 
     } catch(e) {
-        alert(`Arquivo de prévia não encontrado no servidor!\n\n(Dica: O ficheiro /static/audios/preview/${shortName}.mp3 precisa estar alojado).`);
-        if(icon) icon.className = "fa-solid fa-play text-xs ml-0.5"; 
+        alert(`Arquivo de prévia não encontrado!\n\nCertifique-se de que o arquivo existe em: /static/audios/previews/${shortName}.mp3`);
+        if(icon) icon.className = "fa-solid fa-play text-xs ml-0.5 text-red-500"; 
     } 
 }
 
 // ==========================================
-// FUNÇÕES DE EXPORTAÇÃO E SRT
+// FUNÇÕES DE EXPORTAÇÃO E SRT (Adicionadas)
 // ==========================================
 function baixarSRT() {
     if(!srtGlobal) return alert("A legenda (SRT) ainda não está disponível. Gere o áudio primeiro.");
@@ -537,7 +538,7 @@ async function gerarAudioCompleto() {
     
     if(!texto.trim()) return alert("Digite um texto antes de sintetizar!");
 
-    // Captura os Parâmetros (Lidando com os inputs corretos de acordo com a aba)
+    // Captura os Parâmetros Novos Dinamicamente
     const isCinematic = vozSelecionada.includes("cinematic-");
     const isCreator = vozSelecionada.includes("creator-");
 
@@ -589,7 +590,7 @@ async function gerarAudioCompleto() {
         
         const dados = await res.json();
         
-        // SALVA O SRT GERADO GLOBALMENTE
+        // Salva a timeline gerada pelo servidor
         srtGlobal = dados.srt || "";
 
         if(dados.novo_saldo !== undefined) {
@@ -604,7 +605,6 @@ async function gerarAudioCompleto() {
             });
         }
 
-        // INJETA O PLAYER E OS DOIS NOVOS BOTÕES (SRT e SEO)
         playerContainer.innerHTML = `
             <div class="flex items-center gap-2 mb-3">
                 <i class="fa-solid fa-circle-check text-emerald-400 drop-shadow-[0_0_5px_rgba(16,185,129,0.8)]"></i>
