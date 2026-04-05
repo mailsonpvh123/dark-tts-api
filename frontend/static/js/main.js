@@ -522,9 +522,15 @@ function enviarParaMetaSEO() {
     if (!roteiro) return alert("O Roteiro está vazio.");
     
     let conteudoFinal = `ROTEIRO COMPLETO:\n${roteiro}\n\n`;
-    if (srtGlobal) {
-        conteudoFinal += `TIMELINE EXATA (USE PARA GERAR OS CAPÍTULOS NO YOUTUBE):\n${srtGlobal}`;
+    
+    // Se a timeline (SRT) existir, anexa ela ao envio!
+    if (typeof srtGlobal !== 'undefined' && srtGlobal) {
+        conteudoFinal += `TIMELINE EXATA (USE PARA GERAR 5 CAPÍTULOS NO YOUTUBE):\n${srtGlobal}`;
     }
+    
+    sessionStorage.setItem('seo_conteudo', conteudoFinal);
+    window.location.href = '/meta-seo';
+}
     
     sessionStorage.setItem('seo_conteudo', conteudoFinal);
     window.location.href = '/meta-seo';
@@ -590,8 +596,8 @@ async function gerarAudioCompleto() {
         
         const dados = await res.json();
         
-        // Salva a timeline gerada pelo servidor
-        srtGlobal = dados.srt || "";
+        // CIRURGIA: Salva a timeline na variável global para o botão do SEO conseguir ler
+        window.srtGlobal = dados.srt || "";
 
         if(dados.novo_saldo !== undefined) {
             const paineisDeCoins = document.querySelectorAll('.fa-coins');
