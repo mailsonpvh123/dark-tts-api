@@ -1,6 +1,7 @@
 import re
 import os
 import asyncio
+import math
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -81,7 +82,7 @@ async def process_script(
         if not template_prompt:
             raise ValueError("O arquivo script_forge.txt sumiu da pasta prompts!")
 
-        prompt_final = template_prompt.format(
+        prompt_base_formatado = template_prompt.format(
             canal=req.canal if req.canal.strip() else "nosso canal",
             formato=req.formato,
             tamanho=f"{minutos} minutos",
@@ -94,34 +95,99 @@ async def process_script(
         print(f"✍️ Iniciando Script Forge (Dinâmico: {minutos} min). Custo: {custo_operacao} Coins.")
 
         # ==========================================
-        # RETRY COM EXPONENTIAL BACKOFF
+        # ENGENHARIA ITERATIVA DE ROTEIROS MASSIVOS
         # ==========================================
-        max_retries = 3
         texto_limpo = ""
         
-        for attempt in range(max_retries):
-            try:
-                response = client.models.generate_content(
-                    model=modelo_texto,
-                    contents=prompt_final,
-                    config=types.GenerateContentConfig(
-                        temperature=0.7 
-                    )
-                )
-                texto_limpo = response.text.strip()
-                break
-            except Exception as e_api:
-                err_msg = str(e_api).lower()
-                if "503" in err_msg or "429" in err_msg or "unavailable" in err_msg or "demand" in err_msg:
-                    if attempt < max_retries - 1:
-                        espera = 2 * (2 ** attempt)
-                        print(f"⚠️ Motor Ocupado (Script Forge). A aguardar {espera}s... (Tentativa {attempt+1}/{max_retries})")
-                        await asyncio.sleep(espera)
-                    else:
-                        raise Exception("A Dark Neural Engine está sob tráfego extremo neste momento. Por favor, aguarde uns segundos e tente novamente.")
-                else:
-                    raise e_api
+        # Cada bloco de geração cobre com precisão cerca de 6 a 7 minutos (aprox. 1000-1200 palavras)
+        # Ex: 30 minutos = ~5 Partes. 15 Minutos = ~3 Partes.
+        num_partes = max(1, math.ceil(minutos / 7.0))
         
+        if num_partes == 1:
+            # ==========================================
+            # ROTEIRO CURTO (Geração Padrão em 1 Passagem)
+            # ==========================================
+            max_retries = 3
+            for attempt in range(max_retries):
+                try:
+                    response = client.models.generate_content(
+                        model=modelo_texto,
+                        contents=prompt_base_formatado,
+                        config=types.GenerateContentConfig(temperature=0.7)
+                    )
+                    texto_limpo = response.text.strip()
+                    break
+                except Exception as e_api:
+                    err_msg = str(e_api).lower()
+                    if "503" in err_msg or "429" in err_msg or "unavailable" in err_msg or "demand" in err_msg:
+                        if attempt < max_retries - 1:
+                            espera = 2 * (2 ** attempt)
+                            print(f"⚠️ Motor Ocupado. A aguardar {espera}s... (Tentativa {attempt+1}/{max_retries})")
+                            await asyncio.sleep(espera)
+                        else:
+                            raise Exception("A Dark Neural Engine está sob tráfego extremo. Tente novamente.")
+                    else:
+                        raise e_api
+        else:
+            # ==========================================
+            # ROTEIRO LONGO (Geração em Linha de Montagem)
+            # ==========================================
+            print(f"🔥 Ativando Forja Iterativa: Quebrando roteiro em {num_partes} partes para atingir o volume massivo!")
+            historia_acumulada = ""
+            
+            for parte_atual in range(1, num_partes + 1):
+                print(f"   -> Forjando Parte {parte_atual} de {num_partes}...")
+                
+                # Regras de controle cirúrgico para a IA não se perder
+                if parte_atual == 1:
+                    instrucao_foco = f"ATENÇÃO: Você está escrevendo a PARTE 1 de {num_partes}. Foque APENAS no início da história. É OBRIGATÓRIO incluir o Gancho inicial e as boas-vindas ao canal. NÃO conclua a história de forma alguma."
+                elif parte_atual == num_partes:
+                    instrucao_foco = f"ATENÇÃO: Você está escrevendo a PARTE FINAL ({num_partes} de {num_partes}). Conclua o desfecho da história de forma magistral e é OBRIGATÓRIO incluir o Call to Action (pedir inscrição/like) na última frase."
+                else:
+                    instrucao_foco = f"ATENÇÃO: Você está escrevendo o MEIO DA HISTÓRIA (Parte {parte_atual} de {num_partes}). Continue a história com uma riqueza absurda de detalhes, diálogos e tensão emocional. NÃO repita a introdução e NÃO conclua a história."
+                
+                prompt_iterativo = f"{prompt_base_formatado}\n\n=================================\nINSTRUÇÃO MÁXIMA PARA ESTA ETAPA DE GERAÇÃO:\n{instrucao_foco}\n\nMETA CRÍTICA: Escreva aproximadamente 1000 a 1200 palavras SOMENTE para esta etapa do roteiro."
+                
+                if historia_acumulada:
+                    # Injeta as últimas 150 palavras da parte anterior para que a IA faça o "splicing" (junção invisível)
+                    contexto_continuacao = " ".join(historia_acumulada.split()[-150:])
+                    prompt_iterativo += f"\n\nPara garantir a transição perfeita, o último trecho que você escreveu na parte anterior foi:\n'...{contexto_continuacao}'\nContinue a história fluindo naturalmente a partir deste exato ponto."
+
+                max_retries = 3
+                texto_parte = ""
+                for attempt in range(max_retries):
+                    try:
+                        response = client.models.generate_content(
+                            model=modelo_texto,
+                            contents=prompt_iterativo,
+                            config=types.GenerateContentConfig(temperature=0.8) # Maior temperatura para evitar repetições no meio do texto
+                        )
+                        texto_parte = response.text.strip()
+                        break
+                    except Exception as e_api:
+                        err_msg = str(e_api).lower()
+                        if "503" in err_msg or "429" in err_msg or "unavailable" in err_msg or "demand" in err_msg:
+                            if attempt < max_retries - 1:
+                                espera = 2 * (2 ** attempt)
+                                await asyncio.sleep(espera)
+                            else:
+                                raise Exception("O tráfego esmagou a conexão da IA. A geração iterativa falhou.")
+                        else:
+                            raise e_api
+                            
+                # Limpa a repetição caso a IA reescreva o trecho de contexto fornecido
+                if historia_acumulada:
+                    fragmento_final = " ".join(historia_acumulada.split()[-10:])
+                    if fragmento_final in texto_parte:
+                        texto_parte = texto_parte.replace(fragmento_final, "", 1).strip()
+                        
+                historia_acumulada += "\n\n" + texto_parte
+            
+            texto_limpo = historia_acumulada
+
+        # ==========================================
+        # LIMPEZA E FORMATAÇÃO FINAL
+        # ==========================================
         texto_limpo = texto_limpo.replace('*', '').replace('#', '')
         texto_limpo = re.sub(r'\.{2,}', '.', texto_limpo)
         
