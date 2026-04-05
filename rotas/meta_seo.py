@@ -20,6 +20,16 @@ class SeoRequest(BaseModel):
     keyword: str
     canal: str
 
+def ler_prompt_arquivo(nome_arquivo: str) -> str:
+    """Lê o prompt de SEO da pasta de prompts externos"""
+    caminho = os.path.join(os.getcwd(), "prompts", nome_arquivo)
+    try:
+        with open(caminho, "r", encoding="utf-8") as file:
+            return file.read()
+    except Exception as e:
+        print(f"⚠️ Aviso: Arquivo {nome_arquivo} não encontrado na pasta prompts!")
+        return ""
+
 @router.post("/meta-seo")
 async def process_seo(
     req: SeoRequest,
@@ -38,9 +48,7 @@ async def process_seo(
         raise HTTPException(status_code=402, detail=f"Coins insuficientes! Você precisa de {custo_operacao} coins para gerar a arquitetura de SEO.")
 
     api_key = os.environ.get("GEMINI_API_KEY_FREE") or os.environ.get("GEMINI_API_KEY")
-    # Modelo principal configurado no painel
     modelo_texto = os.environ.get("GEMINI_MODEL_TEXT", "gemini-2.5-flash")
-    # Modelo de segurança inquebrável
     modelo_fallback = "gemini-2.5-flash" 
 
     if not api_key:
@@ -48,33 +56,14 @@ async def process_seo(
 
     client = genai.Client(api_key=api_key)
 
-    # PROMPT COMPLETO RESTAURADO!
-    system_prompt = f"""Você é um mestre em SEO para YouTube e copywriter de canais Dark, especialista em gabaritar a pontuação do VidIQ (50/50). Sua missão é ler o roteiro fornecido e criar 5 PACOTES COMPLETOS de SEO otimizados para o canal '{req.canal}'.
-
-REGRAS ABSOLUTAS DO VIDIQ:
-1. CONTAGEM DE TAGS: Você deve fornecer exatas 20 tags.
-2. VOLUME DE TAGS (5/5): A maioria das tags deve ter alto volume de busca no YouTube.
-3. PALAVRAS-CHAVE NO TÍTULO (5/5): As principais palavras-chave das tags DEVEM estar no Título.
-4. PALAVRAS-CHAVE NA DESCRIÇÃO (5/5): As palavras-chave do Título e das Tags DEVEM aparecer naturalmente nos primeiros 2 parágrafos da Descrição.
-5. PALAVRAS-CHAVE TRIPLAS (5/5): A palavra-chave principal e as secundárias devem estar presentes, EXATAMENTE IGUAIS, no Título, na Descrição e nas Tags.
-
-O QUE VOCÊ DEVE ENTREGAR:
-Gere 5 PACOTES distintos. Cada pacote deve conter:
-- TÍTULO: (Clickbait, magnético, usando a palavra-chave principal e respeitando o limite de caracteres).
-- DESCRIÇÃO: (2 a 3 parágrafos envolventes usando as tags naturalmente, sem parecer lista. Inclua um Call to Action forte para likes e inscrição).
-- TAGS: (Exatas 20 tags separadas por vírgula).
-
-FORMATO DE SAÍDA OBRIGATÓRIO:
-Entregue apenas o texto limpo, separado exatamente por estes blocos:
-
-[PACOTE 1]
-TÍTULO: 
-DESCRIÇÃO: 
-TAGS: 
-
-[PACOTE 2]
-...
-(Vá até o PACOTE 5)"""
+    # ==========================================
+    # CARREGA E FORMATA O PROMPT EXTERNO
+    # ==========================================
+    template_prompt = ler_prompt_arquivo("meta_seo.txt")
+    if not template_prompt:
+        raise ValueError("O arquivo meta_seo.txt sumiu da pasta prompts!")
+        
+    system_prompt = template_prompt.format(canal=req.canal)
 
     user_content = f"Palavra-chave Foco Sugerida pelo Usuário: {req.keyword}\n\nROTEIRO/CONTEÚDO PARA ANÁLISE:\n{req.conteudo}"
 
@@ -99,18 +88,17 @@ TAGS:
                     )
                 )
                 texto_limpo = response.text.strip()
-                break # Sucesso! Sai do loop.
+                break 
             except Exception as e_api:
                 err_msg = str(e_api).lower()
                 if "503" in err_msg or "429" in err_msg or "unavailable" in err_msg or "demand" in err_msg:
                     if attempt < max_retries - 1:
-                        # TÁTICA DE AUTO-FALLBACK: Se o modelo preview falhar, mudamos para o fallback seguro
                         if attempt == 0 and modelo_atual != modelo_fallback:
                             print(f"⚠️ Servidores lotados! Trocando a marcha para modelo de Fallback Seguro ({modelo_fallback})...")
                             modelo_atual = modelo_fallback
                             espera = 2
                         else:
-                            espera = 5 * (attempt + 1) # Espera mais longa (5s, 10s) para o Google respirar
+                            espera = 5 * (attempt + 1) 
                             
                         print(f"⚠️ Motor Ocupado (Meta SEO). A aguardar {espera}s... (Tentativa {attempt+1}/{max_retries})")
                         await asyncio.sleep(espera)
