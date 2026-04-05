@@ -227,8 +227,13 @@ function tocarAudioHunter(btn, url) {
 }
 
 // ==========================================
-// FUNÇÕES DO PARAPHRASER (TEXT TRANSMUTER)
+// FUNÇÕES DO PARAPHRASER E FORGE (TEXT TRANSMUTER)
 // ==========================================
+function contarPalavrasLocal(texto) {
+    if (!texto || texto.trim() === "") return 0;
+    return texto.trim().split(/\s+/).length;
+}
+
 async function transmutarTexto() {
     const txtOriginal = document.getElementById('texto_original').value;
     const modo = document.getElementById('estrategia_escrita').value;
@@ -273,7 +278,7 @@ async function transmutarTexto() {
         
         txtResultado.value = dados.texto_parafrazedo;
         
-        if(typeof contarPalavrasLocal === 'function' && contadorResultado) {
+        if(contadorResultado) {
             contadorResultado.innerText = contarPalavrasLocal(dados.texto_parafrazedo) + ' palavras';
         }
         
@@ -333,11 +338,11 @@ function alternarAbaVozes(tipo) {
         if(panelStd) panelStd.classList.remove('hidden');
     } else if (tipo === 'creator') {
         if(btnCreator) btnCreator.className = "flex-1 py-2 text-xs font-bold rounded-lg bg-zinc-800 text-blue-400 shadow-sm transition-all border border-zinc-700/50";
-        atualizarInfoTier("Qualidade Creator", "Vozes neurais naturais e emocionais. Focado em alta retenção e Storytelling.");
+        atualizarInfoTier("Qualidade Creator (Gemini TTS)", "Vozes neurais naturais e emocionais. Focado em alta retenção e Storytelling.");
         if(panelCre) panelCre.classList.remove('hidden');
     } else if (tipo === 'cinematic') {
         if(btnCinematic) btnCinematic.className = "flex-1 py-2 text-xs font-bold rounded-lg bg-amber-500/20 text-amber-400 shadow-sm transition-all border border-amber-500/50";
-        atualizarInfoTier("Qualidade Cinematic", "Qualidade Ultra-Realista de cinema. Perfeito para documentários densos.");
+        atualizarInfoTier("Qualidade Cinematic (ElevenLabs)", "Qualidade Ultra-Realista de cinema. Perfeito para documentários densos.");
         if(panelCin) panelCin.classList.remove('hidden');
     }
     
@@ -474,7 +479,6 @@ function ajustarSlider(idInput, idLabel, delta, min, max, suffix) {
     }
 }
 
-// O ERRO ESTAVA AQUI! (pasta previews/ corrigida)
 async function tocarPreview(event, shortName) {
     event.stopPropagation();
     
@@ -487,7 +491,7 @@ async function tocarPreview(event, shortName) {
     if(icon) icon.className = "fa-solid fa-circle-notch fa-spin text-white"; 
     
     try {
-        // A SUA PASTA REAL É "previews" NO PLURAL
+        // Rota corrigida para /previews/ (no plural)
         const audioUrl = `/static/audios/previews/${shortName}.mp3`;
         const playerPreview = new Audio(audioUrl);
         window.playerPreviewAtual = playerPreview; 
@@ -500,13 +504,13 @@ async function tocarPreview(event, shortName) {
         };
 
     } catch(e) {
-        alert(`Arquivo de prévia não encontrado!\n\nCertifique-se de que o arquivo existe em: /static/audios/previews/${shortName}.mp3`);
+        alert(`Arquivo de prévia não encontrado!\n\n(Dica: O ficheiro /static/audios/previews/${shortName}.mp3 precisa estar alojado).`);
         if(icon) icon.className = "fa-solid fa-play text-xs ml-0.5 text-red-500"; 
     } 
 }
 
 // ==========================================
-// FUNÇÕES DE EXPORTAÇÃO E SRT (Adicionadas)
+// FUNÇÕES DE EXPORTAÇÃO (SRT E SEO)
 // ==========================================
 function baixarSRT() {
     if(!srtGlobal) return alert("A legenda (SRT) ainda não está disponível. Gere o áudio primeiro.");
@@ -523,14 +527,9 @@ function enviarParaMetaSEO() {
     
     let conteudoFinal = `ROTEIRO COMPLETO:\n${roteiro}\n\n`;
     
-    // Se a timeline (SRT) existir, anexa ela ao envio!
     if (typeof srtGlobal !== 'undefined' && srtGlobal) {
         conteudoFinal += `TIMELINE EXATA (USE PARA GERAR 5 CAPÍTULOS NO YOUTUBE):\n${srtGlobal}`;
     }
-    
-    sessionStorage.setItem('seo_conteudo', conteudoFinal);
-    window.location.href = '/meta-seo';
-}
     
     sessionStorage.setItem('seo_conteudo', conteudoFinal);
     window.location.href = '/meta-seo';
@@ -550,12 +549,12 @@ async function gerarAudioCompleto() {
 
     let velocidade = 1.0;
     if (abaVozAtiva === 'padrao') {
-        velocidade = parseFloat(document.getElementById('velocidade')?.value || 1.0);
+        velocidade = parseFloat(document.getElementById('velocidade_std')?.value || 1.0);
     } else if (abaVozAtiva === 'cinematic') {
         velocidade = parseFloat(document.getElementById('velocidade_cin')?.value || 1.0);
     }
     
-    const pitch = abaVozAtiva === 'padrao' ? parseInt(document.getElementById('pitch')?.value || 0) : 0;
+    const pitch = abaVozAtiva === 'padrao' ? parseInt(document.getElementById('pitch_std')?.value || 0) : 0;
     const temperatura = parseFloat(document.getElementById('temperatura')?.value || 0.7);
     const estabilidade = parseFloat(document.getElementById('estabilidade')?.value || 0.5);
     const similaridade = parseFloat(document.getElementById('similaridade')?.value || 0.75);
@@ -596,7 +595,7 @@ async function gerarAudioCompleto() {
         
         const dados = await res.json();
         
-        // CIRURGIA: Salva a timeline na variável global para o botão do SEO conseguir ler
+        // Salva a timeline na variável global
         window.srtGlobal = dados.srt || "";
 
         if(dados.novo_saldo !== undefined) {
@@ -638,9 +637,4 @@ async function gerarAudioCompleto() {
         btn.classList.remove('opacity-70', 'cursor-not-allowed');
         recalcularCustoVoz();
     }
-}
-
-function contarPalavrasLocal(texto) {
-    if (!texto || texto.trim() === "") return 0;
-    return texto.trim().split(/\s+/).length;
 }
