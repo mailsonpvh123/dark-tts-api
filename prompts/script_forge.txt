@@ -20,19 +20,19 @@ Você está escrevendo para ser FALADO, não lido em silêncio. A IA narradora p
 4. PRESERVAÇÃO DE INTERROGAÇÕES E EXCLAMAÇÕES: É OBRIGATÓRIO o uso de pontos de interrogação (?) em perguntas retóricas (ex: "Você sabia?", "E se?"). NUNCA troque uma interrogação por ponto final. As IAs de voz dependem desses sinais para aplicar a entonação correta de mistério ou entusiasmo.
 
 📏 MÓDULO 3: ENGENHARIA DE EXTENSÃO EXTREMA E ESTRUTURA (O ALGORITMO DO TEMPO)
-O usuário pediu um vídeo com o seguinte tamanho: [{tamanho}]. Para atingir o tempo exato, a IA de voz lê 150 palavras por minuto. Você sofre de "parada precoce", então VAMOS FORÇAR A SUA ESTRUTURA DE TEXTO:
-- Se o usuário pediu 5 min: Meta de 1000 palavras.
-- Se o usuário pediu 10 min: Meta de 2000 palavras.
-- Se o usuário pediu 15 min: Meta de NO MÍNIMO 3000 palavras (EXTREMAMENTE LONGO E DENSO).
+O usuário pediu um vídeo com a DURAÇÃO EXATA DE: [{tamanho} minutos].
+Para atingir o tempo exato, a IA de voz lê 150 palavras por minuto. Portanto, você deve calcular sua META DE PALAVRAS multiplicando [{tamanho}] por 150. (Ex: 30 minutos exige um texto de 4500 palavras no MÍNIMO).
 
-🚨 COMO ALCANÇAR O TAMANHO MÁXIMO (A REGRA DOS 5 PARÁGRAFOS):
-Para cada item da lista ou capítulo principal da história, você DEVE OBRIGATORIAMENTE escrever no mínimo 4 a 5 parágrafos extensos. Use esta fórmula:
-1. Primeiro Parágrafo: O cenário e o contexto histórico. Descreva o ambiente usando os 5 sentidos (o cheiro, o clima, a escuridão).
-2. Segundo Parágrafo: O desenvolvimento da ação. O que aconteceu minuto a minuto, criando uma tensão insuportável.
-3. Terceiro Parágrafo: A psicologia e o desespero. O que se passava na mente das pessoas envolvidas? Quais eram seus medos e táticas?
-4. Quarto Parágrafo: As consequências brutais, o impacto imediato daquele evento no mundo ou nas vítimas.
-5. Quinto Parágrafo: O legado sombrio, o mistério deixado para trás e a transição elegante para o próximo ponto da história.
-NUNCA seja sucinto. Troque "Ele venceu a batalha" por "Ele marchou sobre a planície encharcada, sentindo o peso da espada enquanto os gritos ecoavam para a eternidade".
+Você tem a tendência severa de sofrer de "parada precoce" e acelerar a história perto do final. ISSO ESTÁ ESTRITAMENTE PROIBIDO. 
+Para roteiros acima de 15 minutos, você DEVE dividir a história em múltiplos "ATOS" ou "CAPÍTULOS" narrativos longos. 
+
+🚨 A REGRA DE OURO DA DENSIDADE:
+Para cada ponto da história, você DEVE OBRIGATORIAMENTE escrever de forma extensa e cadenciada:
+1. Cenário e Contexto: Descreva o ambiente usando os 5 sentidos.
+2. Desenvolvimento Lento: O que aconteceu minuto a minuto, criando uma tensão insuportável.
+3. Psicologia: O que se passava na mente das pessoas envolvidas?
+4. Legado: O mistério deixado para trás.
+NUNCA seja sucinto. Troque "Ele venceu a batalha" por "Ele marchou sobre a planície encharcada, sentindo o peso da espada enquanto os gritos ecoavam para a eternidade". 
 
 DADOS DO PROJETO:
 - Formato: {formato}
@@ -42,4 +42,4 @@ DADOS DO PROJETO:
 TEXTO ORIGINAL / IDEIA BASE:
 {ideia_base}
 
-Retorne APENAS o texto final do roteiro, com a estrutura completa e absurdamente descritiva, sem nenhum caractere de formatação Markdown ou aviso inicial.
+Retorne APENAS o texto final do roteiro, com a estrutura completa e absurdamente descritiva, sem nenhum caractere de formatação Markdown ou aviso inicial. Cumpra a meta de palavras exigida pela duração.
