@@ -29,7 +29,7 @@ class AudioRequest(BaseModel):
     similaridade: float = 0.75
 
 # ==========================================
-# CATÁLOGOS DE VOZES (Com Gênero e Descrição)
+# CATÁLOGOS DE VOZES (Gênero + Personalidade)
 # ==========================================
 VOICES_CREATOR = {
     "Achernar": {"desc": "Suave", "genero": "Masculino"},
@@ -40,7 +40,7 @@ VOICES_CREATOR = {
     "Aoede": {"desc": "Breezy e Natural", "genero": "Feminino"},
     "Autonoe": {"desc": "Brilhante (Bright)", "genero": "Feminino"},
     "Callirrhoe": {"desc": "Easy-going", "genero": "Feminino"},
-    "Charon": {"desc": "Informativa (Ideal p/ Dark e Suspense)", "genero": "Masculino"},
+    "Charon": {"desc": "Informativa (Dark/Suspense)", "genero": "Masculino"},
     "Despina": {"desc": "Smooth", "genero": "Feminino"},
     "Enceladus": {"desc": "Breathy", "genero": "Masculino"},
     "Erinome": {"desc": "Limpa", "genero": "Feminino"},
@@ -143,7 +143,7 @@ def limpar_texto_para_voz(texto: str) -> str:
     return t.strip()
 
 # ==========================================
-# MOTOR MATEMÁTICO DE SRT PARA GEMINI/ELEVENLABS
+# MOTOR MATEMÁTICO SRT
 # ==========================================
 def gerar_srt_matematico(texto, audio_bytes):
     try:
@@ -213,7 +213,7 @@ async def gerar_narracao(
     usuario: models.Usuario = Depends(get_usuario_atual)
 ):
     if not usuario:
-        raise HTTPException(status_code=401, detail="Sessão expirada. Faça login novamente.")
+        raise HTTPException(status_code=401, detail="Sessão expirada.")
         
     texto = req.texto.strip()
     if not texto:
@@ -238,7 +238,7 @@ async def gerar_narracao(
 
     if not is_preview:
         if usuario.coins < custo_operacao:
-            raise HTTPException(status_code=402, detail=f"Coins insuficientes! Você precisa de {custo_operacao} coins.")
+            raise HTTPException(status_code=402, detail=f"Coins insuficientes! Necessário {custo_operacao} coins.")
         usuario.coins -= custo_operacao
         db.commit()
 
@@ -253,7 +253,7 @@ async def gerar_narracao(
         if is_cinematic:
             api_key = os.environ.get("ELEVENLABS_API_KEY")
             modelo_eleven = os.environ.get("ELEVENLABS_MODEL_ID", "eleven_turbo_v2_5")
-            if not api_key: raise ValueError("Chave ELEVENLABS_API_KEY não configurada no Easypanel.")
+            if not api_key: raise ValueError("Chave ELEVENLABS_API_KEY não configurada.")
             
             voz_real = req.voz.replace("cinematic-", "")
             
@@ -272,12 +272,11 @@ async def gerar_narracao(
                     
                     response = await client.post(url, json=data, headers=headers)
                     if response.status_code != 200:
-                        raise Exception(f"Falha na API Cinematic: {response.text}")
+                        raise Exception(f"Falha API Cinematic: {response.text}")
                     
                     seg = AudioSegment.from_file(io.BytesIO(response.content), format="mp3")
                     final_audio += (pause_seg + seg) if i > 0 else seg
 
-            # Aplicação da velocidade para Cinematic (PyDub)
             if req.velocidade != 1.0:
                 final_audio = final_audio._spawn(final_audio.raw_data, overrides={"frame_rate": int(final_audio.frame_rate * req.velocidade)}).set_frame_rate(final_audio.frame_rate)
 
