@@ -17,7 +17,6 @@ import models
 from database import get_db
 from auth import get_usuario_atual
 
-# ATENÇÃO: Rota na raiz (sem prefixo) para casar perfeitamente com o fetch do seu main.js!
 router = APIRouter(tags=["Voice Synthesizer"])
 
 class AudioRequest(BaseModel):
@@ -30,7 +29,7 @@ class AudioRequest(BaseModel):
     similaridade: float = 0.75
 
 # ==========================================
-# CATÁLOGOS DE VOZES ENRIQUECIDOS (Com Gênero e Personalidade)
+# CATÁLOGOS DE VOZES (Com Gênero e Descrição)
 # ==========================================
 VOICES_CREATOR = {
     "Achernar": {"desc": "Suave", "genero": "Masculino"},
@@ -41,7 +40,7 @@ VOICES_CREATOR = {
     "Aoede": {"desc": "Breezy e Natural", "genero": "Feminino"},
     "Autonoe": {"desc": "Brilhante (Bright)", "genero": "Feminino"},
     "Callirrhoe": {"desc": "Easy-going", "genero": "Feminino"},
-    "Charon": {"desc": "Informativa (Dark/Suspense)", "genero": "Masculino"},
+    "Charon": {"desc": "Informativa (Ideal p/ Dark e Suspense)", "genero": "Masculino"},
     "Despina": {"desc": "Smooth", "genero": "Feminino"},
     "Enceladus": {"desc": "Breathy", "genero": "Masculino"},
     "Erinome": {"desc": "Limpa", "genero": "Feminino"},
@@ -143,6 +142,9 @@ def limpar_texto_para_voz(texto: str) -> str:
     t = re.sub(r'\(.*?\)', '', t)
     return t.strip()
 
+# ==========================================
+# MOTOR MATEMÁTICO DE SRT PARA GEMINI/ELEVENLABS
+# ==========================================
 def gerar_srt_matematico(texto, audio_bytes):
     try:
         audio_seg = AudioSegment.from_file(io.BytesIO(audio_bytes))
@@ -275,6 +277,7 @@ async def gerar_narracao(
                     seg = AudioSegment.from_file(io.BytesIO(response.content), format="mp3")
                     final_audio += (pause_seg + seg) if i > 0 else seg
 
+            # Aplicação da velocidade para Cinematic (PyDub)
             if req.velocidade != 1.0:
                 final_audio = final_audio._spawn(final_audio.raw_data, overrides={"frame_rate": int(final_audio.frame_rate * req.velocidade)}).set_frame_rate(final_audio.frame_rate)
 
