@@ -57,7 +57,7 @@
         </div>
     </div>
 
-    <div id="modal_resultado" class="fixed inset-0 bg-black/95 backdrop-blur-md z-[100] hidden flex-col items-center justify-center p-4 transition-all duration-300">
+    <div id="modal_resultado" class="fixed inset-0 bg-black/95 backdrop-blur-md z-[100] hidden flex-col items-center justify-center p-4 transition-all duration-300 md:pl-64">
         <button onclick="fecharModal()" class="absolute top-6 right-6 w-12 h-12 flex items-center justify-center bg-zinc-800/50 hover:bg-red-500 hover:text-white text-zinc-400 border border-zinc-700 rounded-full text-xl z-50 transition-colors shadow-lg">
             <i class="fa-solid fa-xmark"></i>
         </button>
@@ -97,7 +97,7 @@
         const modal = document.getElementById('modal_resultado');
         if (modal) {
             // Move o modal diretamente para a raiz do documento (body)
-            // Isso ignora o z-10 do main e garante que o z-[100] sobreponha a sidebar perfeitamente!
+            // O md:pl-64 acima cuida do alinhamento visual perfeito com a sidebar!
             document.body.appendChild(modal);
         }
     });
