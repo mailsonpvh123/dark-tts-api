@@ -12,231 +12,83 @@
         <p class="text-zinc-400">Consulte as suas criações anteriores, faça downloads e acompanhe o uso dos seus Coins.</p>
     </div>
 
-    <div class="bg-[#18181b] border border-zinc-800/80 rounded-xl shadow-2xl relative overflow-hidden flex flex-col h-[70vh]">
+    <div class="flex gap-2 overflow-x-auto pb-4 mb-4 custom-scrollbar relative z-10">
+        <button onclick="mudarFiltroHistorico('')" id="btn_filtro_todos" class="filtro-btn px-4 py-2 rounded-lg bg-emerald-500 text-white font-bold text-xs whitespace-nowrap shadow-[0_0_15px_rgba(16,185,129,0.3)] border border-emerald-400">Todos</button>
+        <button onclick="mudarFiltroHistorico('Gen Insights')" id="btn_filtro_insights" class="filtro-btn px-4 py-2 rounded-lg bg-[#121214] text-zinc-400 hover:text-white font-semibold text-xs border border-zinc-800 whitespace-nowrap transition-colors"><i class="fa-solid fa-lightbulb text-yellow-500 mr-1"></i> Gen Insights</button>
+        <button onclick="mudarFiltroHistorico('Data Miner')" id="btn_filtro_miner" class="filtro-btn px-4 py-2 rounded-lg bg-[#121214] text-zinc-400 hover:text-white font-semibold text-xs border border-zinc-800 whitespace-nowrap transition-colors"><i class="fa-solid fa-magnet text-indigo-500 mr-1"></i> Data Miner</button>
+        <button onclick="mudarFiltroHistorico('Paraphraser')" id="btn_filtro_paraphraser" class="filtro-btn px-4 py-2 rounded-lg bg-[#121214] text-zinc-400 hover:text-white font-semibold text-xs border border-zinc-800 whitespace-nowrap transition-colors"><i class="fa-solid fa-rotate text-pink-500 mr-1"></i> Paraphraser</button>
+        <button onclick="mudarFiltroHistorico('Script Forge')" id="btn_filtro_script" class="filtro-btn px-4 py-2 rounded-lg bg-[#121214] text-zinc-400 hover:text-white font-semibold text-xs border border-zinc-800 whitespace-nowrap transition-colors"><i class="fa-solid fa-pen-nib text-orange-500 mr-1"></i> Script Forge</button>
+        <button onclick="mudarFiltroHistorico('Voice Synth')" id="btn_filtro_voice" class="filtro-btn px-4 py-2 rounded-lg bg-[#121214] text-zinc-400 hover:text-white font-semibold text-xs border border-zinc-800 whitespace-nowrap transition-colors"><i class="fa-solid fa-microphone-lines text-purple-500 mr-1"></i> Voice Synth</button>
+        <button onclick="mudarFiltroHistorico('Meta & SEO')" id="btn_filtro_seo" class="filtro-btn px-4 py-2 rounded-lg bg-[#121214] text-zinc-400 hover:text-white font-semibold text-xs border border-zinc-800 whitespace-nowrap transition-colors"><i class="fa-solid fa-magnifying-glass-chart text-blue-500 mr-1"></i> Meta & SEO</button>
+        <button onclick="mudarFiltroHistorico('Thumb Maker')" id="btn_filtro_thumb" class="filtro-btn px-4 py-2 rounded-lg bg-[#121214] text-zinc-400 hover:text-white font-semibold text-xs border border-zinc-800 whitespace-nowrap transition-colors"><i class="fa-solid fa-image text-rose-500 mr-1"></i> Thumb Maker</button>
+    </div>
+
+    <div class="bg-[#18181b] border border-zinc-800/80 rounded-xl shadow-2xl relative overflow-hidden flex flex-col h-[65vh]">
         <div class="absolute -top-20 -right-20 w-40 h-40 bg-zinc-500/5 rounded-full blur-[60px] pointer-events-none"></div>
         
         <div class="p-4 border-b border-zinc-800/80 bg-[#121214] flex justify-between items-center relative z-10">
-            <h2 class="text-base font-semibold text-white flex items-center gap-2"><i class="fa-solid fa-list-check text-zinc-500"></i> Últimas 100 Operações</h2>
-            <button onclick="carregarHistorico()" class="text-xs bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-3 py-1.5 rounded transition-colors border border-zinc-700 flex items-center gap-2">
-                <i class="fa-solid fa-rotate-right"></i> Atualizar
+            <h2 class="text-base font-semibold text-white flex items-center gap-2"><i class="fa-solid fa-list-check text-emerald-400"></i> Últimas Operações</h2>
+            <button onclick="carregarHistorico()" class="text-zinc-400 hover:text-white transition-colors p-2 bg-zinc-800/50 rounded-lg border border-zinc-700/50" title="Atualizar">
+                <i class="fa-solid fa-rotate-right"></i>
             </button>
         </div>
 
-        <div class="flex-1 overflow-auto custom-scrollbar relative z-10">
-            <table class="w-full text-left text-sm text-zinc-400">
-                <thead class="text-xs text-zinc-500 uppercase bg-[#09090b] sticky top-0 border-b border-zinc-800">
-                    <tr>
-                        <th scope="col" class="px-6 py-4 font-bold">Data & Hora</th>
-                        <th scope="col" class="px-6 py-4 font-bold">Ferramenta</th>
-                        <th scope="col" class="px-6 py-4 font-bold">Resumo / Input</th>
-                        <th scope="col" class="px-6 py-4 font-bold text-center">Custo</th>
-                        <th scope="col" class="px-6 py-4 font-bold text-right">Ação</th>
-                    </tr>
-                </thead>
-                <tbody id="tabela_historico" class="divide-y divide-zinc-800/50">
-                    <tr>
-                        <td colspan="5" class="px-6 py-10 text-center">
-                            <i class="fa-solid fa-circle-notch fa-spin text-2xl text-zinc-600 mb-3 block"></i>
-                            A carregar os registos neurais...
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+        <div class="flex-1 overflow-auto custom-scrollbar relative z-10 p-2">
+            <div class="hidden md:grid grid-cols-12 gap-4 p-4 text-[10px] font-black text-zinc-500 uppercase tracking-wider border-b border-zinc-800/50">
+                <div class="col-span-2">Data & Hora</div>
+                <div class="col-span-3">Ferramenta</div>
+                <div class="col-span-4">Resumo / Input</div>
+                <div class="col-span-1 text-center">Custo</div>
+                <div class="col-span-2 text-right pr-4">Ação</div>
+            </div>
+            
+            <div id="tabela_historico" class="divide-y divide-zinc-800/50">
+                </div>
+        </div>
+        
+        <div class="p-4 border-t border-zinc-800/80 bg-[#121214] flex justify-between items-center relative z-10">
+            <div class="text-xs text-zinc-500 font-semibold">
+                Mostrando <span id="pag_info_inicio" class="text-white">0</span> a <span id="pag_info_fim" class="text-white">0</span> de <span id="pag_info_total" class="text-white">0</span>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="mudarPaginaHistorico(-1)" id="btn_pag_ant" class="w-8 h-8 rounded bg-zinc-800 flex items-center justify-center text-zinc-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed border border-zinc-700"><i class="fa-solid fa-chevron-left"></i></button>
+                <button onclick="mudarPaginaHistorico(1)" id="btn_pag_prox" class="w-8 h-8 rounded bg-zinc-800 flex items-center justify-center text-zinc-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed border border-zinc-700"><i class="fa-solid fa-chevron-right"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal_resultado" class="fixed inset-0 bg-black/95 backdrop-blur-md z-[100] hidden flex-col items-center justify-center p-4 transition-all duration-300">
+        <button onclick="fecharModal()" class="absolute top-6 right-6 w-12 h-12 flex items-center justify-center bg-zinc-800/50 hover:bg-red-500 hover:text-white text-zinc-400 border border-zinc-700 rounded-full text-xl z-50 transition-colors shadow-lg">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+
+        <div id="modal_conteudo_interno" class="bg-[#121214] border border-zinc-800 rounded-2xl w-full max-w-4xl shadow-2xl flex flex-col max-h-[85vh] transition-transform duration-300 scale-95 overflow-hidden">
+            
+            <div class="p-5 border-b border-zinc-800 flex items-center gap-3 bg-gradient-to-r from-zinc-900 to-[#121214]">
+                <div id="modal_icone" class="w-10 h-10 rounded-lg flex items-center justify-center shadow-lg"></div>
+                <div>
+                    <h3 id="modal_titulo" class="text-lg font-bold text-white tracking-tight"></h3>
+                    <p id="modal_data" class="text-xs text-zinc-500 font-semibold"></p>
+                </div>
+            </div>
+
+            <div class="p-6 overflow-y-auto flex-1 custom-scrollbar bg-[#09090b]">
+                <div class="mb-4">
+                    <h4 class="text-xs font-black text-zinc-500 uppercase tracking-wider mb-2">Input do Utilizador</h4>
+                    <p id="modal_input" class="text-sm text-zinc-300 bg-zinc-800/50 p-4 rounded-xl border border-zinc-700/50 leading-relaxed"></p>
+                </div>
+
+                <div>
+                    <h4 class="text-xs font-black text-emerald-500 uppercase tracking-wider mb-2">Asset Recuperado</h4>
+                    <div id="modal_output_container" class="bg-[#121214] border border-emerald-500/20 rounded-xl shadow-inner relative overflow-hidden group">
+                        <div class="absolute inset-0 bg-gradient-to-b from-transparent to-emerald-500/5 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                        </div>
+                </div>
+            </div>
+            
+            <div id="modal_acoes_container" class="p-5 border-t border-zinc-800 bg-[#121214] grid grid-cols-2 sm:grid-cols-4 gap-3">
+                </div>
         </div>
     </div>
 </section>
-
-<div id="modal_resultado" class="fixed inset-0 bg-[#09090b]/90 backdrop-blur-sm z-[100] hidden flex items-center justify-center p-4 transition-opacity">
-    <div class="bg-[#18181b] border border-zinc-700 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col relative transform scale-95 transition-transform" id="modal_conteudo_interno">
-        
-        <div class="flex justify-between items-center p-5 border-b border-zinc-800 bg-[#121214] rounded-t-2xl">
-            <h3 class="text-lg font-bold text-white flex items-center gap-2" id="modal_titulo"><i class="fa-solid fa-vault text-emerald-500"></i> Cofre de Produção</h3>
-            <button onclick="fecharModal()" class="text-zinc-500 hover:text-red-400 transition-colors w-8 h-8 flex items-center justify-center rounded-lg hover:bg-zinc-800">
-                <i class="fa-solid fa-xmark text-xl"></i>
-            </button>
-        </div>
-        
-        <div class="p-6 flex-1 overflow-y-auto custom-scrollbar space-y-6">
-            <div>
-                <h4 class="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2 border-b border-zinc-800 pb-1">Input do Utilizador</h4>
-                <pre id="modal_input" class="bg-[#09090b] p-4 rounded-lg border border-zinc-800 text-zinc-300 text-sm whitespace-pre-wrap font-sans"></pre>
-            </div>
-            
-            <div>
-                <h4 class="text-xs font-bold text-emerald-500 uppercase tracking-wider mb-2 border-b border-emerald-900/30 pb-1">Asset Recuperado</h4>
-                <div id="modal_output_container" class="mt-2"></div>
-            </div>
-        </div>
-        
-        <div class="p-4 border-t border-zinc-800 bg-[#121214] rounded-b-2xl flex justify-end gap-3">
-            <button onclick="fecharModal()" class="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-5 py-2 rounded-lg font-bold transition-colors shadow-sm">Fechar</button>
-        </div>
-    </div>
-</div>
-
-<script>
-    let historicoDados = [];
-
-    document.addEventListener('DOMContentLoaded', () => {
-        carregarHistorico();
-    });
-
-    const configFerramentas = {
-        "Gen Insights": { icone: "fa-lightbulb", cor: "text-yellow-400", bg: "bg-yellow-500/10", border: "border-yellow-500/20" },
-        "Script Forge": { icone: "fa-pen-nib", cor: "text-orange-400", bg: "bg-orange-500/10", border: "border-orange-500/20" },
-        "Voice Synth": { icone: "fa-microphone-lines", cor: "text-purple-400", bg: "bg-purple-500/10", border: "border-purple-500/20" },
-        "Voice Synth Padrão": { icone: "fa-microphone", cor: "text-blue-400", bg: "bg-blue-500/10", border: "border-blue-500/20" },
-        "Voice Synth Premium": { icone: "fa-bolt", cor: "text-yellow-400", bg: "bg-yellow-500/10", border: "border-yellow-500/20" },
-        "Data Miner": { icone: "fa-magnet", cor: "text-indigo-400", bg: "bg-indigo-500/10", border: "border-indigo-500/20" },
-        "Paraphraser": { icone: "fa-rotate", cor: "text-pink-400", bg: "bg-pink-500/10", border: "border-pink-500/20" },
-        "Audio Mixer": { icone: "fa-sliders", cor: "text-amber-400", bg: "bg-amber-500/10", border: "border-amber-500/20" },
-        "Meta & SEO": { icone: "fa-magnifying-glass-chart", cor: "text-blue-400", bg: "bg-blue-500/10", border: "border-blue-500/20" },
-        "Thumb Maker": { icone: "fa-image", cor: "text-pink-400", bg: "bg-pink-500/10", border: "border-pink-500/20" }
-    };
-
-    async function carregarHistorico() {
-        const tabela = document.getElementById('tabela_historico');
-        tabela.innerHTML = `<tr><td colspan="5" class="px-6 py-10 text-center"><i class="fa-solid fa-circle-notch fa-spin text-2xl text-zinc-600 mb-3 block"></i>A atualizar registos...</td></tr>`;
-        
-        try {
-            const res = await fetch("/api/v1/historico");
-            if (!res.ok) throw new Error("Erro ao carregar histórico");
-            
-            const json = await res.json();
-            historicoDados = json.data;
-            
-            if (historicoDados.length === 0) {
-                tabela.innerHTML = `<tr><td colspan="5" class="px-6 py-10 text-center text-zinc-500 font-bold"><i class="fa-solid fa-ghost text-3xl mb-3 block opacity-50"></i>Ainda não há registos no seu histórico.</td></tr>`;
-                return;
-            }
-
-            let html = '';
-            historicoDados.forEach((item, index) => {
-                const conf = configFerramentas[item.ferramenta] || { icone: "fa-cube", cor: "text-zinc-400", bg: "bg-zinc-800", border: "border-zinc-700" };
-                
-                // Truncar o input para não quebrar a tabela
-                let previewInput = item.input_usuario.replace(/\n/g, ' ').substring(0, 60);
-                if (item.input_usuario.length > 60) previewInput += '...';
-
-                html += `
-                    <tr class="hover:bg-zinc-800/30 transition-colors group">
-                        <td class="px-6 py-4 whitespace-nowrap text-zinc-300 font-medium">${item.data_geracao}</td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <span class="inline-flex items-center gap-2 px-2.5 py-1 rounded-md text-xs font-bold ${conf.cor} ${conf.bg} ${conf.border} border shadow-sm">
-                                <i class="fa-solid ${conf.icone}"></i> ${item.ferramenta}
-                            </span>
-                        </td>
-                        <td class="px-6 py-4 text-zinc-500 italic text-xs max-w-xs truncate" title="${item.input_usuario.replace(/"/g, '&quot;')}">
-                            "${previewInput}"
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-center">
-                            <span class="text-xs font-bold text-emerald-400"><i class="fa-solid fa-coins mr-1"></i>${item.custo_coins}</span>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-right">
-                            <button onclick="abrirModal(${index})" class="text-emerald-400 hover:text-zinc-900 bg-emerald-500/10 hover:bg-emerald-500 p-2 rounded-lg border border-emerald-500/20 transition-all shadow-sm flex items-center gap-2 ml-auto text-xs font-bold">
-                                <i class="fa-solid fa-folder-open"></i> Resgatar
-                            </button>
-                        </td>
-                    </tr>
-                `;
-            });
-            
-            tabela.innerHTML = html;
-        } catch (error) {
-            tabela.innerHTML = `<tr><td colspan="5" class="px-6 py-10 text-center text-red-400 font-bold"><i class="fa-solid fa-triangle-exclamation mb-2 block"></i> ${error.message}</td></tr>`;
-        }
-    }
-
-    function abrirModal(index) {
-        const item = historicoDados[index];
-        const conf = configFerramentas[item.ferramenta] || { icone: "fa-cube", cor: "text-white" };
-        
-        document.getElementById('modal_titulo').innerHTML = `<i class="fa-solid ${conf.icone} ${conf.cor}"></i> ${item.ferramenta} <span class="text-xs font-normal text-zinc-500 ml-2">(${item.data_geracao})</span>`;
-        document.getElementById('modal_input').innerText = item.input_usuario;
-        
-        const container = document.getElementById('modal_output_container');
-        let resultadoData = item.resultado;
-
-        // Se for ÁUDIO salvo em disco (contém a string ".mp3" no caminho)
-        if (item.ferramenta.includes("Voice Synth") && resultadoData.includes(".mp3")) {
-            container.innerHTML = `
-                <div class="bg-[#121214] p-6 rounded-lg border border-emerald-500/20 shadow-inner flex flex-col items-center gap-5">
-                    <div class="w-16 h-16 rounded-full bg-emerald-500/10 flex items-center justify-center border border-emerald-500/30">
-                        <i class="fa-solid fa-file-audio text-3xl text-emerald-400"></i>
-                    </div>
-                    <audio controls class="w-full h-12 outline-none rounded-lg bg-zinc-900 shadow-lg">
-                        <source src="${resultadoData}" type="audio/mp3">
-                        Seu navegador não suporta o elemento de áudio.
-                    </audio>
-                    <a href="${resultadoData}" download="Narração_${item.data_geracao.replace(/[\/:]/g, '-')}.mp3" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-md flex items-center justify-center gap-2 group">
-                        <i class="fa-solid fa-download group-hover:-translate-y-1 transition-transform"></i> Baixar MP3
-                    </a>
-                </div>
-            `;
-        } 
-        // Se for TEXTO / JSON (Script Forge, Gen Insights, Paraphraser, etc)
-        else {
-            try { 
-                // Tenta limpar e formatar caso seja um JSON válido
-                resultadoData = JSON.stringify(JSON.parse(resultadoData), null, 4); 
-            } catch(e) { }
-
-            container.innerHTML = `
-                <div class="relative group">
-                    <pre id="texto_resgate" class="bg-[#121214] p-5 rounded-lg border border-emerald-500/20 text-emerald-400 text-sm whitespace-pre-wrap font-mono shadow-inner overflow-x-auto max-h-[40vh] custom-scrollbar">${resultadoData}</pre>
-                </div>
-                <div class="flex gap-3 mt-4 justify-end">
-                    <button onclick="copiarTextoHist()" class="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700 px-4 py-2 rounded-lg font-bold transition-all flex items-center gap-2 hover:text-white">
-                        <i class="fa-regular fa-copy"></i> Copiar
-                    </button>
-                    <button onclick="baixarTxtHist('${item.ferramenta}', '${item.data_geracao}')" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg font-bold transition-all shadow-md flex items-center gap-2">
-                        <i class="fa-solid fa-download"></i> Baixar .txt
-                    </button>
-                </div>
-            `;
-        }
-
-        const modal = document.getElementById('modal_resultado');
-        const conteudo = document.getElementById('modal_conteudo_interno');
-        
-        modal.classList.remove('hidden');
-        setTimeout(() => {
-            conteudo.classList.remove('scale-95');
-            conteudo.classList.add('scale-100');
-        }, 10);
-    }
-
-    function fecharModal() {
-        const modal = document.getElementById('modal_resultado');
-        const conteudo = document.getElementById('modal_conteudo_interno');
-        
-        conteudo.classList.remove('scale-100');
-        conteudo.classList.add('scale-95');
-        
-        setTimeout(() => {
-            modal.classList.add('hidden');
-            // Pausar o áudio se o modal for fechado
-            const audioPlayer = document.querySelector('#modal_output_container audio');
-            if (audioPlayer) audioPlayer.pause();
-        }, 200);
-    }
-
-    function copiarTextoHist() {
-        const texto = document.getElementById('texto_resgate').innerText;
-        navigator.clipboard.writeText(texto).then(() => {
-            alert("Conteúdo copiado para a área de transferência!");
-        });
-    }
-
-    function baixarTxtHist(ferramenta, dataStr) {
-        const texto = document.getElementById('texto_resgate').innerText;
-        const blob = new Blob([texto], { type: 'text/plain' });
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = `${ferramenta.replace(' ', '_')}_${dataStr.replace(/[\/:]/g, '-')}.txt`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-    }
-</script>
 {% endblock %}
