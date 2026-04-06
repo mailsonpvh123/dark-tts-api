@@ -1,5 +1,6 @@
 import json
 import re
+import os
 import asyncio
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
@@ -20,6 +21,16 @@ class ThumbRequest(BaseModel):
     cor_texto: str
     posicao_texto: str
 
+def ler_prompt_arquivo(nome_arquivo: str) -> str:
+    """Lê o prompt dinâmico da pasta de prompts"""
+    caminho = os.path.join(os.getcwd(), "prompts", nome_arquivo)
+    try:
+        with open(caminho, "r", encoding="utf-8") as file:
+            return file.read()
+    except Exception as e:
+        print(f"⚠️ Aviso: Arquivo {nome_arquivo} não encontrado na pasta prompts!")
+        return ""
+
 @router.post("/thumb-maker")
 async def process_thumb(
     req: ThumbRequest,
@@ -37,15 +48,16 @@ async def process_thumb(
     if usuario.coins < custo_operacao:
         raise HTTPException(status_code=402, detail=f"Coins insuficientes! Você precisa de {custo_operacao} coins para gerar ideias de Thumbnail.")
 
-    system_prompt = """You are a world-class YouTube Art Director specializing in high-CTR, emotionally charged thumbnails. 
-The user will provide inputs in PORTUGUESE. You MUST return a JSON containing..."""
+    # ==========================================
+    # CARREGA O PROMPT EXTERNO
+    # ==========================================
+    system_prompt = ler_prompt_arquivo("thumb_maker.txt")
+    if not system_prompt:
+        raise HTTPException(status_code=500, detail="O arquivo thumb_maker.txt não foi encontrado no servidor.")
 
-    user_content = f"TÍTULO DO VÍDEO: {req.titulo}\n\nROTEIRO/RESUMO:\n{req.roteiro}\n\nESTILO VISUAL DESEJADO: {req.estilo}"
+    user_content = f"TÍTULO DO VÍDEO: {req.titulo}\nROTEIRO/RESUMO:\n{req.roteiro}\nESTILO VISUAL: {req.estilo}\nTEXTO NA ARTE: {req.texto_arte}\nCOR DO TEXTO: {req.cor_texto}\nPOSIÇÃO DO TEXTO: {req.posicao_texto}"
 
     try:
-        # ==========================================
-        # RETRY COM EXPONENTIAL BACKOFF
-        # ==========================================
         max_retries = 3
         dados_str = ""
         
@@ -65,39 +77,10 @@ The user will provide inputs in PORTUGUESE. You MUST return a JSON containing...
                 else:
                     raise e_api
 
-        # O resto do seu código de parse JSON continua intocável
-        match = re.search(r'```json\s*(.*?)\s*```', dados_str, re.DOTALL)
-        if match:
-            dados_str = match.group(1)
-        
-        dados_json = json.loads(dados_str)
-        
-        usuario.coins -= custo_operacao
-        
-        texto_historico = "🎨 THUMB MAKER - DIREÇÃO DE ARTE\n\n"
-        texto_historico += f"🎯 CONFLITO PRINCIPAL: {dados_json.get('conflito_principal', '')}\n"
-        texto_historico += "=" * 50 + "\n\n"
-        
-        for i, capa in enumerate(dados_json.get("capas", [])):
-            texto_historico += f"🖼️ CONCEITO {i+1} ({capa.get('estrategia', '')})\n"
-            texto_historico += f"🧠 Psicologia: {capa.get('psicologia', '')}\n"
-            texto_historico += f"🪄 Prompt Midjourney (Copie abaixo):\n{capa.get('prompt_gringo', '')}\n"
-            texto_historico += "-" * 50 + "\n\n"
+        # ==========================================
+        # BLINDAGEM DE JSON PARA O FRONTEND
+        # ==========================================
+        match = re.search(r'
+http://googleusercontent.com/immersive_entry_chip/0
 
-        novo_historico = models.Historico(
-            usuario_id=usuario.id,
-            ferramenta="Thumb Maker",
-            input_usuario=f"Título: {req.titulo} | Estilo: {req.estilo}",
-            resultado=texto_historico.strip(), 
-            custo_coins=custo_operacao
-        )
-        
-        db.add(novo_historico)
-        db.commit()
-        
-        dados_json["novo_saldo"] = usuario.coins
-        return dados_json
-        
-    except Exception as e:
-        print(f"❌ Erro no Thumb Maker: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+Faça o deploy disto! Ao ler o prompt inteiro, a IA agora sabe exatamente as chaves que precisa entregar ao Javascript, e a sua esteira do Gen Insights até à Thumbnail fluirá sem um único gargalo! 🚀🎨
