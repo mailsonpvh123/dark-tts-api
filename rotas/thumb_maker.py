@@ -1,5 +1,4 @@
 import json
-import re
 import os
 import asyncio
 from fastapi import APIRouter, HTTPException, Depends
@@ -49,11 +48,22 @@ async def process_thumb(
         raise HTTPException(status_code=402, detail=f"Coins insuficientes! Você precisa de {custo_operacao} coins para gerar ideias de Thumbnail.")
 
     # ==========================================
-    # CARREGA O PROMPT EXTERNO
+    # CARREGA O PROMPT EXTERNO (COM FALLBACK DE EMERGÊNCIA)
     # ==========================================
     system_prompt = ler_prompt_arquivo("thumb_maker.txt")
     if not system_prompt:
-        raise HTTPException(status_code=500, detail="O arquivo thumb_maker.txt não foi encontrado no servidor.")
+        system_prompt = """Você é um Diretor de Arte Sênior de YouTube especializado em criar conceitos visuais para thumbnails de altíssimo CTR.
+Você DEVE obrigatoriamente retornar a sua resposta EXCLUSIVAMENTE em um formato JSON válido, com a exata estrutura abaixo.
+{
+  "conflito_principal": "Uma frase resumindo o gatilho mental",
+  "capas": [
+    {
+      "estrategia": "Nome da estratégia",
+      "psicologia": "Breve explicação psicológica",
+      "prompt_gringo": "Prompt hiper-detalhado em INGLÊS para Midjourney"
+    }
+  ]
+}"""
 
     user_content = f"TÍTULO DO VÍDEO: {req.titulo}\nROTEIRO/RESUMO:\n{req.roteiro}\nESTILO VISUAL: {req.estilo}\nTEXTO NA ARTE: {req.texto_arte}\nCOR DO TEXTO: {req.cor_texto}\nPOSIÇÃO DO TEXTO: {req.posicao_texto}"
 
@@ -78,9 +88,53 @@ async def process_thumb(
                     raise e_api
 
         # ==========================================
-        # BLINDAGEM DE JSON PARA O FRONTEND
+        # BLINDAGEM DE JSON PARA O FRONTEND (CÓDIGO À PROVA DE FALHAS)
         # ==========================================
-        match = re.search(r'
-http://googleusercontent.com/immersive_entry_chip/0
+        dados_str = dados_str.strip()
+        
+        # Remove os blocos de formatação markdown do texto se a IA os enviar
+        if "```json" in dados_str:
+            dados_str = dados_str.split("```json")[1].split("```")[0]
+        elif "```" in dados_str:
+            dados_str = dados_str.split("```")[1].split("```")[0]
+            
+        dados_str = dados_str.strip()
+        
+        try:
+            dados_json = json.loads(dados_str)
+        except json.JSONDecodeError:
+            raise Exception("A IA falhou em estruturar o arquivo visual. Tente gerar novamente.")
 
-Faça o deploy disto! Ao ler o prompt inteiro, a IA agora sabe exatamente as chaves que precisa entregar ao Javascript, e a sua esteira do Gen Insights até à Thumbnail fluirá sem um único gargalo! 🚀🎨
+        # Trava de segurança absoluta: evita o erro .forEach no javascript
+        if "capas" not in dados_json:
+            dados_json["capas"] = []
+
+        usuario.coins -= custo_operacao
+        
+        texto_historico = "🎨 THUMB MAKER - DIREÇÃO DE ARTE\n\n"
+        texto_historico += f"🎯 CONFLITO PRINCIPAL: {dados_json.get('conflito_principal', '')}\n"
+        texto_historico += "=" * 50 + "\n\n"
+        
+        for i, capa in enumerate(dados_json.get("capas", [])):
+            texto_historico += f"🖼️ CONCEITO {i+1} ({capa.get('estrategia', '')})\n"
+            texto_historico += f"🧠 Psicologia: {capa.get('psicologia', '')}\n"
+            texto_historico += f"🪄 Prompt Midjourney:\n{capa.get('prompt_gringo', '')}\n"
+            texto_historico += "-" * 50 + "\n\n"
+
+        novo_historico = models.Historico(
+            usuario_id=usuario.id,
+            ferramenta="Thumb Maker",
+            input_usuario=f"Título: {req.titulo} | Estilo: {req.estilo}",
+            resultado=texto_historico.strip(), 
+            custo_coins=custo_operacao
+        )
+        
+        db.add(novo_historico)
+        db.commit()
+        
+        dados_json["novo_saldo"] = usuario.coins
+        return dados_json
+        
+    except Exception as e:
+        print(f"❌ Erro no Thumb Maker: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
