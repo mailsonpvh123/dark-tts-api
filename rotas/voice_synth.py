@@ -370,7 +370,7 @@ async def gerar_narracao(
                 usuario_id=usuario.id,
                 ferramenta=ferramenta_nome,
                 input_usuario=f"Voz: {req.voz} | Tamanho: {tamanho_texto} chars",
-                resultado=f"/static/audios/historico/{nome_arquivo}",
+                resultado=f"/static/audios/historico/{nome_arquivo}|SRT:{srt_content}", # A MÁGICA ACONTECE AQUI
                 custo_coins=custo_operacao
             )
             db.add(novo_historico)
