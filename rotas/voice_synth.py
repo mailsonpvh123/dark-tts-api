@@ -17,12 +17,9 @@ import models
 from database import get_db
 from auth import get_usuario_atual
 
-# SEM PREFIXO PARA O SEU MAIN.JS ENCONTRAR /vozes
+# SEM PREFIXO: Alinhado perfeitamente com o seu frontend
 router = APIRouter(tags=["Voice Synthesizer"])
 
-# ==========================================
-# ESTRUTURA DE DADOS COM PARÂMETROS NOVOS
-# ==========================================
 class AudioRequest(BaseModel):
     texto: str
     voz: str = "padrao-pt-BR-AntonioNeural"
@@ -33,18 +30,18 @@ class AudioRequest(BaseModel):
     similaridade: float = 0.75
 
 # ==========================================
-# CATÁLOGOS DE VOZES (GÉNERO CORRIGIDO E PERSONALIDADE)
+# CATÁLOGOS DE VOZES (Género e Personalidade)
 # ==========================================
 VOICES_CREATOR = {
-    "Achernar": {"desc": "Suave", "genero": "Feminino"},
-    "Achird": {"desc": "Amigável", "genero": "Masculino"},
+    "Achernar": {"desc": "Suave", "genero": "Masculino"},
+    "Achird": {"desc": "Amigável", "genero": "Feminino"},
     "Algenib": {"desc": "Áspero", "genero": "Masculino"},
-    "Algieba": {"desc": "Suave", "genero": "Masculino"},
+    "Algieba": {"desc": "Suave", "genero": "Feminino"},
     "Alnilam": {"desc": "Firme", "genero": "Masculino"},
     "Aoede": {"desc": "Breezy e Natural", "genero": "Feminino"},
     "Autonoe": {"desc": "Brilhante", "genero": "Feminino"},
     "Callirrhoe": {"desc": "Easy-going", "genero": "Feminino"},
-    "Charon": {"desc": "Informativa (Ideal p/ Dark e Suspense)", "genero": "Masculino"},
+    "Charon": {"desc": "Informativa (Dark/Suspense)", "genero": "Masculino"},
     "Despina": {"desc": "Smooth", "genero": "Feminino"},
     "Enceladus": {"desc": "Breathy", "genero": "Masculino"},
     "Erinome": {"desc": "Limpa", "genero": "Feminino"},
@@ -100,7 +97,6 @@ async def carregar_vozes_memoria():
     vozes_cache.clear() 
     
     try:
-        # Cinematic
         for v_id, info in VOICES_CINEMATIC.items():
             vozes_cache.append({
                 "name": info['nome'],
@@ -110,7 +106,6 @@ async def carregar_vozes_memoria():
                 "tipo": "cinematic"
             })
 
-        # Creator
         for v_name, v_info in VOICES_CREATOR.items():
             vozes_cache.append({
                 "name": v_name,
@@ -120,7 +115,6 @@ async def carregar_vozes_memoria():
                 "tipo": "creator"
             })
         
-        # Standard
         voices = await edge_tts.list_voices()
         for v in voices:
             if v["Locale"].startswith("pt-") or "Multilingual" in v["ShortName"]:
@@ -205,7 +199,6 @@ def split_text_for_api(texto, max_chars=4000):
         else:
             if chunk_atual: chunks.append(chunk_atual.strip())
             if len(frase) >= max_chars:
-                import textwrap
                 pedacos = textwrap.wrap(frase, width=max_chars)
                 for p in pedacos[:-1]: chunks.append(p.strip())
                 chunk_atual = pedacos[-1] + " "
@@ -280,7 +273,7 @@ async def gerar_narracao(
                     
                     response = await client.post(url, json=data, headers=headers)
                     if response.status_code != 200:
-                        raise Exception(f"Falha API Cinematic: {response.text}")
+                        raise Exception(f"Falha na API Cinematic: {response.text}")
                     
                     seg = AudioSegment.from_file(io.BytesIO(response.content), format="mp3")
                     final_audio += (pause_seg + seg) if i > 0 else seg
@@ -330,7 +323,7 @@ async def gerar_narracao(
                                     audio_b64 = part['inlineData']['data']
                                     break
                             if audio_b64: break
-                            else: raise Exception("API Gemini sem áudio.")
+                            else: raise Exception("A API do Gemini não retornou dados de áudio.")
                         except Exception as api_err:
                             if attempt < max_retries - 1: time.sleep(3)
                             else: raise Exception(f"Falha na API Creator: {str(api_err)}")
