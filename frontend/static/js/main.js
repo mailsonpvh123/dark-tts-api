@@ -39,7 +39,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     });
 
-    // INJEÇÃO DA CARGA DO HISTÓRICO
     if (path === '/historico') {
         carregarHistorico();
     }
@@ -600,7 +599,6 @@ async function gerarAudioCompleto() {
         
         const dados = await res.json();
         
-        // SALVA A TIMELINE MATEMÁTICA
         srtGlobal = dados.srt || "";
 
         if(dados.novo_saldo !== undefined) {
@@ -615,7 +613,6 @@ async function gerarAudioCompleto() {
             });
         }
 
-        // INJETA OS BOTÕES COM OS LINKS PREPARADOS
         playerContainer.innerHTML = `
             <div class="flex items-center gap-2 mb-3">
                 <i class="fa-solid fa-circle-check text-emerald-400 drop-shadow-[0_0_5px_rgba(16,185,129,0.8)]"></i>
@@ -651,7 +648,7 @@ function contarPalavrasLocal(texto) {
 }
 
 // ==========================================
-// MÓDULO: HISTÓRICO DE PRODUÇÃO (INJETADO)
+// MÓDULO: HISTÓRICO DE PRODUÇÃO
 // ==========================================
 async function carregarHistorico() {
     const tabela = document.getElementById('tabela_historico');
@@ -870,7 +867,10 @@ function abrirModal(index) {
         }
     }
 
+    // A MÁGICA: Além de remover o hidden, adiciona o flex para o grid funcionar!
     modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    
     setTimeout(() => {
         conteudo.classList.remove('scale-95');
         conteudo.classList.add('scale-100');
@@ -885,7 +885,10 @@ function fecharModal() {
     conteudo.classList.add('scale-95');
     
     setTimeout(() => {
+        // A MÁGICA: Remove o flex e volta o hidden!
+        modal.classList.remove('flex');
         modal.classList.add('hidden');
+        
         const audioPlayer = document.querySelector('#modal_output_container audio');
         if (audioPlayer) audioPlayer.pause();
     }, 200);
@@ -925,7 +928,6 @@ function encaminharPara(destino, index) {
         sessionStorage.setItem('script_ideia_base', texto);
         window.location.href = '/script-forge';
     } else if (destino === 'voice') {
-        // A SOLUÇÃO CIRÚRGICA: Integrando perfeitamente com o seu localStorage!
         localStorage.setItem('texto_pendente_voice', texto);
         window.location.href = '/voice-synthesizer';
     } else if (destino === 'seo') {
