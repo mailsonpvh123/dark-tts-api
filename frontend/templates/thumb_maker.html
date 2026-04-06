@@ -52,6 +52,23 @@
                             </select>
                         </div>
                     </div>
+
+                    <div class="grid grid-cols-2 gap-3 p-3 bg-[#09090b] border border-zinc-800/80 rounded-xl shadow-inner">
+                        <div>
+                            <label class="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Texto na Arte (Opcional)</label>
+                            <input type="text" id="thumb_texto_arte" oninput="salvarEstado('thumb_texto_arte')" class="w-full bg-[#121214] border border-zinc-700 rounded-lg px-2 py-2 text-zinc-200 focus:border-rose-500 outline-none text-xs shadow-inner" placeholder="Ex: FUI DEMITIDO!">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Posição do Texto</label>
+                            <select id="thumb_posicao_texto" onchange="salvarEstado('thumb_posicao_texto')" class="w-full bg-[#121214] border border-zinc-700 rounded-lg px-2 py-2.5 text-zinc-200 focus:border-rose-500 outline-none text-xs cursor-pointer shadow-inner">
+                                <option value="Centro Maior">Centro (Maior)</option>
+                                <option value="Topo Esquerda">Topo (Esquerda)</option>
+                                <option value="Embaixo Centralizado">Embaixo (Centralizado)</option>
+                                <option value="Sem Texto">Sem Texto</option>
+                            </select>
+                        </div>
+                    </div>
+
                 </div>
                 
                 <div class="flex gap-3 mt-8 relative z-10">
@@ -93,7 +110,7 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', () => {
-        const campos = ['thumb_titulo', 'thumb_roteiro', 'thumb_estilo', 'thumb_cor'];
+        const campos = ['thumb_titulo', 'thumb_roteiro', 'thumb_estilo', 'thumb_cor', 'thumb_texto_arte', 'thumb_posicao_texto'];
         campos.forEach(id => {
             const el = document.getElementById(id);
             if(el && sessionStorage.getItem(id)) el.value = sessionStorage.getItem(id);
@@ -107,7 +124,7 @@
     function salvarEstado(id) { sessionStorage.setItem(id, document.getElementById(id).value); }
 
     function limparThumb() {
-        const campos = ['thumb_titulo', 'thumb_roteiro'];
+        const campos = ['thumb_titulo', 'thumb_roteiro', 'thumb_texto_arte'];
         campos.forEach(id => { const el = document.getElementById(id); if(el) { el.value = ''; sessionStorage.removeItem(id); } });
         sessionStorage.removeItem('thumbHTML');
         document.getElementById('thumb_resultados_container').innerHTML = `<div class="flex flex-col items-center justify-center h-full text-center py-20"><div class="w-20 h-20 rounded-2xl bg-[#09090b] border border-zinc-800 flex items-center justify-center mb-6 shadow-inner relative"><i class="fa-solid fa-palette text-3xl text-zinc-600 absolute"></i></div><h3 class="text-base font-black text-zinc-400 tracking-tight">Esperando Briefing...</h3></div>`;
@@ -122,6 +139,8 @@
         const roteiro = document.getElementById('thumb_roteiro').value;
         const estilo = document.getElementById('thumb_estilo').value;
         const cor = document.getElementById('thumb_cor').value;
+        const textoArte = document.getElementById('thumb_texto_arte').value;
+        const posicaoTexto = document.getElementById('thumb_posicao_texto').value;
 
         if(!titulo || !roteiro) return alert("Título e Roteiro são essenciais para a IA criar o contexto visual.");
 
@@ -135,7 +154,14 @@
             const res = await fetch("/api/v1/thumb-maker", {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ titulo: titulo, roteiro: roteiro, estilo: estilo, texto_arte: "", cor_texto: cor, posicao_texto: "" })
+                body: JSON.stringify({ 
+                    titulo: titulo, 
+                    roteiro: roteiro, 
+                    estilo: estilo, 
+                    texto_arte: textoArte, 
+                    cor_texto: cor, 
+                    posicao_texto: posicaoTexto 
+                })
             });
             
             if(!res.ok) {
@@ -163,6 +189,8 @@
             
             dados.capas.forEach((capa, i) => {
                 const copyStr = btoa(unescape(encodeURIComponent(capa.prompt_gringo)));
+                const textoExibido = capa.texto_na_imagem || textoArte || "Nenhum / Sem Texto";
+                
                 htmlC += `
                 <div class="bg-[#0c0c0e] border border-zinc-800 rounded-xl p-5 hover:border-rose-500/50 transition-all duration-300 relative group shadow-lg">
                     <div class="absolute top-0 left-0 w-1 h-full bg-rose-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
@@ -170,7 +198,8 @@
                         <span class="bg-gradient-to-r from-rose-500 to-pink-600 text-white text-[10px] font-black px-3 py-1 rounded shadow-md uppercase tracking-wider">Conceito ${i+1}</span>
                         <span class="text-xs font-bold text-zinc-500 italic"><i class="fa-solid fa-chess-knight mr-1"></i> ${capa.estrategia}</span>
                     </div>
-                    <p class="text-sm text-zinc-300 mb-4 border-l-2 border-rose-500/50 pl-3 leading-relaxed"><strong>Psicologia Visual:</strong> ${capa.psicologia}</p>
+                    <p class="text-sm text-zinc-300 mb-3 border-l-2 border-rose-500/50 pl-3 leading-relaxed"><strong>Psicologia Visual:</strong> ${capa.psicologia}</p>
+                    <p class="text-sm text-zinc-300 mb-4 border-l-2 border-rose-500/50 pl-3 leading-relaxed"><strong>🔤 Texto sugerido na arte:</strong> ${textoExibido}</p>
                     
                     <div class="bg-[#121214] border border-zinc-800 p-4 rounded-lg shadow-inner relative mt-4">
                         <p class="text-xs text-rose-400 font-mono mb-2 uppercase font-bold flex items-center gap-2"><i class="fa-solid fa-robot"></i> Prompt Midjourney / DALL-E</p>
