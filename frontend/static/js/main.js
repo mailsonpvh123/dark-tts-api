@@ -1,640 +1,386 @@
-// ==========================================
-// CONFIGURAÇÕES GLOBAIS
-// ==========================================
-const URL_API_VOZES = "/api/v1/vozes"; 
-const URL_API_DIRETA = "/api/v1/gerar_narracao"; 
-let vozesData = [];
-let vozSelecionada = "padrao-pt-BR-AntonioNeural"; 
-let srtGlobal = ""; 
-let timerDebounceCusto = null; 
-let abaVozAtiva = "padrao";
+import edge_tts
+import base64
+import math
+import os
+import io
+import time
+import re
+import textwrap
+import httpx 
+from fastapi import APIRouter, HTTPException, Depends
+from pydantic import BaseModel
+from sqlalchemy.orm import Session
+from pydub import AudioSegment
 
-// ==========================================
-// INICIALIZAÇÃO DA PLATAFORMA
-// ==========================================
-document.addEventListener('DOMContentLoaded', async function() {
-    const path = window.location.pathname;
+# Nossos imports internos
+import models
+from database import get_db
+from auth import get_usuario_atual
+
+# SEM PREFIXO: Alinhado perfeitamente com o seu frontend
+router = APIRouter(tags=["Voice Synthesizer"])
+
+class AudioRequest(BaseModel):
+    texto: str
+    voz: str = "padrao-pt-BR-AntonioNeural"
+    velocidade: float = 1.0
+    pitch: int = 0
+    temperatura: float = 0.7
+    estabilidade: float = 0.5
+    similaridade: float = 0.75
+
+# ==========================================
+# CATÁLOGOS DE VOZES (Género e Personalidade)
+# ==========================================
+VOICES_CREATOR = {
+    "Achernar": {"desc": "Suave", "genero": "Masculino"},
+    "Achird": {"desc": "Amigável", "genero": "Feminino"},
+    "Algenib": {"desc": "Áspero", "genero": "Masculino"},
+    "Algieba": {"desc": "Suave", "genero": "Feminino"},
+    "Alnilam": {"desc": "Firme", "genero": "Masculino"},
+    "Aoede": {"desc": "Breezy e Natural", "genero": "Feminino"},
+    "Autonoe": {"desc": "Brilhante", "genero": "Feminino"},
+    "Callirrhoe": {"desc": "Easy-going", "genero": "Feminino"},
+    "Charon": {"desc": "Informativa (Dark/Suspense)", "genero": "Masculino"},
+    "Despina": {"desc": "Smooth", "genero": "Feminino"},
+    "Enceladus": {"desc": "Breathy", "genero": "Masculino"},
+    "Erinome": {"desc": "Limpa", "genero": "Feminino"},
+    "Fenrir": {"desc": "Excitável e Intenso", "genero": "Masculino"},
+    "Gacrux": {"desc": "Adulto", "genero": "Masculino"},
+    "Iapetus": {"desc": "Limpo", "genero": "Masculino"},
+    "Kore": {"desc": "Firme", "genero": "Feminino"},
+    "Laomedeia": {"desc": "Upbeat", "genero": "Feminino"},
+    "Leda": {"desc": "Juventude", "genero": "Feminino"},
+    "Orus": {"desc": "Firme", "genero": "Masculino"},
+    "Pulcherrima": {"desc": "Avançar", "genero": "Feminino"},
+    "Puck": {"desc": "Upbeat e Sarcástico", "genero": "Masculino"},
+    "Rasalgethi": {"desc": "Informativa", "genero": "Masculino"},
+    "Sadachbia": {"desc": "Lively", "genero": "Masculino"},
+    "Sadaltager": {"desc": "Conhecimento", "genero": "Masculino"},
+    "Schedar": {"desc": "Equilibrado", "genero": "Masculino"},
+    "Sulafat": {"desc": "Quente", "genero": "Feminino"},
+    "Umbriel": {"desc": "Tranquilo", "genero": "Masculino"},
+    "Vindemiatrix": {"desc": "Gentle", "genero": "Feminino"},
+    "Zephyr": {"desc": "Brilhante", "genero": "Feminino"},
+    "Zubenelgenubi": {"desc": "Casual", "genero": "Masculino"}
+}
+
+VOICES_CINEMATIC = {
+    "pNInz6obpgDQGcFmaJgB": {"nome": "Adam", "desc": "Dominante e Firme", "genero": "Masculino"},
+    "Xb7hH8MSUJpSbSDYk0k2": {"nome": "Alice", "desc": "Clara, Educadora Envolvente", "genero": "Feminino"},
+    "hpp4J3VqNfWAUOO0d1Us": {"nome": "Bella", "desc": "Profissional, Vibrante e Acolhedora", "genero": "Feminino"},
+    "pqHfZKP75CvOlQylNhV4": {"nome": "Bill", "desc": "Sábio, Maduro e Equilibrado", "genero": "Masculino"},
+    "nPczCjzI2devNBz1zQrb": {"nome": "Brian", "desc": "Profundo, Ressonante e Confortante", "genero": "Masculino"},
+    "N2lVS1w4EtoT3dr4eOWO": {"nome": "Callum", "desc": "Rouco, Irreverente e Cativante", "genero": "Masculino"},
+    "IKne3meq5aSn9XLyUdCD": {"nome": "Charlie", "desc": "Profundo, Confiante e Energético", "genero": "Masculino"},
+    "iP95p4xoKVk53GoZ742B": {"nome": "Chris", "desc": "Charmoso e Pé no Chão", "genero": "Masculino"},
+    "onwK4e9ZLuTAKqWW03F9": {"nome": "Daniel", "desc": "Locutor Estável e Seguro", "genero": "Masculino"},
+    "cjVigY5qzO86Huf0OWal": {"nome": "Eric", "desc": "Suave e Confiável", "genero": "Masculino"},
+    "JBFqnCBsd6RMkjVDRZzb": {"nome": "George", "desc": "Acolhedor, Narrador Cativante", "genero": "Masculino"},
+    "SOYHLrjzK2X1ezoPC6cr": {"nome": "Harry", "desc": "Intenso e Feroz (Narrativa Épica)", "genero": "Masculino"},
+    "cgSgspJ2msm6clMCkdW9": {"nome": "Jessica", "desc": "Divertida, Vibrante e Acolhedora", "genero": "Feminino"},
+    "FGY2WhTYpPnrIDTdsKH5": {"nome": "Laura", "desc": "Entusiasta e Cheia de Atitude", "genero": "Feminino"},
+    "TX3LPaxmHKxFdv7VOQHJ": {"nome": "Liam", "desc": "Energético (Criador de Conteúdo)", "genero": "Masculino"},
+    "pFZP5JQG7iQjIQuC4Bku": {"nome": "Lily", "desc": "Voz Aveludada e Teatral", "genero": "Feminino"},
+    "XrExE9yKIg1WjnnlVkGX": {"nome": "Matilda", "desc": "Profissional e Culta", "genero": "Feminino"},
+    "SAz9YHcvj6GT2YYXdXww": {"nome": "River", "desc": "Relaxado, Neutro e Informativo", "genero": "Masculino"},
+    "CwhRBWXzGAHq8TQ4Fs17": {"nome": "Roger", "desc": "Descontraído, Casual e Ressonante", "genero": "Masculino"},
+    "EXAVITQu4vr4xnSDxMaL": {"nome": "Sarah", "desc": "Madura, Tranquilizadora e Confiante", "genero": "Feminino"},
+    "bIHbv24MWmeRgasZH58o": {"nome": "Will", "desc": "Otimista e Relaxado", "genero": "Masculino"}
+}
+
+vozes_cache = []
+
+@router.on_event("startup")
+async def carregar_vozes_memoria():
+    global vozes_cache
+    vozes_cache.clear() 
     
-    document.querySelectorAll('.menu-btn').forEach(link => {
-        if (link.getAttribute('href') === path) {
-            link.classList.add('text-white', 'bg-zinc-800/80', 'border-zinc-700');
-            link.classList.remove('text-zinc-400');
-            const icon = link.querySelector('i');
-            if (path === '/gen-insights') icon.classList.add('text-yellow-400');
-            if (path === '/miner') icon.classList.add('text-indigo-400');
-            if (path === '/paraphraser') icon.classList.add('text-pink-400');
-            if (path === '/script-forge') icon.classList.add('text-orange-400');
-            if (path === '/voice-synthesizer') icon.classList.add('text-purple-400');
-            if (path === '/audio-mixer') icon.classList.add('text-amber-400');
-            if (path === '/meta-seo') icon.classList.add('text-blue-400');
-            if (path === '/thumb-maker') icon.classList.add('text-pink-400');
-            if (path === '/clip-hunter') icon.classList.add('text-emerald-400');
-        }
-    });
+    try:
+        for v_id, info in VOICES_CINEMATIC.items():
+            vozes_cache.append({
+                "name": info['nome'],
+                "shortName": f"cinematic-{v_id}",
+                "gender": info['genero'],
+                "desc": info['desc'],
+                "tipo": "cinematic"
+            })
 
-    const textoVoice = localStorage.getItem('texto_pendente_voice');
-    if (textoVoice && document.getElementById('texto_voz')) {
-        document.getElementById('texto_voz').value = textoVoice;
-        localStorage.removeItem('texto_pendente_voice');
-        if(typeof recalcularCustoVoz === 'function') recalcularCustoVoz();
-    }
+        for v_name, v_info in VOICES_CREATOR.items():
+            vozes_cache.append({
+                "name": v_name,
+                "shortName": f"creator-{v_name}",
+                "gender": v_info['genero'],
+                "desc": v_info['desc'],
+                "tipo": "creator"
+            })
+        
+        voices = await edge_tts.list_voices()
+        for v in voices:
+            if v["Locale"].startswith("pt-") or "Multilingual" in v["ShortName"]:
+                gen_pt = "Feminino" if v["Gender"] == "Female" else "Masculino"
+                nome_limpo = v["ShortName"].replace('pt-BR-', '').replace('pt-PT-', '').replace('Neural', '').replace('Multilingual', '')
+                vozes_cache.append({
+                    "name": nome_limpo,
+                    "shortName": f"padrao-{v['ShortName']}",
+                    "gender": gen_pt,
+                    "desc": "Voz Digital Neural",
+                    "tipo": "padrao"
+                })
+        print(f"✅ {len(vozes_cache)} Vozes carregadas com sucesso na memória!")
+    except Exception as e:
+        print(f"❌ Erro ao carregar vozes: {e}")
 
-    if(document.getElementById('lista_vozes')) {
-        try {
-            const resposta = await fetch("/vozes");
-            if (!resposta.ok) throw new Error("Falha ao comunicar com a API.");
-            const dados = await resposta.json();
-            if(dados.status === "erro") throw new Error(dados.mensagem);
+@router.get("/vozes")
+async def listar_vozes():
+    if vozes_cache:
+        return {"status": "sucesso", "vozes": vozes_cache}
+    return {"status": "erro", "mensagem": "Vozes ainda não carregadas no servidor."}
+
+def limpar_texto_para_voz(texto: str) -> str:
+    t = texto.replace('*', '').replace('#', '').replace('_', '')
+    t = re.sub(r'\[.*?\]', '', t)
+    t = re.sub(r'\(.*?\)', '', t)
+    return t.strip()
+
+# ==========================================
+# MOTOR MATEMÁTICO SRT
+# ==========================================
+def gerar_srt_matematico(texto, audio_bytes):
+    try:
+        audio_seg = AudioSegment.from_file(io.BytesIO(audio_bytes))
+        total_ms = len(audio_seg)
+    except Exception as e:
+        total_ms = len(texto) * 65 
+    
+    palavras = texto.split()
+    if not palavras: return ""
+    
+    ms_por_palavra = total_ms / max(1, len(palavras))
+    
+    srt_output = []
+    indice = 1
+    tempo_atual_ms = 0
+    tamanho_grupo = 6 
+    
+    for i in range(0, len(palavras), tamanho_grupo):
+        grupo = palavras[i:i+tamanho_grupo]
+        duracao_grupo = ms_por_palavra * len(grupo)
+        
+        inicio_ms = tempo_atual_ms
+        fim_ms = tempo_atual_ms + duracao_grupo
+        
+        def ms_to_srt_time(ms):
+            s, ms = divmod(int(ms), 1000)
+            m, s = divmod(s, 60)
+            h, m = divmod(m, 60)
+            return f"{h:02d}:{m:02d}:{s:02d},{ms:03d}"
+        
+        srt_output.append(f"{indice}")
+        srt_output.append(f"{ms_to_srt_time(inicio_ms)} --> {ms_to_srt_time(fim_ms)}")
+        srt_output.append(" ".join(grupo))
+        srt_output.append("")
+        
+        tempo_atual_ms = fim_ms
+        indice += 1
+        
+    return "\n".join(srt_output)
+
+def split_text_for_api(texto, max_chars=4000):
+    texto = texto.replace('\n', ' ')
+    frases = re.split(r'(?<=[.!?]) +', texto)
+    chunks = []
+    chunk_atual = ""
+    for frase in frases:
+        frase = frase.strip()
+        if not frase: continue
+        if len(chunk_atual) + len(frase) < max_chars:
+            chunk_atual += frase + " "
+        else:
+            if chunk_atual: chunks.append(chunk_atual.strip())
+            if len(frase) >= max_chars:
+                pedacos = textwrap.wrap(frase, width=max_chars)
+                for p in pedacos[:-1]: chunks.append(p.strip())
+                chunk_atual = pedacos[-1] + " "
+            else:
+                chunk_atual = frase + " "
+    if chunk_atual: chunks.append(chunk_atual.strip())
+    return chunks
+
+@router.post("/gerar_narracao")
+async def gerar_narracao(
+    req: AudioRequest,
+    db: Session = Depends(get_db),
+    usuario: models.Usuario = Depends(get_usuario_atual)
+):
+    if not usuario:
+        raise HTTPException(status_code=401, detail="Sessão expirada.")
+        
+    texto = req.texto.strip()
+    if not texto:
+        raise HTTPException(status_code=400, detail="O texto para narração é obrigatório.")
+
+    is_preview = texto.startswith("Olá, sou uma voz neural da sua plataforma.")
+    
+    is_cinematic = req.voz.startswith("cinematic-")
+    is_creator = req.voz.startswith("creator-")
+    is_padrao = req.voz.startswith("padrao-")
+    
+    tamanho_texto = len(texto)
+
+    if is_preview:
+        custo_operacao = 0
+    elif is_cinematic:
+        custo_operacao = max(1, math.ceil((tamanho_texto / 900.0) * 50))
+    elif is_creator:
+        custo_operacao = max(1, math.ceil((tamanho_texto / 900.0) * 12))
+    else:
+        custo_operacao = 30 
+
+    if not is_preview:
+        if usuario.coins < custo_operacao:
+            raise HTTPException(status_code=402, detail=f"Coins insuficientes! Necessário {custo_operacao} coins.")
+        usuario.coins -= custo_operacao
+        db.commit()
+
+    try:
+        srt_content = ""
+        audio_base64 = ""
+        
+        chunks = split_text_for_api(texto, max_chars=4000)
+        final_audio = AudioSegment.empty()
+        pause_seg = AudioSegment.silent(duration=300)
+
+        if is_cinematic:
+            api_key = os.environ.get("ELEVENLABS_API_KEY")
+            modelo_eleven = os.environ.get("ELEVENLABS_MODEL_ID", "eleven_turbo_v2_5")
+            if not api_key: raise ValueError("Chave ELEVENLABS_API_KEY não configurada.")
             
-            vozesData = dados.vozes || dados;
-            alternarAbaVozes('padrao'); 
-        } catch (error) { 
-            console.log("Erro TTS:", error);
-            document.getElementById('lista_vozes').innerHTML = `
-                <div class="text-center text-red-500 py-10">
-                    <i class="fa-solid fa-triangle-exclamation text-3xl mb-3 drop-shadow-[0_0_10px_rgba(239,68,68,0.5)]"></i>
-                    <br><span class="text-sm font-bold">Erro de Conexão com o Estúdio</span>
-                </div>`;
-        }
-    }
-});
-
-function despacharParaVoice(idCampoOrigem) {
-    const texto = document.getElementById(idCampoOrigem).value;
-    if(!texto || texto.trim() === "") return alert("Aviso: O texto está vazio!"); 
-    localStorage.setItem('texto_pendente_voice', texto);
-    window.location.href = '/voice-synthesizer'; 
-}
-
-// ==========================================
-// FUNÇÕES DO CLIP HUNTER (MINERADOR DE MÍDIAS)
-// ==========================================
-async function buscarMidiaHunter() {
-    const termoInput = document.getElementById('hunter_input');
-    const galeria = document.getElementById('hunter_galeria');
-    const btn = document.getElementById('hunter_btn');
-    const status = document.getElementById('hunter_status');
-    const mediaType = document.getElementById('hunter_type').value;
-    const orientation = document.getElementById('hunter_orientation').value;
-    
-    if(!termoInput || !galeria) return;
-    
-    const termo = termoInput.value.trim();
-    if(termo === "") return alert("Por favor, insira um termo para buscar!");
-
-    if(window.hunterAudioAtual) {
-        window.hunterAudioAtual.pause();
-        window.hunterAudioUrlAtual = null;
-    }
-
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>';
-    status.innerText = "Minerando arquivos na nuvem...";
-    galeria.innerHTML = ""; 
-    
-    try {
-        const resposta = await fetch(`/api/cliphunter/search?query=${encodeURIComponent(termo)}&media_type=${mediaType}&orientation=${orientation}`);
-        const dados = await resposta.json();
-        
-        if(!resposta.ok) throw new Error(dados.detail || "Erro ao conectar na API.");
-        
-        if(dados.results.length === 0) {
-            galeria.innerHTML = `<div class="col-span-full text-center py-10 text-zinc-500"><i class="fa-solid fa-ghost text-4xl mb-3"></i><p>Nenhuma mídia encontrada para "${termo}". Tente outro termo em inglês.</p></div>`;
-            status.innerText = "Busca concluída (0 resultados).";
-            return;
-        }
-
-        status.innerText = `Mostrando resultados para "${dados.query_traduzida}" (${dados.results.length} mídias)`;
-        
-        dados.results.forEach(item => {
-            const card = document.createElement('div');
-            card.className = "bg-[#1E1E1E] rounded-xl border border-zinc-800 overflow-hidden hover:border-emerald-500/50 transition-all shadow-lg flex flex-col";
+            voz_real = req.voz.replace("cinematic-", "")
             
-            let conteudoVisual = "";
-            let btnAcao = "";
+            async with httpx.AsyncClient(timeout=120.0) as client:
+                for i, chunk in enumerate(chunks):
+                    url = f"https://api.elevenlabs.io/v1/text-to-speech/{voz_real}"
+                    headers = {"xi-api-key": api_key, "Content-Type": "application/json"}
+                    data = {
+                        "text": chunk,
+                        "model_id": modelo_eleven,
+                        "voice_settings": {
+                            "stability": req.estabilidade,
+                            "similarity_boost": req.similaridade
+                        }
+                    }
+                    
+                    response = await client.post(url, json=data, headers=headers)
+                    if response.status_code != 200:
+                        raise Exception(f"Falha na API Cinematic: {response.text}")
+                    
+                    seg = AudioSegment.from_file(io.BytesIO(response.content), format="mp3")
+                    final_audio += (pause_seg + seg) if i > 0 else seg
+
+            if req.velocidade != 1.0:
+                final_audio = final_audio._spawn(final_audio.raw_data, overrides={"frame_rate": int(final_audio.frame_rate * req.velocidade)}).set_frame_rate(final_audio.frame_rate)
+
+            mp3_io = io.BytesIO()
+            final_audio.export(mp3_io, format="mp3", bitrate="128k")
+            audio_final_bytes = mp3_io.getvalue()
+            audio_base64 = base64.b64encode(audio_final_bytes).decode('utf-8')
+            srt_content = gerar_srt_matematico(texto, audio_final_bytes)
+
+        elif is_creator:
+            api_key = os.environ.get("GEMINI_API_KEY_PAID")
+            modelo_gemini = os.environ.get("GEMINI_MODEL_VOICE", "gemini-2.5-flash-tts")
+            if not api_key: raise ValueError("Chave GEMINI_API_KEY_PAID não configurada.")
+
+            voz_real = req.voz.replace("creator-", "")
+
+            async with httpx.AsyncClient(timeout=120.0) as client:
+                for i, chunk in enumerate(chunks):
+                    url = f"https://generativelanguage.googleapis.com/v1beta/models/{modelo_gemini}:generateContent?key={api_key}"
+                    headers = {"Content-Type": "application/json"}
+                    data = {
+                        "contents": [{"parts": [{"text": chunk}]}],
+                        "generationConfig": {
+                            "temperature": req.temperatura,
+                            "responseModalities": ["AUDIO"],
+                            "speechConfig": {
+                                "voiceConfig": {
+                                    "prebuiltVoiceConfig": {"voiceName": voz_real}
+                                }
+                            }
+                        }
+                    }
+                    
+                    max_retries = 3
+                    audio_b64 = None
+                    for attempt in range(max_retries):
+                        try:
+                            response = await client.post(url, json=data, headers=headers)
+                            if response.status_code != 200: raise Exception(response.text)
+                            resp_json = response.json()
+                            for part in resp_json.get('candidates', [{}])[0].get('content', {}).get('parts', []):
+                                if 'inlineData' in part and part['inlineData']['mimeType'].startswith('audio/'):
+                                    audio_b64 = part['inlineData']['data']
+                                    break
+                            if audio_b64: break
+                            else: raise Exception("A API do Gemini não retornou dados de áudio.")
+                        except Exception as api_err:
+                            if attempt < max_retries - 1: time.sleep(3)
+                            else: raise Exception(f"Falha na API Creator: {str(api_err)}")
+                    
+                    audio_bytes = base64.b64decode(audio_b64)
+                    seg = AudioSegment(data=audio_bytes, sample_width=2, frame_rate=24000, channels=1)
+                    final_audio += (pause_seg + seg) if i > 0 else seg
+
+            mp3_io = io.BytesIO()
+            final_audio.export(mp3_io, format="mp3", bitrate="128k")
+            audio_final_bytes = mp3_io.getvalue()
+            audio_base64 = base64.b64encode(audio_final_bytes).decode('utf-8')
+            srt_content = gerar_srt_matematico(texto, audio_final_bytes)
+
+        else:
+            voz_engine = req.voz.replace("padrao-", "") 
+            velocidade_formatada = f"{int((req.velocidade - 1.0) * 100):+d}%"
+            pitch_formatado = f"{req.pitch:+d}Hz"
             
-            if(item.type === "video") {
-                conteudoVisual = `
-                    <div class="relative aspect-video bg-black group">
-                        <img src="${item.thumb}" class="w-full h-full object-cover opacity-80 group-hover:opacity-50 transition-opacity">
-                        <button onclick="abrirPreviewHunter('${item.url}', 'video')" class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                            <i class="fa-solid fa-circle-play text-5xl text-emerald-400 drop-shadow-lg scale-90 group-hover:scale-100 transition-transform"></i>
-                        </button>
-                        <span class="absolute bottom-2 right-2 bg-black/80 px-2 py-1 text-[10px] rounded text-white font-bold">${item.duration}s</span>
-                    </div>`;
-                btnAcao = `<a href="${item.url}" target="_blank" download class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 text-center text-sm rounded transition-colors"><i class="fa-solid fa-download mr-1"></i> Baixar</a>`;
-            } 
-            else if(item.type === "image") {
-                conteudoVisual = `
-                    <div class="relative aspect-square bg-black group">
-                        <img src="${item.thumb}" class="w-full h-full object-cover opacity-90 group-hover:opacity-60 transition-opacity">
-                        <button onclick="abrirPreviewHunter('${item.url}', 'image')" class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                            <i class="fa-solid fa-expand text-4xl text-zinc-200 drop-shadow-lg scale-90 group-hover:scale-100 transition-transform"></i>
-                        </button>
-                    </div>`;
-                btnAcao = `<a href="${item.url}" target="_blank" download class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 text-center text-sm rounded transition-colors"><i class="fa-solid fa-download mr-1"></i> Baixar</a>`;
-            }
-            else if(item.type === "audio") {
-                conteudoVisual = `
-                    <div class="p-4 bg-zinc-900 border-b border-zinc-800 flex items-center justify-center h-24">
-                        <button onclick="tocarAudioHunter(this, '${item.url}')" class="w-12 h-12 rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-500 hover:bg-amber-500 hover:text-white transition-colors shadow-lg">
-                            <i class="fa-solid fa-play text-lg ml-1"></i>
-                        </button>
-                    </div>`;
-                btnAcao = `<a href="${item.url}" target="_blank" download class="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-2 text-center text-sm rounded transition-colors"><i class="fa-solid fa-download mr-1"></i> Baixar</a>`;
-            }
-
-            card.innerHTML = `
-                ${conteudoVisual}
-                <div class="p-3 flex-1 flex flex-col justify-between">
-                    <p class="text-[11px] text-zinc-400 mb-3 truncate" title="${item.author || item.title}"><i class="fa-solid ${item.type === 'audio' ? 'fa-music' : 'fa-camera'} mr-1"></i> ${item.author || item.title}</p>
-                    ${btnAcao}
-                </div>
-            `;
-            galeria.appendChild(card);
-        });
-
-    } catch(erro) {
-        status.innerText = "Falha na mineração.";
-        galeria.innerHTML = `<div class="col-span-full text-center py-10 text-red-400 font-bold border border-red-500/30 bg-red-500/10 rounded-xl"><i class="fa-solid fa-triangle-exclamation mb-2 text-2xl"></i><br>${erro.message}</div>`;
-    } finally {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fa-solid fa-magnifying-glass"></i> Minerar Mídias';
-    }
-}
-
-function abrirPreviewHunter(url, type) {
-    if(window.hunterAudioAtual) {
-        window.hunterAudioAtual.pause();
-        window.hunterAudioUrlAtual = null;
-        document.querySelectorAll('#hunter_galeria .fa-pause').forEach(i => {
-            i.classList.remove('fa-pause');
-            i.classList.add('fa-play');
-        });
-    }
-
-    const modal = document.getElementById('hunter_modal');
-    const content = document.getElementById('hunter_modal_content');
-    
-    if(type === 'video') {
-        content.innerHTML = `<video controls autoplay class="max-w-full max-h-[85vh] rounded-xl shadow-2xl outline-none border border-zinc-700"><source src="${url}" type="video/mp4"></video>`;
-    } else if (type === 'image') {
-        content.innerHTML = `<img src="${url}" class="max-w-full max-h-[85vh] rounded-xl shadow-2xl object-contain border border-zinc-700">`;
-    }
-    
-    modal.classList.remove('hidden');
-    modal.classList.add('flex');
-}
-
-function fecharModalHunter() {
-    const modal = document.getElementById('hunter_modal');
-    const content = document.getElementById('hunter_modal_content');
-    
-    modal.classList.add('hidden');
-    modal.classList.remove('flex');
-    content.innerHTML = ''; 
-}
-
-function tocarAudioHunter(btn, url) {
-    if(window.hunterAudioAtual) {
-        window.hunterAudioAtual.pause();
-        
-        document.querySelectorAll('#hunter_galeria .fa-pause').forEach(i => {
-            i.classList.remove('fa-pause');
-            i.classList.add('fa-play');
-        });
-        
-        if (window.hunterAudioUrlAtual === url) {
-            window.hunterAudioUrlAtual = null; 
-            return; 
-        }
-    }
-    
-    const icon = btn.querySelector('i');
-    
-    window.hunterAudioAtual = new Audio(url);
-    window.hunterAudioUrlAtual = url;
-    window.hunterAudioAtual.play();
-    
-    icon.classList.remove('fa-play');
-    icon.classList.add('fa-pause');
-    
-    window.hunterAudioAtual.onended = () => {
-        icon.classList.remove('fa-pause');
-        icon.classList.add('fa-play');
-        window.hunterAudioUrlAtual = null;
-    };
-}
-
-// ==========================================
-// FUNÇÕES DO PARAPHRASER E FORGE (TEXT TRANSMUTER)
-// ==========================================
-function contarPalavrasLocal(texto) {
-    if (!texto || texto.trim() === "") return 0;
-    return texto.trim().split(/\s+/).length;
-}
-
-async function transmutarTexto() {
-    const txtOriginal = document.getElementById('texto_original').value;
-    const modo = document.getElementById('estrategia_escrita').value;
-    const nomeCanal = document.getElementById('nome_canal').value;
-    const ganchoExato = document.getElementById('gancho_exato').value;
-    const btn = document.getElementById('btn_transmutar');
-    const txtBtn = document.getElementById('txt_btn_transmutar');
-    const txtResultado = document.getElementById('texto_transmutado');
-    const contadorResultado = document.getElementById('contador_resultado');
-
-    if (!txtOriginal || txtOriginal.trim() === "") {
-        return alert("Por favor, cole o texto original antes de transmutar!");
-    }
-
-    btn.disabled = true;
-    btn.classList.add('opacity-70', 'cursor-not-allowed');
-    const textoOriginalBotao = txtBtn.innerHTML;
-    txtBtn.innerHTML = `Transmutando... <i class="fa-solid fa-circle-notch fa-spin ml-2"></i>`;
-    txtResultado.value = "Os deuses da IA estão reescrevendo e blindando seu texto. Isso pode levar alguns segundos...";
-
-    const payload = {
-        texto: txtOriginal,
-        modo: modo,
-        nome_canal: nomeCanal,
-        gancho_exato: ganchoExato,
-        tom: "Sarcástico e Ácido", 
-        idioma: "Português (Brasil)"
-    };
-
-    try {
-        const res = await fetch("/api/v1/paraphraser", {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-        
-        const dados = await res.json();
-        
-        if(!res.ok) {
-            throw new Error(dados.detail || "Erro na comunicação com a IA.");
-        }
-        
-        txtResultado.value = dados.texto_parafrazedo;
-        
-        if(contadorResultado) {
-            contadorResultado.innerText = contarPalavrasLocal(dados.texto_parafrazedo) + ' palavras';
-        }
-        
-        localStorage.setItem('paraph_resultado', dados.texto_parafrazedo);
-
-        if(dados.novo_saldo !== undefined) {
-            const paineisDeCoins = document.querySelectorAll('.fa-coins');
-            paineisDeCoins.forEach(icone => {
-                const elementoPai = icone.closest('p'); 
-                if(elementoPai) {
-                    elementoPai.innerHTML = `<i class="fa-solid fa-coins"></i> ${dados.novo_saldo.toLocaleString('pt-BR')} coins`;
-                    elementoPai.classList.add('text-emerald-400', 'scale-110');
-                    setTimeout(() => elementoPai.classList.remove('text-emerald-400', 'scale-110'), 500);
-                }
-            });
-        }
-
-    } catch (e) {
-        const isCoinError = e.message.includes('Coins insuficientes');
-        if (isCoinError) {
-            txtResultado.value = `[ERRO DE SALDO]\n\n${e.message}`;
-        } else {
-            txtResultado.value = `[FALHA NA TRANSMUTAÇÃO]\n\nOcorreu um erro no servidor:\n${e.message}`;
-        }
-    } finally {
-        btn.disabled = false;
-        btn.classList.remove('opacity-70', 'cursor-not-allowed');
-        txtBtn.innerHTML = textoOriginalBotao;
-    }
-}
-
-// ==========================================
-// FUNÇÕES DA INTERFACE DO ESTÚDIO DE DUBLAGEM (VOICE SYNTH)
-// ==========================================
-function alternarAbaVozes(tipo) {
-    abaVozAtiva = tipo;
-    
-    const panelStd = document.getElementById('controles_standard');
-    const panelCre = document.getElementById('controles_creator');
-    const panelCin = document.getElementById('controles_cinematic');
-    
-    if(panelStd) panelStd.classList.add('hidden');
-    if(panelCre) panelCre.classList.add('hidden');
-    if(panelCin) panelCin.classList.add('hidden');
-    
-    const btnPadrao = document.getElementById('aba_btn_padrao');
-    const btnCreator = document.getElementById('aba_btn_creator');
-    const btnCinematic = document.getElementById('aba_btn_cinematic');
-    
-    [btnPadrao, btnCreator, btnCinematic].forEach(btn => {
-        if(btn) btn.className = "flex-1 py-2 text-xs font-bold rounded-lg text-zinc-500 hover:text-white transition-all";
-    });
-    
-    if (tipo === 'padrao') {
-        if(btnPadrao) btnPadrao.className = "flex-1 py-2 text-xs font-bold rounded-lg bg-zinc-800 text-white shadow-sm transition-all border border-zinc-700/50";
-        atualizarInfoTier("Qualidade Standard", "Vozes sintéticas de alta eficiência. Ideais para testes ou canais com alto volume de postagem.");
-        if(panelStd) panelStd.classList.remove('hidden');
-    } else if (tipo === 'creator') {
-        if(btnCreator) btnCreator.className = "flex-1 py-2 text-xs font-bold rounded-lg bg-zinc-800 text-blue-400 shadow-sm transition-all border border-zinc-700/50";
-        atualizarInfoTier("Qualidade Creator (Gemini TTS)", "Vozes neurais naturais e emocionais. Focado em alta retenção e Storytelling.");
-        if(panelCre) panelCre.classList.remove('hidden');
-    } else if (tipo === 'cinematic') {
-        if(btnCinematic) btnCinematic.className = "flex-1 py-2 text-xs font-bold rounded-lg bg-amber-500/20 text-amber-400 shadow-sm transition-all border border-amber-500/50";
-        atualizarInfoTier("Qualidade Cinematic (ElevenLabs)", "Qualidade Ultra-Realista de cinema. Perfeito para documentários densos.");
-        if(panelCin) panelCin.classList.remove('hidden');
-    }
-    
-    const primeiraDaLista = vozesData.find(v => v.tipo === tipo);
-    if(primeiraDaLista) selecionarVoz(primeiraDaLista.shortName);
-    
-    renderizarListaVozes();
-}
-
-function atualizarInfoTier(titulo, desc) {
-    const infoContainer = document.getElementById('info_tier');
-    if(!infoContainer) return;
-    
-    infoContainer.innerHTML = `
-        <div class="bg-zinc-800/50 border border-zinc-700 p-4 rounded-lg shadow-inner mt-4 relative z-10">
-            <p class="text-xs font-bold text-white mb-1"><i class="fa-solid fa-circle-info text-purple-400 mr-1"></i> ${titulo}</p>
-            <p class="text-[11px] text-zinc-400 leading-relaxed">${desc}</p>
-        </div>
-    `;
-}
-
-function renderizarListaVozes() {
-    const container = document.getElementById('lista_vozes');
-    if(!container) return;
-    container.innerHTML = '';
-    
-    const vozesFiltradas = vozesData.filter(v => v.tipo === abaVozAtiva);
-    
-    vozesFiltradas.forEach(v => {
-        let isSelected = v.shortName === vozSelecionada;
-        let isCinematic = v.tipo === 'cinematic';
-        let isCreator = v.tipo === 'creator';
-
-        let baseClass = isCinematic ? "bg-amber-500/5 hover:border-amber-500/40" : (isCreator ? "bg-blue-500/5 hover:border-blue-500/40" : "bg-[#09090b] hover:border-purple-500/40");
-        let cardClass = isSelected 
-            ? "border-emerald-500 bg-emerald-500/10 shadow-[0_0_20px_rgba(16,185,129,0.15)]" 
-            : `border-zinc-800 ${baseClass}`;
+            communicate = edge_tts.Communicate(text=texto, voice=voz_engine, rate=velocidade_formatada, pitch=pitch_formatado)
+            submaker = edge_tts.SubMaker()
+            audio_data = bytearray()
             
-        let isFemale = v.gender && (v.gender.includes('Female') || v.gender.includes('Feminino'));
-        let iconClass = isCinematic ? 'fa-star text-amber-400' : (isCreator ? 'fa-clapperboard text-blue-400' : (isFemale ? 'fa-face-smile-beam text-pink-400' : 'fa-user-astronaut text-purple-400'));
-        
-        let tagsHtml = "";
-        if (isCinematic) tagsHtml = '<span class="text-[10px] font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">Cinematic</span>';
-        else if (isCreator) tagsHtml = '<span class="text-[10px] font-bold text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20">Creator</span>';
-        else tagsHtml = (isFemale ? '<span class="text-[10px] font-bold text-pink-400 bg-pink-500/10 px-2 py-0.5 rounded border border-pink-500/20">Feminino</span>' : '<span class="text-[10px] font-bold text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded border border-purple-500/20">Masculino</span>');
-
-        let nomeDisplay = v.name;
-        if (!isCinematic && !isCreator) {
-            nomeDisplay = v.shortName.replace(/padrao-|Neural|Multilingual|V2/ig, '').trim(); 
-            let partes = nomeDisplay.split('-');
-            if(partes.length >= 3) {
-                nomeDisplay = `${partes.slice(2).join(' ')} - ${partes[0].toUpperCase()}`;
-            }
-        }
-
-        container.innerHTML += `
-            <div class="flex items-center justify-between p-4 rounded-xl border ${cardClass} cursor-pointer transition-all duration-300 group relative z-10" onclick="selecionarVoz('${v.shortName}')">
-                <div class="flex items-center gap-4">
-                    <div class="w-10 h-10 rounded-full bg-zinc-900 border border-zinc-700/50 flex items-center justify-center group-hover:scale-110 transition-transform shadow-inner shrink-0">
-                        <i class="fa-solid ${iconClass} text-lg drop-shadow-md"></i>
-                    </div>
-                    <div>
-                        <p class="text-[13px] font-bold text-white group-hover:text-emerald-300 transition-colors leading-tight mb-1">${nomeDisplay}</p>
-                        <p class="text-[10px] text-zinc-500 font-mono">${v.gender || ''} | ${v.desc || ''}</p>
-                    </div>
-                </div>
-                <div class="flex items-center gap-3 shrink-0">
-                    <button class="w-8 h-8 rounded-full bg-zinc-800 border border-zinc-700/50 flex items-center justify-center text-zinc-400 hover:bg-emerald-500 hover:text-white hover:border-emerald-400 transition-all shadow-md shrink-0" title="Ouvir Prévia" onclick="tocarPreview(event, '${v.shortName}')">
-                        <i id="play_icon_${v.shortName}" class="fa-solid fa-play text-xs ml-0.5"></i>
-                    </button>
-                    ${isSelected ? '<i class="fa-solid fa-circle-check text-emerald-500 text-lg"></i>' : '<i class="fa-solid fa-circle text-zinc-800 group-hover:text-zinc-600 transition-colors text-lg"></i>'}
-                </div>
-            </div>`;
-    });
-}
-
-function selecionarVoz(sn) { 
-    if(window.playerPreviewAtual) { 
-        window.playerPreviewAtual.pause(); 
-        window.playerPreviewAtual = null; 
-        document.querySelectorAll('[id^="play_icon_"]').forEach(i => i.className = 'fa-solid fa-play text-xs ml-0.5'); 
-    }
-    vozSelecionada = sn; 
-    renderizarListaVozes(); 
-    recalcularCustoVoz(); 
-}
-
-function recalcularCustoVoz() {
-    clearTimeout(timerDebounceCusto);
-    timerDebounceCusto = setTimeout(() => {
-        const inputTexto = document.getElementById('texto_voz');
-        if(!inputTexto) return;
-        
-        const texto = inputTexto.value;
-        const tamanho = texto.length;
-        const btnTxt = document.getElementById('txt_btn_voz');
-        const contador = document.getElementById('contador_caracteres_voz');
-        
-        const isCinematic = vozSelecionada.includes("cinematic-");
-        const isCreator = vozSelecionada.includes("creator-");
-        
-        if(contador) contador.innerText = `${tamanho} caracteres`;
-
-        if(btnTxt) {
-            if(isCinematic) {
-                let custo = Math.max(1, Math.ceil((tamanho / 900.0) * 50));
-                btnTxt.innerHTML = `Sintetizar Cinematic (<span class="text-amber-900 drop-shadow-md">${custo} Coins</span>)`;
-                document.getElementById('btn_gerar_voz').className = "w-full mt-6 bg-amber-500 hover:bg-amber-400 text-amber-950 font-black py-4 px-4 rounded-xl shadow-[0_0_20px_rgba(245,158,11,0.3)] transition-all flex items-center justify-center gap-2 group border border-amber-400 relative z-10";
-            } else if (isCreator) {
-                let custo = Math.max(1, Math.ceil((tamanho / 900.0) * 12));
-                btnTxt.innerHTML = `Sintetizar Creator (<span class="text-blue-900 drop-shadow-md">${custo} Coins</span>)`;
-                document.getElementById('btn_gerar_voz').className = "w-full mt-6 bg-blue-500 hover:bg-blue-400 text-blue-950 font-black py-4 px-4 rounded-xl shadow-[0_0_20px_rgba(59,130,246,0.3)] transition-all flex items-center justify-center gap-2 group border border-blue-400 relative z-10";
-            } else {
-                btnTxt.innerHTML = `Sintetizar Standard (30 Coins)`;
-                document.getElementById('btn_gerar_voz').className = "w-full mt-6 bg-purple-600 hover:bg-purple-500 text-white font-bold py-4 px-4 rounded-xl shadow-[0_0_20px_rgba(147,51,234,0.3)] transition-all flex items-center justify-center gap-2 group border border-purple-500/50 relative z-10";
-            }
-        }
-    }, 300); 
-}
-
-function ajustarSlider(idInput, idLabel, delta, min, max, suffix) {
-    const el = document.getElementById(idInput);
-    if(!el) return;
-    let newVal = parseFloat(el.value) + delta;
-    if (newVal < min) newVal = min;
-    if (newVal > max) newVal = max;
-    
-    if (Number.isInteger(min) && Number.isInteger(max) && Number.isInteger(delta)) {
-        el.value = Math.round(newVal);
-        document.getElementById(idLabel).innerText = el.value + suffix;
-    } else {
-        el.value = newVal.toFixed(1);
-        document.getElementById(idLabel).innerText = el.value + suffix;
-    }
-}
-
-async function tocarPreview(event, shortName) {
-    event.stopPropagation();
-    
-    if (window.playerPreviewAtual) {
-        window.playerPreviewAtual.pause();
-        document.querySelectorAll('[id^="play_icon_"]').forEach(i => i.className = "fa-solid fa-play text-xs ml-0.5");
-    }
-
-    const icon = document.getElementById(`play_icon_${shortName}`);
-    if(icon) icon.className = "fa-solid fa-circle-notch fa-spin text-white"; 
-    
-    try {
-        // Rota corrigida para /previews/ (no plural)
-        const audioUrl = `/static/audios/previews/${shortName}.mp3`;
-        const playerPreview = new Audio(audioUrl);
-        window.playerPreviewAtual = playerPreview; 
-        
-        await playerPreview.play();
-        if(icon) icon.className = "fa-solid fa-volume-high text-xs ml-0.5 text-emerald-400"; 
-        
-        playerPreview.onended = () => { 
-            if(icon) icon.className = "fa-solid fa-play text-xs ml-0.5"; 
-        };
-
-    } catch(e) {
-        alert(`Arquivo de prévia não encontrado!\n\n(Dica: O ficheiro /static/audios/previews/${shortName}.mp3 precisa estar alojado).`);
-        if(icon) icon.className = "fa-solid fa-play text-xs ml-0.5 text-red-500"; 
-    } 
-}
-
-// ==========================================
-// FUNÇÕES DE EXPORTAÇÃO (SRT E SEO)
-// ==========================================
-function baixarSRT() {
-    if(!srtGlobal) return alert("A legenda (SRT) ainda não está disponível. Gere o áudio primeiro.");
-    const blob = new Blob([srtGlobal], { type: 'text/plain' });
-    const link = document.createElement('a'); 
-    link.href = URL.createObjectURL(blob);
-    link.download = `Legenda_${new Date().getTime()}.srt`;
-    link.click();
-}
-
-function enviarParaMetaSEO() {
-    const roteiro = document.getElementById('texto_voz').value;
-    if (!roteiro) return alert("O Roteiro está vazio.");
-    
-    let conteudoFinal = `ROTEIRO COMPLETO:\n${roteiro}\n\n`;
-    
-    if (typeof srtGlobal !== 'undefined' && srtGlobal) {
-        conteudoFinal += `TIMELINE EXATA (USE PARA GERAR 5 CAPÍTULOS NO YOUTUBE):\n${srtGlobal}`;
-    }
-    
-    sessionStorage.setItem('seo_conteudo', conteudoFinal);
-    window.location.href = '/meta-seo';
-}
-
-async function gerarAudioCompleto() {
-    const btn = document.getElementById('btn_gerar_voz');
-    const txtBtn = document.getElementById('txt_btn_voz');
-    const texto = document.getElementById('texto_voz').value;
-    const playerContainer = document.getElementById('player_container');
-    
-    if(!texto.trim()) return alert("Digite um texto antes de sintetizar!");
-
-    // Captura os Parâmetros Novos Dinamicamente
-    const isCinematic = vozSelecionada.includes("cinematic-");
-    const isCreator = vozSelecionada.includes("creator-");
-
-    let velocidade = 1.0;
-    if (abaVozAtiva === 'padrao') {
-        velocidade = parseFloat(document.getElementById('velocidade_std')?.value || 1.0);
-    } else if (abaVozAtiva === 'cinematic') {
-        velocidade = parseFloat(document.getElementById('velocidade_cin')?.value || 1.0);
-    }
-    
-    const pitch = abaVozAtiva === 'padrao' ? parseInt(document.getElementById('pitch_std')?.value || 0) : 0;
-    const temperatura = parseFloat(document.getElementById('temperatura')?.value || 0.7);
-    const estabilidade = parseFloat(document.getElementById('estabilidade')?.value || 0.5);
-    const similaridade = parseFloat(document.getElementById('similaridade')?.value || 0.75);
-
-    btn.disabled = true;
-    btn.classList.add('opacity-70', 'cursor-not-allowed');
-    
-    txtBtn.innerHTML = `Processando no Estúdio... <i class="fa-solid fa-circle-notch fa-spin ml-2"></i>`;
-    playerContainer.classList.remove('hidden');
-    
-    let icone = isCinematic ? "fa-star text-amber-400" : (isCreator ? "fa-clapperboard text-blue-400" : "fa-microphone-lines text-purple-400");
-    let msgExtra = texto.length > 4000 ? "<br><span class='text-[10px] text-zinc-500'>O roteiro longo está sendo renderizado por partes para manter a qualidade.</span>" : "";
-    
-    playerContainer.innerHTML = `<p class="animate-pulse text-center font-bold text-sm bg-[#121214] p-4 rounded-xl border border-zinc-800"><i class="fa-solid ${icone} fa-fade mr-2"></i> Renderizando o seu áudio...${msgExtra}</p>`;
-
-    const payload = { 
-        texto: texto, 
-        voz: vozSelecionada, 
-        velocidade: velocidade, 
-        pitch: pitch,
-        temperatura: temperatura,
-        estabilidade: estabilidade,
-        similaridade: similaridade
-    };
-
-    try {
-        const res = await fetch("/gerar_narracao", { 
-            method: 'POST', 
-            headers: { 'Content-Type': 'application/json' }, 
-            body: JSON.stringify(payload) 
-        });
-        
-        if(!res.ok) {
-            let erroReal = "Erro no servidor.";
-            try { const dadosErro = await res.json(); erroReal = dadosErro.detail || erroReal; } catch(e) {}
-            throw new Error(erroReal);
-        }
-        
-        const dados = await res.json();
-        
-        // Salva a timeline na variável global
-        window.srtGlobal = dados.srt || "";
-
-        if(dados.novo_saldo !== undefined) {
-            const paineisDeCoins = document.querySelectorAll('.fa-coins');
-            paineisDeCoins.forEach(icone => {
-                const elementoPai = icone.closest('p'); 
-                if(elementoPai) {
-                    elementoPai.innerHTML = `<i class="fa-solid fa-coins"></i> ${dados.novo_saldo.toLocaleString('pt-BR')} coins`;
-                    elementoPai.classList.add('text-emerald-400', 'scale-110');
-                    setTimeout(() => elementoPai.classList.remove('text-emerald-400', 'scale-110'), 500);
-                }
-            });
-        }
-
-        playerContainer.innerHTML = `
-            <div class="flex items-center gap-2 mb-3">
-                <i class="fa-solid fa-circle-check text-emerald-400 drop-shadow-[0_0_5px_rgba(16,185,129,0.8)]"></i>
-                <p class="text-xs text-emerald-400 font-bold uppercase tracking-wider">Locução Finalizada</p>
-            </div>
-            <audio controls class="w-full h-12 bg-zinc-900 rounded-lg outline-none shadow-inner">
-                <source src="data:audio/mp3;base64,${dados.audio_base64}" type="audio/mp3">
-            </audio>
+            async for chunk in communicate.stream():
+                if chunk["type"] == "audio":
+                    audio_data.extend(chunk["data"])
+                elif chunk["type"] in ("WordBoundary", "SentenceBoundary"):
+                    submaker.feed(chunk)
             
-            <div class="flex flex-col sm:flex-row gap-3 border-t border-zinc-800/80 pt-4 mt-4">
-                <button onclick="baixarSRT()" class="flex-1 bg-[#09090b] hover:bg-emerald-600 text-emerald-400 hover:text-white font-bold py-3.5 rounded-xl border border-emerald-500/30 hover:border-emerald-500 transition-all text-xs flex items-center justify-center gap-2 shadow-inner hover:shadow-[0_0_15px_rgba(16,185,129,0.4)] group">
-                    <i class="fa-solid fa-download group-hover:-translate-y-1 transition-transform"></i> Baixar .SRT
-                </button>
-                <button onclick="enviarParaMetaSEO()" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-black py-3.5 rounded-xl border border-blue-500/50 transition-all text-xs flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(59,130,246,0.4)] group">
-                    <i class="fa-solid fa-rocket group-hover:translate-x-1 transition-transform"></i> Gerar Meta & SEO
-                </button>
-            </div>
-        `;
-    } catch (e) {
-        const isCoinError = e.message.includes('Coins insuficientes');
-        const erroClass = isCoinError ? 'text-yellow-400 bg-yellow-500/10 border-yellow-500/20' : 'text-red-400 bg-red-500/10 border-red-500/20';
-        playerContainer.innerHTML = `<div class="${erroClass} border p-4 rounded-lg text-center font-bold text-sm"><i class="fa-solid fa-triangle-exclamation mb-2 text-2xl block"></i> ${e.message}</div>`;
-    } finally {
-        btn.disabled = false;
-        btn.classList.remove('opacity-70', 'cursor-not-allowed');
-        recalcularCustoVoz();
-    }
-}
+            srt_content = submaker.get_srt()
+            audio_base64 = base64.b64encode(audio_data).decode('utf-8')
+        
+        if not is_preview:
+            pasta_audios = os.path.join("frontend", "static", "audios", "historico")
+            os.makedirs(pasta_audios, exist_ok=True)
+            nome_arquivo = f"audio_{usuario.id}_{int(time.time())}.mp3"
+            caminho_completo = os.path.join(pasta_audios, nome_arquivo)
+            
+            with open(caminho_completo, "wb") as f:
+                f.write(base64.b64decode(audio_base64))
+                
+            ferramenta_nome = "Voice Synth - Cinematic" if is_cinematic else ("Voice Synth - Creator" if is_creator else "Voice Synth - Standard")
+            novo_historico = models.Historico(
+                usuario_id=usuario.id,
+                ferramenta=ferramenta_nome,
+                input_usuario=f"Voz: {req.voz} | Tamanho: {tamanho_texto} chars",
+                resultado=f"/static/audios/historico/{nome_arquivo}",
+                custo_coins=custo_operacao
+            )
+            db.add(novo_historico)
+            db.commit()
+
+        return {"status": "sucesso", "audio_base64": audio_base64, "srt": srt_content, "novo_saldo": usuario.coins}
+
+    except Exception as e:
+        if not is_preview:
+            usuario.coins += custo_operacao
+            db.commit()
+        print(f"❌ Erro na Geração de Áudio: {e}")
+        raise HTTPException(status_code=500, detail=f"Falha ao gerar o áudio: {str(e)}")
