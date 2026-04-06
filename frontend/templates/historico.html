@@ -91,4 +91,15 @@
         </div>
     </div>
 </section>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const modal = document.getElementById('modal_resultado');
+        if (modal) {
+            // Move o modal diretamente para a raiz do documento (body)
+            // Isso ignora o z-10 do main e garante que o z-[100] sobreponha a sidebar perfeitamente!
+            document.body.appendChild(modal);
+        }
+    });
+</script>
 {% endblock %}
