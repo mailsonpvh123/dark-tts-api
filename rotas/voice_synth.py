@@ -33,10 +33,10 @@ class AudioRequest(BaseModel):
 # CATÁLOGOS DE VOZES (Género e Personalidade)
 # ==========================================
 VOICES_CREATOR = {
-    "Achernar": {"desc": "Suave", "genero": "Masculino"},
-    "Achird": {"desc": "Amigável", "genero": "Feminino"},
+    "Achernar": {"desc": "Suave", "genero": "Feminino"},
+    "Achird": {"desc": "Amigável", "genero": "Masculino"},
     "Algenib": {"desc": "Áspero", "genero": "Masculino"},
-    "Algieba": {"desc": "Suave", "genero": "Feminino"},
+    "Algieba": {"desc": "Suave", "genero": "Masculino"},
     "Alnilam": {"desc": "Firme", "genero": "Masculino"},
     "Aoede": {"desc": "Breezy e Natural", "genero": "Feminino"},
     "Autonoe": {"desc": "Brilhante", "genero": "Feminino"},
@@ -46,7 +46,7 @@ VOICES_CREATOR = {
     "Enceladus": {"desc": "Breathy", "genero": "Masculino"},
     "Erinome": {"desc": "Limpa", "genero": "Feminino"},
     "Fenrir": {"desc": "Excitável e Intenso", "genero": "Masculino"},
-    "Gacrux": {"desc": "Adulto", "genero": "Masculino"},
+    "Gacrux": {"desc": "Adulto", "genero": "Feminino"},
     "Iapetus": {"desc": "Limpo", "genero": "Masculino"},
     "Kore": {"desc": "Firme", "genero": "Feminino"},
     "Laomedeia": {"desc": "Upbeat", "genero": "Feminino"},
