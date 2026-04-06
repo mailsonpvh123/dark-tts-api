@@ -1,4 +1,5 @@
 import json
+import re
 import os
 import asyncio
 from fastapi import APIRouter, HTTPException, Depends
@@ -60,6 +61,7 @@ Você DEVE obrigatoriamente retornar a sua resposta EXCLUSIVAMENTE em um formato
     {
       "estrategia": "Nome da estratégia",
       "psicologia": "Breve explicação psicológica",
+      "texto_na_imagem": "O texto da capa",
       "prompt_gringo": "Prompt hiper-detalhado em INGLÊS para Midjourney"
     }
   ]
@@ -88,11 +90,10 @@ Você DEVE obrigatoriamente retornar a sua resposta EXCLUSIVAMENTE em um formato
                     raise e_api
 
         # ==========================================
-        # BLINDAGEM DE JSON PARA O FRONTEND (CÓDIGO À PROVA DE FALHAS)
+        # BLINDAGEM DE JSON PARA O FRONTEND
         # ==========================================
         dados_str = dados_str.strip()
         
-        # Remove os blocos de formatação markdown do texto se a IA os enviar
         if "```json" in dados_str:
             dados_str = dados_str.split("```json")[1].split("```")[0]
         elif "```" in dados_str:
@@ -105,7 +106,6 @@ Você DEVE obrigatoriamente retornar a sua resposta EXCLUSIVAMENTE em um formato
         except json.JSONDecodeError:
             raise Exception("A IA falhou em estruturar o arquivo visual. Tente gerar novamente.")
 
-        # Trava de segurança absoluta: evita o erro .forEach no javascript
         if "capas" not in dados_json:
             dados_json["capas"] = []
 
@@ -118,6 +118,7 @@ Você DEVE obrigatoriamente retornar a sua resposta EXCLUSIVAMENTE em um formato
         for i, capa in enumerate(dados_json.get("capas", [])):
             texto_historico += f"🖼️ CONCEITO {i+1} ({capa.get('estrategia', '')})\n"
             texto_historico += f"🧠 Psicologia: {capa.get('psicologia', '')}\n"
+            texto_historico += f"🔤 Texto na Arte: {capa.get('texto_na_imagem', req.texto_arte)}\n"
             texto_historico += f"🪄 Prompt Midjourney:\n{capa.get('prompt_gringo', '')}\n"
             texto_historico += "-" * 50 + "\n\n"
 
