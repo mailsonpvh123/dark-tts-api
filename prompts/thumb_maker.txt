@@ -12,6 +12,7 @@ Você DEVE obrigatoriamente retornar a sua resposta EXCLUSIVAMENTE em um formato
     {
       "estrategia": "Nome da estratégia (ex: Contraste, Mistério, Dor, Prova Social)",
       "psicologia": "Breve explicação psicológica de por que isso fará o usuário clicar loucamente",
+      "texto_na_imagem": "O texto curto e de alto impacto que deve ser escrito na capa (use o que o usuário sugeriu ou melhore-o)",
       "prompt_gringo": "Prompt hiper-detalhado em INGLÊS para Midjourney/DALL-E gerar esta imagem. Inclua detalhes de iluminação, ângulo da câmera, lente e estilo da arte."
     }
   ]
