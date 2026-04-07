@@ -14,7 +14,7 @@
         <a href="/" class="text-xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-purple-500 via-purple-400 to-emerald-400 drop-shadow-sm italic hover:opacity-80 transition-opacity">
             <i class="fa-solid fa-moon text-purple-500 mr-1"></i>DARK<span class="text-zinc-500 font-normal">CREATOR</span>
         </a>
-        <button onclick="toggleMenuMobile()" class="text-zinc-400 hover:text-white focus:outline-none w-10 h-10 flex items-center justify-center rounded-lg bg-zinc-800/50 border border-zinc-700 transition-colors">
+        <button onclick="toggleMenuMobile()" class="text-zinc-400 hover:text-white focus:outline-none w-10 h-10 flex items-center justify-center bg-zinc-800/50 rounded-lg border border-zinc-700 transition-colors">
             <i class="fa-solid fa-bars text-lg"></i>
         </button>
     </header>
@@ -33,75 +33,96 @@
             </button>
         </div>
         
-        <nav class="flex-1 px-3 py-6 space-y-6 overflow-y-auto relative z-10 custom-scrollbar" id="menu_lateral">
+        <nav class="flex-1 px-4 py-6 space-y-6 overflow-y-auto relative z-10 custom-scrollbar" id="menu_lateral">
             <div>
-                <p class="px-3 text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-3">Produção</p>
-                <div class="space-y-1">
-                    <a href="/gen-insights" class="menu-btn w-full flex items-center gap-3 px-3 py-2.5 text-zinc-400 hover:text-white hover:bg-zinc-800/50 rounded-lg transition-all text-left text-sm border border-transparent">
-                        <i class="fa-solid fa-lightbulb w-5 text-center transition-colors"></i> Gen Insights
-                    </a>
-                    <a href="/miner" class="menu-btn w-full flex items-center gap-3 px-3 py-2.5 text-zinc-400 hover:text-white hover:bg-zinc-800/50 rounded-lg transition-all text-left text-sm border border-transparent">
-                        <i class="fa-solid fa-magnet w-5 text-center transition-colors"></i> Miner
-                    </a>
-                    <a href="/paraphraser" class="menu-btn w-full flex items-center gap-3 px-3 py-2.5 text-zinc-400 hover:text-white hover:bg-zinc-800/50 rounded-lg transition-all text-left text-sm border border-transparent">
-                        <i class="fa-solid fa-rotate w-5 text-center transition-colors"></i> Paraphraser
-                    </a>
-                    <a href="/script-forge" class="menu-btn w-full flex items-center gap-3 px-3 py-2.5 text-zinc-400 hover:text-white hover:bg-zinc-800/50 rounded-lg transition-all text-left text-sm border border-transparent">
-                        <i class="fa-solid fa-pen-nib w-5 text-center transition-colors"></i> Script Forge
-                    </a>
-                    <a href="/voice-synthesizer" class="menu-btn w-full flex items-center gap-3 px-3 py-2.5 text-zinc-400 hover:text-white hover:bg-zinc-800/50 rounded-lg transition-all text-left text-sm border border-transparent">
-                        <i class="fa-solid fa-microphone-lines w-5 text-center transition-colors"></i> Voice Synth
-                    </a>
-                    <a href="/scenemaker" class="menu-btn w-full flex items-center gap-3 px-3 py-2.5 text-zinc-400 hover:text-white hover:bg-zinc-800/50 rounded-lg transition-all text-left text-sm border border-transparent">
-                        <i class="fa-solid fa-clapperboard w-5 text-center transition-colors"></i> SceneMaker
-                    </a>
-                    <a href="/meta-seo" class="menu-btn w-full flex items-center gap-3 px-3 py-2.5 text-zinc-400 hover:text-white hover:bg-zinc-800/50 rounded-lg transition-all text-left text-sm border border-transparent">
-                        <i class="fa-solid fa-magnifying-glass-chart w-5 text-center transition-colors"></i> Meta & SEO
-                    </a>
-                    <a href="/thumb-maker" class="menu-btn w-full flex items-center gap-3 px-3 py-2.5 text-zinc-400 hover:text-white hover:bg-zinc-800/50 rounded-lg transition-all text-left text-sm border border-transparent">
-                        <i class="fa-solid fa-image w-5 text-center transition-colors"></i> Thumb Maker
-                    </a>
-                    <a href="/clip-hunter" class="menu-btn w-full flex items-center gap-3 px-3 py-2.5 text-zinc-400 hover:text-white hover:bg-zinc-800/50 rounded-lg transition-all text-left text-sm border border-transparent">
-                        <i class="fa-solid fa-photo-film w-5 text-center transition-colors"></i> Clip Hunter
+                <p class="px-4 text-[10px] font-black text-zinc-600 uppercase tracking-widest mb-3 mt-2">Plataforma</p>
+                <div class="space-y-1.5">
+                    <a href="/" class="menu-btn flex items-center gap-3 px-4 py-3 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800/50 transition-colors border border-transparent hover:border-zinc-700/50">
+                        <i class="fa-solid fa-house text-lg w-5 text-center transition-colors"></i>
+                        <span class="text-sm font-semibold tracking-wide">Dashboard</span>
                     </a>
                 </div>
 
-                <div class="my-6 border-t border-zinc-800/80"></div>
-                
-                <p class="px-3 text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-3">Gerenciamento</p>
-                <div class="space-y-1">
-                    <a href="/" class="menu-btn w-full flex items-center gap-3 px-3 py-2.5 text-zinc-400 hover:text-white hover:bg-zinc-800/50 rounded-lg transition-all text-sm border border-transparent">
-                        <i class="fa-solid fa-house w-5 text-center transition-colors"></i> Dashboard
+                <p class="px-4 text-[10px] font-black text-zinc-600 uppercase tracking-widest mb-3 mt-6">Esteira de Produção</p>
+                <div class="space-y-1.5">
+                    <a href="/gen-insights" class="menu-btn flex items-center gap-3 px-4 py-3 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800/50 transition-colors border border-transparent hover:border-zinc-700/50">
+                        <i class="fa-solid fa-lightbulb text-lg w-5 text-center transition-colors"></i>
+                        <span class="text-sm font-semibold tracking-wide">Gen Insights</span>
                     </a>
-                    <a href="/historico" class="menu-btn w-full flex items-center gap-3 px-3 py-2.5 text-zinc-400 hover:text-white hover:bg-zinc-800/50 rounded-lg transition-all text-sm border border-transparent">
-                        <i class="fa-solid fa-clock-rotate-left w-5 text-center transition-colors"></i> Histórico
+                    
+                    <a href="/miner" class="menu-btn flex items-center gap-3 px-4 py-3 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800/50 transition-colors border border-transparent hover:border-zinc-700/50">
+                        <i class="fa-solid fa-magnet text-lg w-5 text-center transition-colors"></i>
+                        <span class="text-sm font-semibold tracking-wide">Data Miner</span>
                     </a>
-                    <a href="/planos" class="menu-btn w-full flex items-center gap-3 px-3 py-2.5 text-emerald-400 hover:text-white hover:bg-emerald-500/10 rounded-lg transition-all text-sm border border-transparent font-bold">
-                        <i class="fa-solid fa-gem w-5 text-center transition-colors"></i> Planos e Coins
+                    
+                    <a href="/paraphraser" class="menu-btn flex items-center gap-3 px-4 py-3 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800/50 transition-colors border border-transparent hover:border-zinc-700/50">
+                        <i class="fa-solid fa-rotate text-lg w-5 text-center transition-colors"></i>
+                        <span class="text-sm font-semibold tracking-wide">Text Transmuter</span>
+                    </a>
+                    
+                    <a href="/script-forge" class="menu-btn flex items-center gap-3 px-4 py-3 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800/50 transition-colors border border-transparent hover:border-zinc-700/50">
+                        <i class="fa-solid fa-pen-nib text-lg w-5 text-center transition-colors"></i>
+                        <span class="text-sm font-semibold tracking-wide">Script Forge</span>
+                    </a>
+                    
+                    <a href="/voice-synthesizer" class="menu-btn flex items-center gap-3 px-4 py-3 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800/50 transition-colors border border-transparent hover:border-zinc-700/50">
+                        <i class="fa-solid fa-microphone-lines text-lg w-5 text-center transition-colors"></i>
+                        <span class="text-sm font-semibold tracking-wide">Estúdio Neural</span>
+                    </a>
+
+                    <a href="/scenemaker" class="menu-btn flex items-center gap-3 px-4 py-3 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800/50 transition-colors border border-transparent hover:border-zinc-700/50">
+                        <i class="fa-solid fa-clapperboard text-lg w-5 text-center transition-colors"></i>
+                        <span class="text-sm font-semibold tracking-wide">SceneMaker</span>
+                    </a>
+                    
+                    <a href="/meta-seo" class="menu-btn flex items-center gap-3 px-4 py-3 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800/50 transition-colors border border-transparent hover:border-zinc-700/50">
+                        <i class="fa-solid fa-magnifying-glass-chart text-lg w-5 text-center transition-colors"></i>
+                        <span class="text-sm font-semibold tracking-wide">Meta & SEO</span>
+                    </a>
+                    
+                    <a href="/thumb-maker" class="menu-btn flex items-center gap-3 px-4 py-3 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800/50 transition-colors border border-transparent hover:border-zinc-700/50">
+                        <i class="fa-solid fa-image text-lg w-5 text-center transition-colors"></i>
+                        <span class="text-sm font-semibold tracking-wide">Thumb Maker Pro</span>
+                    </a>
+                    
+                    <a href="/clip-hunter" class="menu-btn flex items-center gap-3 px-4 py-3 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800/50 transition-colors border border-transparent hover:border-zinc-700/50">
+                        <i class="fa-solid fa-photo-film text-lg w-5 text-center transition-colors"></i>
+                        <span class="text-sm font-semibold tracking-wide">Clip Hunter</span>
+                    </a>
+                </div>
+
+                <div class="pt-4 mt-4 border-t border-zinc-800/80">
+                    <a href="/historico" class="menu-btn flex items-center gap-3 px-4 py-3 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800/50 transition-colors border border-transparent hover:border-zinc-700/50">
+                        <i class="fa-solid fa-clock-rotate-left text-lg w-5 text-center transition-colors"></i>
+                        <span class="text-sm font-semibold tracking-wide">Histórico</span>
+                    </a>
+                    <a href="/planos" class="menu-btn flex items-center gap-3 px-4 py-3 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800/50 transition-colors border border-transparent hover:border-zinc-700/50">
+                        <i class="fa-solid fa-cart-shopping text-lg w-5 text-center transition-colors"></i>
+                        <span class="text-sm font-semibold tracking-wide">Comprar Coins</span>
                     </a>
                 </div>
             </div>
         </nav>
-        
+
         <div class="p-4 border-t border-zinc-800 relative z-10">
             {% if user %}
-            <div class="flex items-center gap-3 bg-[#121214] p-3 rounded-lg border border-zinc-800/80 hover:border-purple-500/30 transition-colors cursor-pointer group relative">
-                <div class="w-8 h-8 rounded-full bg-gradient-to-br from-purple-600 to-emerald-500 flex items-center justify-center text-white font-bold text-sm shadow-inner uppercase">
-                    {{ user.email[:2] }}
+            <div class="flex items-center gap-3 bg-[#121214] p-3 rounded-xl border border-zinc-800 shadow-inner group hover:border-emerald-500/30 transition-colors cursor-default relative overflow-hidden">
+                <div class="w-10 h-10 rounded-lg bg-zinc-800 flex items-center justify-center text-emerald-400 font-bold border border-zinc-700/50 shadow-sm relative z-10 group-hover:scale-105 transition-transform">
+                    {{ user.email[0] | upper }}
                 </div>
-                <div class="flex-1 min-w-0">
-                    <p class="text-sm font-medium text-white truncate">{{ user.email.split('@')[0] }}</p>
-                    <p class="text-xs text-emerald-400 font-semibold drop-shadow-[0_0_2px_rgba(16,185,129,0.5)]">
-                        <i class="fa-solid fa-coins"></i> {{ "{:,}".format(user.coins).replace(',', '.') }} coins
+                <div class="flex-1 min-w-0 relative z-10">
+                    <p class="text-[13px] font-bold text-white truncate" title="{{ user.email }}">{{ user.email.split('@')[0] }}</p>
+                    <p class="text-[10px] text-emerald-400 font-bold tracking-wide mt-0.5 flex items-center gap-1">
+                        <i class="fa-solid fa-coins"></i> {{ "{:,}".format(user.coins).replace(',','.') }} coins
                     </p>
                 </div>
-                <a href="/logout" class="absolute -top-10 right-0 bg-red-500/10 border border-red-500/20 text-red-500 text-[10px] px-3 py-1.5 rounded opacity-0 group-hover:opacity-100 transition-opacity font-bold">
-                    Sair <i class="fa-solid fa-right-from-bracket ml-1"></i>
-                </a>
+                <button onclick="fazerLogout()" class="w-8 h-8 rounded bg-red-500/10 flex items-center justify-center text-red-500 hover:bg-red-500 hover:text-white transition-all border border-red-500/20 relative z-10" title="Sair do Sistema">
+                    <i class="fa-solid fa-right-from-bracket text-xs"></i>
+                </button>
             </div>
             {% else %}
-            <div class="flex items-center gap-3 bg-[#121214] p-3 rounded-lg border border-zinc-800/30 transition-colors opacity-50">
-                <div class="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-500 font-bold text-sm shadow-inner">
+            <div class="flex items-center gap-3 bg-zinc-900/50 p-3 rounded-xl border border-zinc-800/50">
+                <div class="w-10 h-10 rounded-lg bg-zinc-800 flex items-center justify-center text-zinc-500 border border-zinc-700/50">
                     <i class="fa-solid fa-user-secret"></i>
                 </div>
                 <div class="flex-1 min-w-0">
@@ -137,8 +158,21 @@
                 if(icon) icon.classList.add('text-emerald-400');
             }
         });
+
+        async function fazerLogout() {
+            if(confirm("Deseja realmente sair do seu império?")) {
+                try {
+                    const response = await fetch('/api/logout', { method: 'POST' });
+                    if(response.ok) {
+                        window.location.href = '/login';
+                    }
+                } catch(e) {
+                    alert("Erro ao sair: " + e);
+                }
+            }
+        }
     </script>
     
-    <script src="/static/js/main.js?v=15"></script>
+    <script src="/static/js/main.js"></script>
 </body>
 </html>
