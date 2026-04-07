@@ -1,6 +1,6 @@
 import uvicorn
 import os
-import uuid
+import uuid # <-- Importado para gerar as sessões únicas
 from datetime import datetime
 from fastapi import FastAPI, Request, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -8,7 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from sqlalchemy.orm import Session
-from sqlalchemy import text 
+from sqlalchemy import text # <-- Para atualizar o banco de dados
 from passlib.context import CryptContext
 
 # --- IMPORTS DO SISTEMA ---
@@ -17,7 +17,7 @@ from database import engine, get_db
 from auth import criar_token_acesso, verificar_senha, get_usuario_atual
 
 # Importa as rotas dos arquivos modulares
-from rotas import minerador, voice_synth, audio_mixer, paraphraser, gen_insights, script_forge, meta_seo, thumb_maker, historico, pagamentos, cliphunter, scenemaker
+from rotas import minerador, voice_synth, audio_mixer, paraphraser, gen_insights, script_forge, meta_seo, thumb_maker, historico, pagamentos, cliphunter, scenemaker, video_forge
 
 # --- INICIALIZAÇÃO ---
 app = FastAPI(
@@ -96,6 +96,12 @@ async def page_scenemaker(request: Request, db: Session = Depends(get_db)):
     usuario = await get_usuario_atual(request, db)
     if not usuario: return RedirectResponse(url="/login")
     return templates.TemplateResponse("scenemaker.html", {"request": request, "title": "SceneMaker", "user": usuario})
+
+@app.get("/video-forge", response_class=HTMLResponse)
+async def page_video_forge(request: Request, db: Session = Depends(get_db)):
+    usuario = await get_usuario_atual(request, db)
+    if not usuario: return RedirectResponse(url="/login")
+    return templates.TemplateResponse("video_forge.html", {"request": request, "title": "Video Forge", "user": usuario})
 
 @app.get("/meta-seo", response_class=HTMLResponse)
 async def page_seo(request: Request, db: Session = Depends(get_db)):
@@ -195,6 +201,7 @@ app.include_router(thumb_maker.router)
 app.include_router(pagamentos.router)
 app.include_router(cliphunter.router)
 app.include_router(scenemaker.router)
+app.include_router(video_forge.router)
 
 # --- ATUALIZAÇÃO DO BANCO & CRIAÇÃO DE ADMIN ---
 @app.get("/setup-admin")
