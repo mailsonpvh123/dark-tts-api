@@ -20,13 +20,14 @@ async def processar_video_forge(
     legenda: UploadFile = File(...),
     bgm: Optional[UploadFile] = File(None),
     imagens: List[UploadFile] = File(...),
+    formato_video: str = Form("vertical"), # <-- NOVO: Recebe o formato do Front
     db: Session = Depends(get_db),
     usuario: models.Usuario = Depends(get_usuario_atual)
 ):
     if not usuario:
         raise HTTPException(status_code=401, detail="Sessão expirada. Faça login novamente.")
 
-    custo_operacao = 25 # Taxa da renderização interna
+    custo_operacao = 25 
 
     if usuario.coins < custo_operacao:
         raise HTTPException(status_code=402, detail=f"Coins insuficientes! Necessário {custo_operacao} coins.")
@@ -34,13 +35,11 @@ async def processar_video_forge(
     usuario.coins -= custo_operacao
     db.commit()
 
-    # Cria diretório temporário para a "cozinha" do FFmpeg
     id_job = str(uuid.uuid4())[:8]
     work_dir = os.path.join("data", f"forge_{id_job}")
     os.makedirs(work_dir, exist_ok=True)
 
     try:
-        # 1. Salva os arquivos de áudio e legenda
         path_voz = os.path.join(work_dir, "voz.mp3")
         with open(path_voz, "wb") as f:
             f.write(await voz.read())
@@ -55,11 +54,9 @@ async def processar_video_forge(
             with open(path_bgm, "wb") as f:
                 f.write(await bgm.read())
 
-        # 2. Descobre a duração do áudio base
         audio_voz = AudioSegment.from_file(path_voz)
         duracao_segundos = len(audio_voz) / 1000.0
 
-        # 3. Salva as imagens e cria o txt para o slideshow do FFmpeg
         tempo_por_img = duracao_segundos / len(imagens) if len(imagens) > 0 else 5.0
         
         path_images_txt = os.path.join(work_dir, "imagens.txt")
@@ -70,26 +67,32 @@ async def processar_video_forge(
                 with open(img_path, "wb") as f_img:
                     f_img.write(await img_file.read())
                 
-                # Formato exigido pelo concat demuxer do FFmpeg
                 f.write(f"file 'img_{i}.{ext}'\n")
                 f.write(f"duration {tempo_por_img:.2f}\n")
             
-            # Repete a última imagem sem duração (Requisito do FFmpeg)
             if imagens:
                 ext = imagens[-1].filename.split(".")[-1]
                 f.write(f"file 'img_{len(imagens)-1}.{ext}'\n")
 
-        # 4. Monta o Comando Monstro do FFmpeg
         nome_saida = f"videoforge_{usuario.id}_{int(time.time())}.mp4"
         pasta_destino = os.path.join("frontend", "static", "videos", "historico")
         os.makedirs(pasta_destino, exist_ok=True)
         
-        # A CORREÇÃO ESTÁ AQUI: Forçamos o caminho a ser ABSOLUTO
         path_saida = os.path.join(pasta_destino, nome_saida)
         path_saida_absoluto = os.path.abspath(path_saida)
         
-        # Filtro de legendas (Amarelo, borda preta)
-        filtro_legenda = "subtitles=legenda.srt:force_style='FontSize=22,PrimaryColour=&H00FFFF,OutlineColour=&H000000,BorderStyle=3,Bold=-1'"
+        # --- A MÁGICA DA LEGENDA E DA ESCALA ACONTECE AQUI ---
+        # Definindo a resolução com base no formato escolhido
+        if formato_video == "horizontal":
+            resolucao_escala = "1920:1080"
+            # FontSize 14 em Horizontal é bom, margin de baixo (MarginV) 40
+            estilo_leg = "FontName=Arial,FontSize=14,PrimaryColour=&H00FFFF,OutlineColour=&H000000,BorderStyle=3,Bold=-1,Alignment=2,MarginV=40"
+        else:
+            resolucao_escala = "1080:1920"
+            # FontSize 16 em Vertical fica robusto, margin de baixo (MarginV) 120 para não pegar botões do TikTok
+            estilo_leg = "FontName=Arial,FontSize=16,PrimaryColour=&H00FFFF,OutlineColour=&H000000,BorderStyle=3,Bold=-1,Alignment=2,MarginV=120"
+        
+        filtro_legenda = f"subtitles=legenda.srt:force_style='{estilo_leg}'"
         
         cmd = [
             "ffmpeg", "-y",
@@ -99,36 +102,34 @@ async def processar_video_forge(
         
         if path_bgm:
             cmd.extend(["-i", "bgm.mp3"])
-            # Mixa a voz e a música de fundo abaixando a música para 10%
             cmd.extend([
                 "-filter_complex",
-                f"[2:a]volume=0.1[bgm_low];[1:a][bgm_low]amix=inputs=2:duration=first[a_mix];[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,{filtro_legenda}[v_sub]",
+                f"[2:a]volume=0.1[bgm_low];[1:a][bgm_low]amix=inputs=2:duration=first[a_mix];[0:v]scale={resolucao_escala}:force_original_aspect_ratio=increase,crop={resolucao_escala},{filtro_legenda}[v_sub]",
                 "-map", "[v_sub]", "-map", "[a_mix]"
             ])
         else:
-            # Só a voz
             cmd.extend([
                 "-filter_complex",
-                f"[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,{filtro_legenda}[v_sub]",
+                f"[0:v]scale={resolucao_escala}:force_original_aspect_ratio=increase,crop={resolucao_escala},{filtro_legenda}[v_sub]",
                 "-map", "[v_sub]", "-map", "1:a"
             ])
 
-        # Passamos o path_saida_absoluto para o FFmpeg não se perder
         cmd.extend(["-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "192k", "-shortest", path_saida_absoluto])
 
-        # Roda o processo na pasta temporária para evitar caminhos absolutos bugados no filtro do ffmpeg
         processo = subprocess.run(cmd, cwd=work_dir, capture_output=True, text=True)
 
         if processo.returncode != 0:
             print("ERRO FFMPEG:", processo.stderr)
             raise Exception("Falha ao renderizar vídeo no FFmpeg.")
 
-        # 5. Salva no Histórico
         url_video = f"/static/videos/historico/{nome_saida}"
+        
+        # Histórico Refinado
+        badge_formato = "📱 Vertical" if formato_video == "vertical" else "📺 Horizontal"
         novo_historico = models.Historico(
             usuario_id=usuario.id,
             ferramenta="Video Forge",
-            input_usuario=f"{len(imagens)} Imagens | Duração: {duracao_segundos:.1f}s",
+            input_usuario=f"{badge_formato} | {len(imagens)} Cenas | Duração: {duracao_segundos:.1f}s",
             resultado=url_video,
             custo_coins=custo_operacao
         )
@@ -138,12 +139,10 @@ async def processar_video_forge(
         return {"status": "sucesso", "video_url": url_video, "novo_saldo": usuario.coins}
 
     except Exception as e:
-        # Reembolsa em caso de falha
         usuario.coins += custo_operacao
         db.commit()
         print(f"❌ Erro no Video Forge: {e}")
         raise HTTPException(status_code=500, detail=str(e))
     finally:
-        # Limpa a cozinha
         if os.path.exists(work_dir):
             shutil.rmtree(work_dir)
