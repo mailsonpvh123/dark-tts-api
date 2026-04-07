@@ -31,7 +31,6 @@ document.addEventListener('DOMContentLoaded', async function() {
             if (path === '/paraphraser') icon.classList.add('text-pink-400');
             if (path === '/script-forge') icon.classList.add('text-orange-400');
             if (path === '/voice-synthesizer') icon.classList.add('text-purple-400');
-            if (path === '/scenemaker') icon.classList.add('text-cyan-400');
             if (path === '/audio-mixer') icon.classList.add('text-amber-400');
             if (path === '/meta-seo') icon.classList.add('text-blue-400');
             if (path === '/thumb-maker') icon.classList.add('text-pink-400');
@@ -929,12 +928,10 @@ function encaminharPara(destino, index) {
         sessionStorage.setItem('script_ideia_base', texto);
         window.location.href = '/script-forge';
     } else if (destino === 'voice') {
-        // A SOLUÇÃO CIRÚRGICA: Integrando perfeitamente com o seu localStorage!
         localStorage.setItem('texto_pendente_voice', texto);
         window.location.href = '/voice-synthesizer';
     } else if (destino === 'seo') {
         sessionStorage.setItem('seo_conteudo', texto);
         window.location.href = '/meta-seo';
     }
-}
 }
