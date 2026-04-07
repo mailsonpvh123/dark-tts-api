@@ -1,6 +1,6 @@
 import uvicorn
 import os
-import uuid # <-- Importado para gerar as sessões únicas
+import uuid
 from datetime import datetime
 from fastapi import FastAPI, Request, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -8,7 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from sqlalchemy.orm import Session
-from sqlalchemy import text # <-- Para atualizar o banco de dados
+from sqlalchemy import text 
 from passlib.context import CryptContext
 
 # --- IMPORTS DO SISTEMA ---
@@ -16,7 +16,7 @@ import models
 from database import engine, get_db
 from auth import criar_token_acesso, verificar_senha, get_usuario_atual
 
-# Importa as rotas dos arquivos modulares (SCENEMAKER ADICIONADO)
+# Importa as rotas dos arquivos modulares
 from rotas import minerador, voice_synth, audio_mixer, paraphraser, gen_insights, script_forge, meta_seo, thumb_maker, historico, pagamentos, cliphunter, scenemaker
 
 # --- INICIALIZAÇÃO ---
@@ -90,6 +90,12 @@ async def page_voice(request: Request, db: Session = Depends(get_db)):
     usuario = await get_usuario_atual(request, db)
     if not usuario: return RedirectResponse(url="/login")
     return templates.TemplateResponse("voice_synthesizer.html", {"request": request, "title": "Estúdio Neural", "user": usuario})
+
+@app.get("/scenemaker", response_class=HTMLResponse)
+async def page_scenemaker(request: Request, db: Session = Depends(get_db)):
+    usuario = await get_usuario_atual(request, db)
+    if not usuario: return RedirectResponse(url="/login")
+    return templates.TemplateResponse("scenemaker.html", {"request": request, "title": "SceneMaker", "user": usuario})
 
 @app.get("/meta-seo", response_class=HTMLResponse)
 async def page_seo(request: Request, db: Session = Depends(get_db)):
@@ -188,46 +194,47 @@ app.include_router(meta_seo.router)
 app.include_router(thumb_maker.router)
 app.include_router(pagamentos.router)
 app.include_router(cliphunter.router)
-app.include_router(scenemaker.router) # <-- SCENEMAKER ATIVADO AQUI
+app.include_router(scenemaker.router)
 
 # --- ATUALIZAÇÃO DO BANCO & CRIAÇÃO DE ADMIN ---
 @app.get("/setup-admin")
 def setup_admin(db: Session = Depends(get_db)):
-    # 1. ATUALIZAÇÃO ESTRUTURAL DO BANCO DE DADOS
     try:
-        # Tenta injetar a nova coluna caso o banco de dados seja antigo
-        db.execute(text("ALTER TABLE usuarios ADD COLUMN token_sessao VARCHAR"))
-        db.commit()
-        print("Coluna 'token_sessao' adicionada com sucesso ao banco!")
-    except Exception as e:
-        # Se der erro, é porque a coluna já existe. Tudo tranquilo.
-        pass 
+        # 1. ATUALIZAÇÃO ESTRUTURAL DO BANCO DE DADOS
+        try:
+            # Tenta injetar a nova coluna caso o banco de dados seja antigo
+            db.execute(text("ALTER TABLE usuarios ADD COLUMN token_sessao VARCHAR"))
+            db.commit()
+            print("Coluna 'token_sessao' adicionada com sucesso ao banco!")
+        except Exception:
+            # Se der erro, é porque a coluna já existe. Tudo tranquilo.
+            pass 
 
-    # 2. CRIAÇÃO OU ATUALIZAÇÃO DO ADMIN
-    meu_email = "redbull782.mab@gmail.com"
-    minha_senha = "18022006Lipe#" 
+        # 2. CRIAÇÃO OU ATUALIZAÇÃO DO ADMIN
+        meu_email = "redbull782.mab@gmail.com"
+        minha_senha = "18022006Lipe#" 
 
-    user = db.query(models.Usuario).filter(models.Usuario.email == meu_email).first()
-    
-    if not user:
-        admin = models.Usuario(
-            email=meu_email, 
-            senha=pwd_context.hash(minha_senha), 
-            coins=12000, 
-            tipo_plano="PRO"
-        )
-        db.add(admin)
-        db.commit()
-        return {"msg": "Admin master criado e estrutura de banco atualizada!"}
-    else:
-        user.senha = pwd_context.hash(minha_senha)
-        user.coins = 10000
-        user.tipo_plano = "PLUS"
-        db.commit()
-        return {"msg": "Estrutura do banco e credenciais do Admin atualizadas com sucesso! Faça login."}
+        user = db.query(models.Usuario).filter(models.Usuario.email == meu_email).first()
         
-except Exception as e:
-    return {"error": str(e)}
+        if not user:
+            admin = models.Usuario(
+                email=meu_email, 
+                senha=pwd_context.hash(minha_senha), 
+                coins=12000, 
+                tipo_plano="PRO"
+            )
+            db.add(admin)
+            db.commit()
+            return {"msg": "Admin master criado e estrutura de banco atualizada!"}
+        else:
+            user.senha = pwd_context.hash(minha_senha)
+            user.coins = 10000
+            user.tipo_plano = "PLUS"
+            db.commit()
+            return {"msg": "Estrutura do banco e credenciais do Admin atualizadas com sucesso! Faça login."}
+            
+    except Exception as e:
+        return {"error": str(e)}
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
