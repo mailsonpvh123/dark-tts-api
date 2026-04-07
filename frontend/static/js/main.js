@@ -224,7 +224,7 @@ async function renderizarVideo() {
             <i class="fa-solid fa-fire-burner text-4xl text-indigo-500 fa-beat"></i>
         </div>
         <h3 class="text-base font-black text-indigo-400 tracking-tight animate-pulse italic">FUNDINDO MATERIAIS...</h3>
-        <p class="text-xs text-zinc-500 mt-2">O servidor está processando o FFmpeg em background. Mantenha esta aba aberta para receber o arquivo final.</p>
+        <p class="text-xs text-zinc-500 mt-2">A nossa IA está processando e fundindo todos os materiais no backend. Aguarde alguns minutos e não feche esta tela.</p>
     `;
 
     try {
