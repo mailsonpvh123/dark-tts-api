@@ -20,7 +20,7 @@ async def processar_video_forge(
     legenda: UploadFile = File(...),
     bgm: Optional[UploadFile] = File(None),
     imagens: List[UploadFile] = File(...),
-    formato_video: str = Form("vertical"), # <-- NOVO: Recebe o formato do Front
+    formato_video: str = Form("vertical"),
     db: Session = Depends(get_db),
     usuario: models.Usuario = Depends(get_usuario_atual)
 ):
@@ -81,15 +81,11 @@ async def processar_video_forge(
         path_saida = os.path.join(pasta_destino, nome_saida)
         path_saida_absoluto = os.path.abspath(path_saida)
         
-        # --- A MÁGICA DA LEGENDA E DA ESCALA ACONTECE AQUI ---
-        # Definindo a resolução com base no formato escolhido
         if formato_video == "horizontal":
             resolucao_escala = "1920:1080"
-            # FontSize 14 em Horizontal é bom, margin de baixo (MarginV) 40
             estilo_leg = "FontName=Arial,FontSize=14,PrimaryColour=&H00FFFF,OutlineColour=&H000000,BorderStyle=3,Bold=-1,Alignment=2,MarginV=40"
         else:
             resolucao_escala = "1080:1920"
-            # FontSize 16 em Vertical fica robusto, margin de baixo (MarginV) 120 para não pegar botões do TikTok
             estilo_leg = "FontName=Arial,FontSize=16,PrimaryColour=&H00FFFF,OutlineColour=&H000000,BorderStyle=3,Bold=-1,Alignment=2,MarginV=120"
         
         filtro_legenda = f"subtitles=legenda.srt:force_style='{estilo_leg}'"
@@ -114,17 +110,30 @@ async def processar_video_forge(
                 "-map", "[v_sub]", "-map", "1:a"
             ])
 
-        cmd.extend(["-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "192k", "-shortest", path_saida_absoluto])
+        # --- A GRANDE MELHORIA AQUI ---
+        # Adicionamos -t com a duração exata do áudio para o vídeo não estourar 50 minutos.
+        # Adicionamos os filtros de alta qualidade -crf 18, -preset slow e -sws_flags bicubic.
+        cmd.extend([
+            "-c:v", "libx264", 
+            "-crf", "18", 
+            "-preset", "slow", 
+            "-pix_fmt", "yuv420p", 
+            "-sws_flags", "bicubic",
+            "-c:a", "aac", 
+            "-b:a", "192k", 
+            "-t", str(duracao_segundos), # Corta exatamente no final da narração
+            path_saida_absoluto
+        ])
 
         processo = subprocess.run(cmd, cwd=work_dir, capture_output=True, text=True)
 
         if processo.returncode != 0:
-            print("ERRO FFMPEG:", processo.stderr)
-            raise Exception("Falha ao renderizar vídeo no FFmpeg.")
+            # Removemos a impressão com "ERRO FFMPEG" do log, enviamos uma string genérica do erro 
+            # (se você precisar debugar depois, o erro vai ser retornado para o navegador).
+            raise Exception(f"Falha técnica na Dark Neural Forge. Tente gerar novamente. Detalhe técnico interno: {processo.stderr[:50]}")
 
         url_video = f"/static/videos/historico/{nome_saida}"
         
-        # Histórico Refinado
         badge_formato = "📱 Vertical" if formato_video == "vertical" else "📺 Horizontal"
         novo_historico = models.Historico(
             usuario_id=usuario.id,
@@ -141,7 +150,8 @@ async def processar_video_forge(
     except Exception as e:
         usuario.coins += custo_operacao
         db.commit()
-        print(f"❌ Erro no Video Forge: {e}")
+        print(f"❌ Erro na Forge: {e}")
+        # A mensagem White Label vai diretamente para o Front
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         if os.path.exists(work_dir):
