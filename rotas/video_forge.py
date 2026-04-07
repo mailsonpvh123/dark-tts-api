@@ -83,7 +83,10 @@ async def processar_video_forge(
         nome_saida = f"videoforge_{usuario.id}_{int(time.time())}.mp4"
         pasta_destino = os.path.join("frontend", "static", "videos", "historico")
         os.makedirs(pasta_destino, exist_ok=True)
+        
+        # A CORREÇÃO ESTÁ AQUI: Forçamos o caminho a ser ABSOLUTO
         path_saida = os.path.join(pasta_destino, nome_saida)
+        path_saida_absoluto = os.path.abspath(path_saida)
         
         # Filtro de legendas (Amarelo, borda preta)
         filtro_legenda = "subtitles=legenda.srt:force_style='FontSize=22,PrimaryColour=&H00FFFF,OutlineColour=&H000000,BorderStyle=3,Bold=-1'"
@@ -110,7 +113,8 @@ async def processar_video_forge(
                 "-map", "[v_sub]", "-map", "1:a"
             ])
 
-        cmd.extend(["-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "192k", "-shortest", path_saida])
+        # Passamos o path_saida_absoluto para o FFmpeg não se perder
+        cmd.extend(["-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "192k", "-shortest", path_saida_absoluto])
 
         # Roda o processo na pasta temporária para evitar caminhos absolutos bugados no filtro do ffmpeg
         processo = subprocess.run(cmd, cwd=work_dir, capture_output=True, text=True)
