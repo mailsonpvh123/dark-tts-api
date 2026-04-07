@@ -31,6 +31,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             if (path === '/paraphraser') icon.classList.add('text-pink-400');
             if (path === '/script-forge') icon.classList.add('text-orange-400');
             if (path === '/voice-synthesizer') icon.classList.add('text-purple-400');
+            if (path === '/scenemaker') icon.classList.add('text-cyan-400'); // <-- COR DO SCENEMAKER
             if (path === '/audio-mixer') icon.classList.add('text-amber-400');
             if (path === '/meta-seo') icon.classList.add('text-blue-400');
             if (path === '/thumb-maker') icon.classList.add('text-pink-400');
@@ -683,6 +684,7 @@ async function carregarHistorico() {
                 else if(h.ferramenta.includes("Gen")) { cor = 'text-yellow-400'; icone = 'fa-lightbulb'; bgIcone = 'bg-yellow-500/10 border-yellow-500/30 text-yellow-400';}
                 else if(h.ferramenta.includes("Miner")) { cor = 'text-indigo-400'; icone = 'fa-magnet'; bgIcone = 'bg-indigo-500/10 border-indigo-500/30 text-indigo-400';}
                 else if(h.ferramenta.includes("Paraph")) { cor = 'text-pink-400'; icone = 'fa-rotate'; bgIcone = 'bg-pink-500/10 border-pink-500/30 text-pink-400';}
+                else if(h.ferramenta.includes("Scene")) { cor = 'text-cyan-400'; icone = 'fa-clapperboard'; bgIcone = 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400';} // <-- COR DO SCENEMAKER NO HISTÓRICO
 
                 let inputCurto = h.input_usuario.length > 50 ? h.input_usuario.substring(0, 50) + '...' : h.input_usuario;
 
@@ -794,6 +796,7 @@ function abrirModal(index) {
     else if(reg.ferramenta.includes("Gen")) { iconeHtml = '<i class="fa-solid fa-lightbulb text-yellow-400 text-xl"></i>'; bgGradient = 'from-yellow-400/20 to-amber-600/20'; borderColor = 'border-yellow-400/50'; }
     else if(reg.ferramenta.includes("Miner")) { iconeHtml = '<i class="fa-solid fa-magnet text-indigo-400 text-xl"></i>'; bgGradient = 'from-indigo-500/20 to-purple-600/20'; borderColor = 'border-indigo-500/50'; }
     else if(reg.ferramenta.includes("Paraph")) { iconeHtml = '<i class="fa-solid fa-rotate text-pink-400 text-xl"></i>'; bgGradient = 'from-pink-500/20 to-rose-600/20'; borderColor = 'border-pink-500/50'; }
+    else if(reg.ferramenta.includes("Scene")) { iconeHtml = '<i class="fa-solid fa-clapperboard text-cyan-400 text-xl"></i>'; bgGradient = 'from-cyan-500/20 to-blue-600/20'; borderColor = 'border-cyan-500/50'; } // <-- COR DO SCENEMAKER NO MODAL DE HISTÓRICO
 
     iconeContainer.className = `w-12 h-12 rounded-xl flex items-center justify-center shadow-lg border ${borderColor} bg-gradient-to-br ${bgGradient}`;
     iconeContainer.innerHTML = iconeHtml;
@@ -867,7 +870,6 @@ function abrirModal(index) {
         }
     }
 
-    // A MÁGICA: Além de remover o hidden, adiciona o flex para o grid funcionar!
     modal.classList.remove('hidden');
     modal.classList.add('flex');
     
@@ -885,7 +887,6 @@ function fecharModal() {
     conteudo.classList.add('scale-95');
     
     setTimeout(() => {
-        // A MÁGICA: Remove o flex e volta o hidden!
         modal.classList.remove('flex');
         modal.classList.add('hidden');
         
@@ -934,4 +935,183 @@ function encaminharPara(destino, index) {
         sessionStorage.setItem('seo_conteudo', texto);
         window.location.href = '/meta-seo';
     }
+}
+
+// ==========================================
+// MÓDULO: SCENEMAKER
+// ==========================================
+let formatoSceneAtual = "Imagem"; 
+let cenasGlobaisGeradas = [];
+
+function setFormatoScene(formato) {
+    formatoSceneAtual = formato;
+    const btnImagem = document.getElementById('btn_formato_imagem');
+    const btnVideo = document.getElementById('btn_formato_video');
+
+    if(formato === 'Imagem') {
+        btnImagem.className = "flex-1 py-2 text-xs font-bold rounded-lg bg-zinc-800 text-white border border-zinc-700/50 shadow-sm transition-all flex items-center justify-center gap-2";
+        btnVideo.className = "flex-1 py-2 text-xs font-bold rounded-lg text-zinc-500 hover:text-white transition-all flex items-center justify-center gap-2";
+    } else {
+        btnVideo.className = "flex-1 py-2 text-xs font-bold rounded-lg bg-zinc-800 text-white border border-zinc-700/50 shadow-sm transition-all flex items-center justify-center gap-2";
+        btnImagem.className = "flex-1 py-2 text-xs font-bold rounded-lg text-zinc-500 hover:text-white transition-all flex items-center justify-center gap-2";
+    }
+}
+
+function atualizarContadorScene() {
+    const texto = document.getElementById('texto_scenemaker').value;
+    const contador = document.getElementById('contador_scenemaker');
+    if(contador && typeof contarPalavrasLocal === 'function') {
+        contador.innerText = contarPalavrasLocal(texto) + ' palavras';
+    }
+}
+
+async function gerarScenes() {
+    const roteiro = document.getElementById('texto_scenemaker').value;
+    const btn = document.getElementById('btn_gerar_scenes');
+    const txtBtn = document.getElementById('txt_btn_scenes');
+    const container = document.getElementById('container_cenas');
+
+    if(!roteiro || roteiro.trim() === "") {
+        return alert("Cole o roteiro antes de gerar a direção de arte!");
+    }
+
+    btn.disabled = true;
+    btn.classList.add('opacity-70', 'cursor-not-allowed');
+    txtBtn.innerHTML = `Analisando Roteiro... <i class="fa-solid fa-circle-notch fa-spin ml-2"></i>`;
+    
+    container.innerHTML = `
+        <div class="flex flex-col items-center justify-center h-full">
+            <i class="fa-solid fa-circle-notch fa-spin text-4xl text-cyan-500/50 mb-4"></i>
+            <p class="text-sm font-bold text-zinc-400 animate-pulse">A Dark Neural Engine está fatiando a sua história...</p>
+        </div>
+    `;
+
+    try {
+        const response = await fetch("/api/v1/scenemaker", {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                roteiro: roteiro,
+                formato: formatoSceneAtual
+            })
+        });
+
+        const dados = await response.json();
+        
+        if(!response.ok) {
+            throw new Error(dados.detail || "Erro na comunicação com a IA.");
+        }
+
+        cenasGlobaisGeradas = dados.dados.cenas;
+        renderizarTimeline(cenasGlobaisGeradas, formatoSceneAtual);
+
+        if(dados.novo_saldo !== undefined) {
+            const paineisDeCoins = document.querySelectorAll('.fa-coins');
+            paineisDeCoins.forEach(icone => {
+                const elementoPai = icone.closest('p'); 
+                if(elementoPai) {
+                    elementoPai.innerHTML = `<i class="fa-solid fa-coins"></i> ${dados.novo_saldo.toLocaleString('pt-BR')} coins`;
+                    elementoPai.classList.add('text-cyan-400', 'scale-110');
+                    setTimeout(() => elementoPai.classList.remove('text-cyan-400', 'scale-110'), 500);
+                }
+            });
+        }
+
+    } catch (e) {
+        const isCoinError = e.message.includes('Coins insuficientes');
+        const erroClass = isCoinError ? 'text-yellow-400 border-yellow-500/30 bg-yellow-500/5' : 'text-red-400 border-red-500/30 bg-red-500/5';
+        
+        container.innerHTML = `
+        <div class="flex items-center justify-center h-full">
+            <p class="${erroClass} border font-bold p-5 rounded-lg relative z-10 text-center shadow-lg">
+                <i class="fa-solid fa-triangle-exclamation text-2xl mb-2 block"></i> 
+                ${e.message}
+            </p>
+        </div>`;
+    } finally {
+        btn.disabled = false;
+        btn.classList.remove('opacity-70', 'cursor-not-allowed');
+        txtBtn.innerText = "Gerar Direção de Arte";
+    }
+}
+
+function renderizarTimeline(cenas, formato) {
+    const container = document.getElementById('container_cenas');
+    container.innerHTML = '';
+
+    const iconePrincipal = formato === 'Imagem' ? 'fa-image' : 'fa-film';
+    const corTema = formato === 'Imagem' ? 'text-emerald-400' : 'text-purple-400';
+    const badgeLabel = formato === 'Imagem' ? 'Midjourney / DALL-E' : 'Sora / Runway / Kling';
+
+    cenas.forEach((cena, index) => {
+        container.innerHTML += `
+            <div class="bg-[#121214] border border-zinc-800 rounded-xl overflow-hidden hover:border-cyan-500/30 transition-colors shadow-lg relative group">
+                <div class="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-cyan-600 to-cyan-900 opacity-50 group-hover:opacity-100 transition-opacity"></div>
+                
+                <div class="p-5 pl-7 flex flex-col gap-4">
+                    <div class="flex justify-between items-start">
+                        <div class="flex items-center gap-3">
+                            <span class="w-8 h-8 rounded-lg bg-zinc-900 border border-zinc-700 flex items-center justify-center font-black text-sm text-zinc-300 shadow-inner">${index + 1}</span>
+                            <div>
+                                <h4 class="text-[10px] font-black uppercase tracking-wider text-zinc-500 mb-1">Fala do Narrador</h4>
+                                <p class="text-sm text-zinc-300 italic">"${cena.trecho_narrado}"</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-[#09090b] p-4 rounded-lg border border-zinc-800/50 shadow-inner">
+                        <div>
+                            <h4 class="text-[10px] font-black uppercase tracking-wider text-cyan-500 mb-1"><i class="fa-solid fa-clapperboard mr-1"></i> Ação da Cena</h4>
+                            <p class="text-xs text-zinc-400">${cena.acao}</p>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <h4 class="text-[10px] font-black uppercase tracking-wider text-zinc-500 mb-1"><i class="fa-solid fa-video mr-1"></i> Câmera</h4>
+                                <p class="text-xs text-zinc-400">${cena.camera}</p>
+                            </div>
+                            <div>
+                                <h4 class="text-[10px] font-black uppercase tracking-wider text-zinc-500 mb-1"><i class="fa-solid fa-lightbulb mr-1"></i> Iluminação</h4>
+                                <p class="text-xs text-zinc-400">${cena.iluminacao}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between items-center mb-2">
+                            <h4 class="text-[10px] font-black uppercase tracking-wider ${corTema}"><i class="fa-solid ${iconePrincipal} mr-1"></i> Prompt Gringo (${badgeLabel})</h4>
+                            <button onclick="copiarPromptCena(this, \`${cena.prompt_gringo.replace(/`/g, "\\`")}\`)" class="text-[10px] font-bold text-zinc-400 hover:text-white px-2 py-1 rounded border border-zinc-700/50 bg-zinc-800/50 transition-colors">
+                                <i class="fa-solid fa-copy"></i> Copiar
+                            </button>
+                        </div>
+                        <textarea readonly class="w-full h-20 bg-black/50 border border-zinc-800 rounded-lg p-3 text-xs text-zinc-300 font-mono resize-none custom-scrollbar outline-none">${cena.prompt_gringo}</textarea>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+}
+
+function copiarPromptCena(btnElement, texto) {
+    navigator.clipboard.writeText(texto).then(() => {
+        const iconOriginal = btnElement.innerHTML;
+        btnElement.innerHTML = `<i class="fa-solid fa-check"></i> Copiado`;
+        btnElement.classList.add('text-emerald-400', 'border-emerald-500/50');
+        setTimeout(() => {
+            btnElement.innerHTML = iconOriginal;
+            btnElement.classList.remove('text-emerald-400', 'border-emerald-500/50');
+        }, 2000);
+    });
+}
+
+function copiarTodosPrompts() {
+    if(cenasGlobaisGeradas.length === 0) return alert("Não há prompts gerados para copiar.");
+    
+    let textoFinal = "--- SCENEMAKER: PROMPTS DA TIMELINE ---\n\n";
+    cenasGlobaisGeradas.forEach((cena, index) => {
+        textoFinal += `CENA ${index + 1}:\n${cena.prompt_gringo}\n\n`;
+    });
+
+    navigator.clipboard.writeText(textoFinal).then(() => {
+        alert("Todos os prompts foram copiados para a área de transferência!");
+    });
 }
