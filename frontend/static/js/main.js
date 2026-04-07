@@ -32,7 +32,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             if (path === '/script-forge') icon.classList.add('text-orange-400');
             if (path === '/voice-synthesizer') icon.classList.add('text-purple-400');
             if (path === '/scenemaker') icon.classList.add('text-cyan-400');
-            if (path === '/video-forge') icon.classList.add('text-indigo-400');
+            if (path === '/video-forge') icon.classList.add('text-indigo-400'); 
             if (path === '/meta-seo') icon.classList.add('text-blue-400');
             if (path === '/thumb-maker') icon.classList.add('text-pink-400');
             if (path === '/clip-hunter') icon.classList.add('text-emerald-400');
@@ -42,6 +42,10 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     if (path === '/historico') {
         carregarHistorico();
+    }
+
+    if (path === '/video-forge') {
+        iniciarDropzones();
     }
 
     const textoVoice = localStorage.getItem('texto_pendente_voice');
@@ -71,8 +75,585 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 });
 
+function despacharParaVoice(idCampoOrigem) {
+    const texto = document.getElementById(idCampoOrigem).value;
+    if(!texto || texto.trim() === "") return alert("Aviso: O texto está vazio!"); 
+    localStorage.setItem('texto_pendente_voice', texto);
+    window.location.href = '/voice-synthesizer'; 
+}
+
 // ==========================================
-// FUNÇÕES DO HISTÓRICO
+// FUNÇÕES DO CLIP HUNTER (MINERADOR DE MÍDIAS)
+// ==========================================
+async function buscarMidiaHunter() {
+    const termoInput = document.getElementById('hunter_input');
+    const galeria = document.getElementById('hunter_galeria');
+    const btn = document.getElementById('hunter_btn');
+    const status = document.getElementById('hunter_status');
+    const mediaType = document.getElementById('hunter_type').value;
+    const orientation = document.getElementById('hunter_orientation').value;
+    
+    if(!termoInput || !galeria) return;
+    
+    const termo = termoInput.value.trim();
+    if(termo === "") return alert("Por favor, insira um termo para buscar!");
+
+    if(window.hunterAudioAtual) {
+        window.hunterAudioAtual.pause();
+        window.hunterAudioUrlAtual = null;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>';
+    status.innerText = "Minerando arquivos na nuvem...";
+    galeria.innerHTML = ""; 
+    
+    try {
+        const resposta = await fetch(`/api/cliphunter/search?query=${encodeURIComponent(termo)}&media_type=${mediaType}&orientation=${orientation}`);
+        const dados = await resposta.json();
+        
+        if(!resposta.ok) throw new Error(dados.detail || "Erro ao conectar na API.");
+        
+        if(dados.results.length === 0) {
+            galeria.innerHTML = `<div class="col-span-full text-center py-10 text-zinc-500"><i class="fa-solid fa-ghost text-4xl mb-3"></i><p>Nenhuma mídia encontrada para "${termo}". Tente outro termo em inglês.</p></div>`;
+            status.innerText = "Busca concluída (0 resultados).";
+            return;
+        }
+
+        status.innerText = `Mostrando resultados para "${dados.query_traduzida}" (${dados.results.length} mídias)`;
+        
+        dados.results.forEach(item => {
+            const card = document.createElement('div');
+            card.className = "bg-[#1E1E1E] rounded-xl border border-zinc-800 overflow-hidden hover:border-emerald-500/50 transition-all shadow-lg flex flex-col";
+            
+            let conteudoVisual = "";
+            let btnAcao = "";
+            
+            if(item.type === "video") {
+                conteudoVisual = `
+                    <div class="relative aspect-video bg-black group">
+                        <img src="${item.thumb}" class="w-full h-full object-cover opacity-80 group-hover:opacity-50 transition-opacity">
+                        <button onclick="abrirPreviewHunter('${item.url}', 'video')" class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <i class="fa-solid fa-circle-play text-5xl text-emerald-400 drop-shadow-lg scale-90 group-hover:scale-100 transition-transform"></i>
+                        </button>
+                        <span class="absolute bottom-2 right-2 bg-black/80 px-2 py-1 text-[10px] rounded text-white font-bold">${item.duration}s</span>
+                    </div>`;
+                btnAcao = `<a href="${item.url}" target="_blank" download class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 text-center text-sm rounded transition-colors"><i class="fa-solid fa-download mr-1"></i> Baixar</a>`;
+            } 
+            else if(item.type === "image") {
+                conteudoVisual = `
+                    <div class="relative aspect-square bg-black group">
+                        <img src="${item.thumb}" class="w-full h-full object-cover opacity-90 group-hover:opacity-60 transition-opacity">
+                        <button onclick="abrirPreviewHunter('${item.url}', 'image')" class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <i class="fa-solid fa-expand text-4xl text-zinc-200 drop-shadow-lg scale-90 group-hover:scale-100 transition-transform"></i>
+                        </button>
+                    </div>`;
+                btnAcao = `<a href="${item.url}" target="_blank" download class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 text-center text-sm rounded transition-colors"><i class="fa-solid fa-download mr-1"></i> Baixar</a>`;
+            }
+            else if(item.type === "audio") {
+                conteudoVisual = `
+                    <div class="p-4 bg-zinc-900 border-b border-zinc-800 flex items-center justify-center h-24">
+                        <button onclick="tocarAudioHunter(this, '${item.url}')" class="w-12 h-12 rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-500 hover:bg-amber-500 hover:text-white transition-colors shadow-lg">
+                            <i class="fa-solid fa-play text-lg ml-1"></i>
+                        </button>
+                    </div>`;
+                btnAcao = `<a href="${item.url}" target="_blank" download class="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-2 text-center text-sm rounded transition-colors"><i class="fa-solid fa-download mr-1"></i> Baixar</a>`;
+            }
+
+            card.innerHTML = `
+                ${conteudoVisual}
+                <div class="p-3 flex-1 flex flex-col justify-between">
+                    <p class="text-[11px] text-zinc-400 mb-3 truncate" title="${item.author || item.title}"><i class="fa-solid ${item.type === 'audio' ? 'fa-music' : 'fa-camera'} mr-1"></i> ${item.author || item.title}</p>
+                    ${btnAcao}
+                </div>
+            `;
+            galeria.appendChild(card);
+        });
+
+    } catch(erro) {
+        status.innerText = "Falha na mineração.";
+        galeria.innerHTML = `<div class="col-span-full text-center py-10 text-red-400 font-bold border border-red-500/30 bg-red-500/10 rounded-xl"><i class="fa-solid fa-triangle-exclamation mb-2 text-2xl"></i><br>${erro.message}</div>`;
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-magnifying-glass"></i> Minerar Mídias';
+    }
+}
+
+function abrirPreviewHunter(url, type) {
+    if(window.hunterAudioAtual) {
+        window.hunterAudioAtual.pause();
+        window.hunterAudioUrlAtual = null;
+        document.querySelectorAll('#hunter_galeria .fa-pause').forEach(i => {
+            i.classList.remove('fa-pause');
+            i.classList.add('fa-play');
+        });
+    }
+
+    const modal = document.getElementById('hunter_modal');
+    const content = document.getElementById('hunter_modal_content');
+    
+    if(type === 'video') {
+        content.innerHTML = `<video controls autoplay class="max-w-full max-h-[85vh] rounded-xl shadow-2xl outline-none border border-zinc-700"><source src="${url}" type="video/mp4"></video>`;
+    } else if (type === 'image') {
+        content.innerHTML = `<img src="${url}" class="max-w-full max-h-[85vh] rounded-xl shadow-2xl object-contain border border-zinc-700">`;
+    }
+    
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+}
+
+function fecharModalHunter() {
+    const modal = document.getElementById('hunter_modal');
+    const content = document.getElementById('hunter_modal_content');
+    
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    content.innerHTML = ''; 
+}
+
+function tocarAudioHunter(btn, url) {
+    if(window.hunterAudioAtual) {
+        window.hunterAudioAtual.pause();
+        
+        document.querySelectorAll('#hunter_galeria .fa-pause').forEach(i => {
+            i.classList.remove('fa-pause');
+            i.classList.add('fa-play');
+        });
+        
+        if (window.hunterAudioUrlAtual === url) {
+            window.hunterAudioUrlAtual = null; 
+            return; 
+        }
+    }
+    
+    const icon = btn.querySelector('i');
+    
+    window.hunterAudioAtual = new Audio(url);
+    window.hunterAudioUrlAtual = url;
+    window.hunterAudioAtual.play();
+    
+    icon.classList.remove('fa-play');
+    icon.classList.add('fa-pause');
+    
+    window.hunterAudioAtual.onended = () => {
+        icon.classList.remove('fa-pause');
+        icon.classList.add('fa-play');
+        window.hunterAudioUrlAtual = null;
+    };
+}
+
+// ==========================================
+// FUNÇÕES DO PARAPHRASER (TEXT TRANSMUTER)
+// ==========================================
+async function transmutarTexto() {
+    const txtOriginal = document.getElementById('texto_original').value;
+    const modo = document.getElementById('estrategia_escrita').value;
+    const nomeCanal = document.getElementById('nome_canal').value;
+    const ganchoExato = document.getElementById('gancho_exato').value;
+    const btn = document.getElementById('btn_transmutar');
+    const txtBtn = document.getElementById('txt_btn_transmutar');
+    const txtResultado = document.getElementById('texto_transmutado');
+    const contadorResultado = document.getElementById('contador_resultado');
+
+    if (!txtOriginal || txtOriginal.trim() === "") {
+        return alert("Por favor, cole o texto original antes de transmutar!");
+    }
+
+    btn.disabled = true;
+    btn.classList.add('opacity-70', 'cursor-not-allowed');
+    const textoOriginalBotao = txtBtn.innerHTML;
+    txtBtn.innerHTML = `Transmutando... <i class="fa-solid fa-circle-notch fa-spin ml-2"></i>`;
+    txtResultado.value = "Os deuses da IA estão reescrevendo e blindando seu texto. Isso pode levar alguns segundos...";
+
+    const payload = {
+        texto: txtOriginal,
+        modo: modo,
+        nome_canal: nomeCanal,
+        gancho_exato: ganchoExato,
+        tom: "Sarcástico e Ácido", 
+        idioma: "Português (Brasil)"
+    };
+
+    try {
+        const res = await fetch("/api/v1/paraphraser", {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        
+        const dados = await res.json();
+        
+        if(!res.ok) {
+            throw new Error(dados.detail || "Erro na comunicação com a IA.");
+        }
+        
+        txtResultado.value = dados.texto_parafrazedo;
+        
+        if(typeof contarPalavrasLocal === 'function' && contadorResultado) {
+            contadorResultado.innerText = contarPalavrasLocal(dados.texto_parafrazedo) + ' palavras';
+        }
+        
+        localStorage.setItem('paraph_resultado', dados.texto_parafrazedo);
+
+        if(dados.novo_saldo !== undefined) {
+            const paineisDeCoins = document.querySelectorAll('.fa-coins');
+            paineisDeCoins.forEach(icone => {
+                const elementoPai = icone.closest('p'); 
+                if(elementoPai) {
+                    elementoPai.innerHTML = `<i class="fa-solid fa-coins"></i> ${dados.novo_saldo.toLocaleString('pt-BR')} coins`;
+                    elementoPai.classList.add('text-emerald-400', 'scale-110');
+                    setTimeout(() => elementoPai.classList.remove('text-emerald-400', 'scale-110'), 500);
+                }
+            });
+        }
+
+    } catch (e) {
+        const isCoinError = e.message.includes('Coins insuficientes');
+        if (isCoinError) {
+            txtResultado.value = `[ERRO DE SALDO]\n\n${e.message}`;
+        } else {
+            txtResultado.value = `[FALHA NA TRANSMUTAÇÃO]\n\nOcorreu um erro no servidor:\n${e.message}`;
+        }
+    } finally {
+        btn.disabled = false;
+        btn.classList.remove('opacity-70', 'cursor-not-allowed');
+        txtBtn.innerHTML = textoOriginalBotao;
+    }
+}
+
+// ==========================================
+// FUNÇÕES DA INTERFACE DO ESTÚDIO DE DUBLAGEM (VOICE SYNTH)
+// ==========================================
+function alternarAbaVozes(tipo) {
+    abaVozAtiva = tipo;
+    
+    const panelStd = document.getElementById('controles_standard');
+    const panelCre = document.getElementById('controles_creator');
+    const panelCin = document.getElementById('controles_cinematic');
+    
+    if(panelStd) panelStd.classList.add('hidden');
+    if(panelCre) panelCre.classList.add('hidden');
+    if(panelCin) panelCin.classList.add('hidden');
+    
+    const btnPadrao = document.getElementById('aba_btn_padrao');
+    const btnCreator = document.getElementById('aba_btn_creator');
+    const btnCinematic = document.getElementById('aba_btn_cinematic');
+    
+    [btnPadrao, btnCreator, btnCinematic].forEach(btn => {
+        if(btn) btn.className = "flex-1 py-2 text-xs font-bold rounded-lg text-zinc-500 hover:text-white transition-all";
+    });
+    
+    if (tipo === 'padrao') {
+        if(btnPadrao) btnPadrao.className = "flex-1 py-2 text-xs font-bold rounded-lg bg-zinc-800 text-white shadow-sm transition-all border border-zinc-700/50";
+        atualizarInfoTier("Qualidade Standard", "Vozes sintéticas de alta eficiência. Ideais para testes ou canais com alto volume de postagem.");
+        if(panelStd) panelStd.classList.remove('hidden');
+    } else if (tipo === 'creator') {
+        if(btnCreator) btnCreator.className = "flex-1 py-2 text-xs font-bold rounded-lg bg-zinc-800 text-blue-400 shadow-sm transition-all border border-zinc-700/50";
+        atualizarInfoTier("Qualidade Creator (Gemini TTS)", "Vozes neurais naturais e emocionais. Focado em alta retenção e Storytelling.");
+        if(panelCre) panelCre.classList.remove('hidden');
+    } else if (tipo === 'cinematic') {
+        if(btnCinematic) btnCinematic.className = "flex-1 py-2 text-xs font-bold rounded-lg bg-amber-500/20 text-amber-400 shadow-sm transition-all border border-amber-500/50";
+        atualizarInfoTier("Qualidade Cinematic (ElevenLabs)", "Qualidade Ultra-Realista de cinema. Perfeito para documentários densos.");
+        if(panelCin) panelCin.classList.remove('hidden');
+    }
+    
+    const primeiraDaLista = vozesData.find(v => v.tipo === tipo);
+    if(primeiraDaLista) selecionarVoz(primeiraDaLista.shortName);
+    
+    renderizarListaVozes();
+}
+
+function atualizarInfoTier(titulo, desc) {
+    const infoContainer = document.getElementById('info_tier');
+    if(!infoContainer) return;
+    
+    infoContainer.innerHTML = `
+        <div class="bg-zinc-800/50 border border-zinc-700 p-4 rounded-lg shadow-inner mt-4 relative z-10">
+            <p class="text-xs font-bold text-white mb-1"><i class="fa-solid fa-circle-info text-purple-400 mr-1"></i> ${titulo}</p>
+            <p class="text-[11px] text-zinc-400 leading-relaxed">${desc}</p>
+        </div>
+    `;
+}
+
+function renderizarListaVozes() {
+    const container = document.getElementById('lista_vozes');
+    if(!container) return;
+    container.innerHTML = '';
+    
+    const vozesFiltradas = vozesData.filter(v => v.tipo === abaVozAtiva);
+    
+    vozesFiltradas.forEach(v => {
+        let isSelected = v.shortName === vozSelecionada;
+        let isCinematic = v.tipo === 'cinematic';
+        let isCreator = v.tipo === 'creator';
+
+        let baseClass = isCinematic ? "bg-amber-500/5 hover:border-amber-500/40" : (isCreator ? "bg-blue-500/5 hover:border-blue-500/40" : "bg-[#09090b] hover:border-purple-500/40");
+        let cardClass = isSelected 
+            ? "border-emerald-500 bg-emerald-500/10 shadow-[0_0_20px_rgba(16,185,129,0.15)]" 
+            : `border-zinc-800 ${baseClass}`;
+            
+        let isFemale = v.gender && (v.gender.includes('Female') || v.gender.includes('Feminino'));
+        let iconClass = isCinematic ? 'fa-star text-amber-400' : (isCreator ? 'fa-clapperboard text-blue-400' : (isFemale ? 'fa-face-smile-beam text-pink-400' : 'fa-user-astronaut text-purple-400'));
+        
+        let tagsHtml = "";
+        if (isCinematic) tagsHtml = '<span class="text-[10px] font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">Cinematic</span>';
+        else if (isCreator) tagsHtml = '<span class="text-[10px] font-bold text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20">Creator</span>';
+        else tagsHtml = (isFemale ? '<span class="text-[10px] font-bold text-pink-400 bg-pink-500/10 px-2 py-0.5 rounded border border-pink-500/20">Feminino</span>' : '<span class="text-[10px] font-bold text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded border border-purple-500/20">Masculino</span>');
+
+        let nomeDisplay = v.name;
+        if (!isCinematic && !isCreator) {
+            nomeDisplay = v.shortName.replace(/padrao-|Neural|Multilingual|V2/ig, '').trim(); 
+            let partes = nomeDisplay.split('-');
+            if(partes.length >= 3) {
+                nomeDisplay = `${partes.slice(2).join(' ')} - ${partes[0].toUpperCase()}`;
+            }
+        }
+
+        container.innerHTML += `
+            <div class="flex items-center justify-between p-4 rounded-xl border ${cardClass} cursor-pointer transition-all duration-300 group relative z-10" onclick="selecionarVoz('${v.shortName}')">
+                <div class="flex items-center gap-4">
+                    <div class="w-10 h-10 rounded-full bg-zinc-900 border border-zinc-700/50 flex items-center justify-center group-hover:scale-110 transition-transform shadow-inner shrink-0">
+                        <i class="fa-solid ${iconClass} text-lg drop-shadow-md"></i>
+                    </div>
+                    <div>
+                        <p class="text-[13px] font-bold text-white group-hover:text-emerald-300 transition-colors leading-tight mb-1">${nomeDisplay}</p>
+                        <p class="text-[10px] text-zinc-500 font-mono">${v.gender || ''} | ${v.desc || ''}</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3 shrink-0">
+                    <button class="w-8 h-8 rounded-full bg-zinc-800 border border-zinc-700/50 flex items-center justify-center text-zinc-400 hover:bg-emerald-500 hover:text-white hover:border-emerald-400 transition-all shadow-md shrink-0" title="Ouvir Prévia" onclick="tocarPreview(event, '${v.shortName}')">
+                        <i id="play_icon_${v.shortName}" class="fa-solid fa-play text-xs ml-0.5"></i>
+                    </button>
+                    ${isSelected ? '<i class="fa-solid fa-circle-check text-emerald-500 text-lg"></i>' : '<i class="fa-solid fa-circle text-zinc-800 group-hover:text-zinc-600 transition-colors text-lg"></i>'}
+                </div>
+            </div>`;
+    });
+}
+
+function selecionarVoz(sn) { 
+    if(window.playerPreviewAtual) { 
+        window.playerPreviewAtual.pause(); 
+        window.playerPreviewAtual = null; 
+        document.querySelectorAll('[id^="play_icon_"]').forEach(i => i.className = 'fa-solid fa-play text-xs ml-0.5'); 
+    }
+    vozSelecionada = sn; 
+    renderizarListaVozes(); 
+    recalcularCustoVoz(); 
+}
+
+function recalcularCustoVoz() {
+    clearTimeout(timerDebounceCusto);
+    timerDebounceCusto = setTimeout(() => {
+        const inputTexto = document.getElementById('texto_voz');
+        if(!inputTexto) return;
+        
+        const texto = inputTexto.value;
+        const tamanho = texto.length;
+        const btnTxt = document.getElementById('txt_btn_voz');
+        const contador = document.getElementById('contador_caracteres_voz');
+        
+        const isCinematic = vozSelecionada.includes("cinematic-");
+        const isCreator = vozSelecionada.includes("creator-");
+        
+        if(contador) contador.innerText = `${tamanho} caracteres`;
+
+        if(btnTxt) {
+            if(isCinematic) {
+                let custo = Math.max(1, Math.ceil((tamanho / 900.0) * 50));
+                btnTxt.innerHTML = `Sintetizar Cinematic (<span class="text-amber-900 drop-shadow-md">${custo} Coins</span>)`;
+                document.getElementById('btn_gerar_voz').className = "w-full mt-6 bg-amber-500 hover:bg-amber-400 text-amber-950 font-black py-4 px-4 rounded-xl shadow-[0_0_20px_rgba(245,158,11,0.3)] transition-all flex items-center justify-center gap-2 group border border-amber-400 relative z-10";
+            } else if (isCreator) {
+                let custo = Math.max(1, Math.ceil((tamanho / 900.0) * 12));
+                btnTxt.innerHTML = `Sintetizar Creator (<span class="text-blue-900 drop-shadow-md">${custo} Coins</span>)`;
+                document.getElementById('btn_gerar_voz').className = "w-full mt-6 bg-blue-500 hover:bg-blue-400 text-blue-950 font-black py-4 px-4 rounded-xl shadow-[0_0_20px_rgba(59,130,246,0.3)] transition-all flex items-center justify-center gap-2 group border border-blue-400 relative z-10";
+            } else {
+                btnTxt.innerHTML = `Sintetizar Standard (30 Coins)`;
+                document.getElementById('btn_gerar_voz').className = "w-full mt-6 bg-purple-600 hover:bg-purple-500 text-white font-bold py-4 px-4 rounded-xl shadow-[0_0_20px_rgba(147,51,234,0.3)] transition-all flex items-center justify-center gap-2 group border border-purple-500/50 relative z-10";
+            }
+        }
+    }, 300); 
+}
+
+function ajustarSlider(idInput, idLabel, delta, min, max, suffix) {
+    const el = document.getElementById(idInput);
+    if(!el) return;
+    let newVal = parseFloat(el.value) + delta;
+    if (newVal < min) newVal = min;
+    if (newVal > max) newVal = max;
+    
+    if (Number.isInteger(min) && Number.isInteger(max) && Number.isInteger(delta)) {
+        el.value = Math.round(newVal);
+        document.getElementById(idLabel).innerText = el.value + suffix;
+    } else {
+        el.value = newVal.toFixed(1);
+        document.getElementById(idLabel).innerText = el.value + suffix;
+    }
+}
+
+async function tocarPreview(event, shortName) {
+    event.stopPropagation();
+    
+    if (window.playerPreviewAtual) {
+        window.playerPreviewAtual.pause();
+        document.querySelectorAll('[id^="play_icon_"]').forEach(i => i.className = "fa-solid fa-play text-xs ml-0.5");
+    }
+
+    const icon = document.getElementById(`play_icon_${shortName}`);
+    if(icon) icon.className = "fa-solid fa-circle-notch fa-spin text-white"; 
+    
+    try {
+        const audioUrl = `/static/audios/previews/${shortName}.mp3`;
+        const playerPreview = new Audio(audioUrl);
+        window.playerPreviewAtual = playerPreview; 
+        
+        await playerPreview.play();
+        if(icon) icon.className = "fa-solid fa-volume-high text-xs ml-0.5 text-emerald-400"; 
+        
+        playerPreview.onended = () => { 
+            if(icon) icon.className = "fa-solid fa-play text-xs ml-0.5"; 
+        };
+
+    } catch(e) {
+        alert(`Arquivo de prévia não encontrado!\n\n(Certifique-se de que baixou e enviou para /static/audios/previews/${shortName}.mp3 no painel)`);
+        if(icon) icon.className = "fa-solid fa-play text-xs ml-0.5 text-red-500"; 
+    } 
+}
+
+// ==========================================
+// FUNÇÕES DE EXPORTAÇÃO E SRT
+// ==========================================
+function baixarSRT() {
+    if(!srtGlobal || srtGlobal.trim() === "") return alert("A legenda (SRT) ainda não está disponível. Gere o áudio primeiro.");
+    const blob = new Blob([srtGlobal], { type: 'text/plain' });
+    const link = document.createElement('a'); 
+    link.href = URL.createObjectURL(blob);
+    link.download = `Legenda_${new Date().getTime()}.srt`;
+    link.click();
+}
+
+function enviarParaMetaSEO() {
+    const roteiro = document.getElementById('texto_voz').value;
+    if (!roteiro) return alert("O Roteiro está vazio.");
+    
+    let conteudoFinal = `ROTEIRO COMPLETO:\n${roteiro}\n\n`;
+    
+    if (srtGlobal && srtGlobal.trim() !== "") {
+        conteudoFinal += `TIMELINE EXATA (USE PARA GERAR OS CAPÍTULOS NO YOUTUBE):\n${srtGlobal}`;
+    }
+    
+    sessionStorage.setItem('seo_conteudo', conteudoFinal);
+    window.location.href = '/meta-seo';
+}
+
+async function gerarAudioCompleto() {
+    const btn = document.getElementById('btn_gerar_voz');
+    const txtBtn = document.getElementById('txt_btn_voz');
+    const texto = document.getElementById('texto_voz').value;
+    const playerContainer = document.getElementById('player_container');
+    
+    if(!texto.trim()) return alert("Digite um texto antes de sintetizar!");
+
+    const isCinematic = vozSelecionada.includes("cinematic-");
+    const isCreator = vozSelecionada.includes("creator-");
+
+    let velocidade = 1.0;
+    if (abaVozAtiva === 'padrao') {
+        velocidade = parseFloat(document.getElementById('velocidade_std')?.value || 1.0);
+    } else if (abaVozAtiva === 'cinematic') {
+        velocidade = parseFloat(document.getElementById('velocidade_cin')?.value || 1.0);
+    }
+    
+    const pitch = abaVozAtiva === 'padrao' ? parseInt(document.getElementById('pitch_std')?.value || 0) : 0;
+    const temperatura = parseFloat(document.getElementById('temperatura')?.value || 0.7);
+    const estabilidade = parseFloat(document.getElementById('estabilidade')?.value || 0.5);
+    const similaridade = parseFloat(document.getElementById('similaridade')?.value || 0.75);
+
+    btn.disabled = true;
+    btn.classList.add('opacity-70', 'cursor-not-allowed');
+    
+    txtBtn.innerHTML = `Processando no Estúdio... <i class="fa-solid fa-circle-notch fa-spin ml-2"></i>`;
+    playerContainer.classList.remove('hidden');
+    
+    let icone = isCinematic ? "fa-star text-amber-400" : (isCreator ? "fa-clapperboard text-blue-400" : "fa-microphone-lines text-purple-400");
+    let msgExtra = texto.length > 4000 ? "<br><span class='text-[10px] text-zinc-500'>O roteiro longo está sendo renderizado por partes para manter a qualidade.</span>" : "";
+    
+    playerContainer.innerHTML = `<p class="animate-pulse text-center font-bold text-sm bg-[#121214] p-4 rounded-xl border border-zinc-800"><i class="fa-solid ${icone} fa-fade mr-2"></i> Renderizando o seu áudio...${msgExtra}</p>`;
+
+    const payload = { 
+        texto: texto, 
+        voz: vozSelecionada, 
+        velocidade: velocidade, 
+        pitch: pitch,
+        temperatura: temperatura,
+        estabilidade: estabilidade,
+        similaridade: similaridade
+    };
+
+    try {
+        const res = await fetch(URL_API_DIRETA, { 
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' }, 
+            body: JSON.stringify(payload) 
+        });
+        
+        if(!res.ok) {
+            let erroReal = "Erro no servidor.";
+            try { const dadosErro = await res.json(); erroReal = dadosErro.detail || erroReal; } catch(e) {}
+            throw new Error(erroReal);
+        }
+        
+        const dados = await res.json();
+        
+        srtGlobal = dados.srt || "";
+
+        if(dados.novo_saldo !== undefined) {
+            const paineisDeCoins = document.querySelectorAll('.fa-coins');
+            paineisDeCoins.forEach(icone => {
+                const elementoPai = icone.closest('p'); 
+                if(elementoPai) {
+                    elementoPai.innerHTML = `<i class="fa-solid fa-coins"></i> ${dados.novo_saldo.toLocaleString('pt-BR')} coins`;
+                    elementoPai.classList.add('text-emerald-400', 'scale-110');
+                    setTimeout(() => elementoPai.classList.remove('text-emerald-400', 'scale-110'), 500);
+                }
+            });
+        }
+
+        playerContainer.innerHTML = `
+            <div class="flex items-center gap-2 mb-3">
+                <i class="fa-solid fa-circle-check text-emerald-400 drop-shadow-[0_0_5px_rgba(16,185,129,0.8)]"></i>
+                <p class="text-xs text-emerald-400 font-bold uppercase tracking-wider">Locução Finalizada</p>
+            </div>
+            <audio controls class="w-full h-12 bg-zinc-900 rounded-lg outline-none shadow-inner">
+                <source src="data:audio/mp3;base64,${dados.audio_base64}" type="audio/mp3">
+            </audio>
+            
+            <div class="flex flex-col sm:flex-row gap-3 border-t border-zinc-800/80 pt-4 mt-4">
+                <button onclick="baixarSRT()" class="flex-1 bg-[#09090b] hover:bg-emerald-600 text-emerald-400 hover:text-white font-bold py-3.5 rounded-xl border border-emerald-500/30 hover:border-emerald-500 transition-all text-xs flex items-center justify-center gap-2 shadow-inner hover:shadow-[0_0_15px_rgba(16,185,129,0.4)] group">
+                    <i class="fa-solid fa-download group-hover:-translate-y-1 transition-transform"></i> Baixar .SRT
+                </button>
+                <button onclick="enviarParaMetaSEO()" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-black py-3.5 rounded-xl border border-blue-500/50 transition-all text-xs flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(59,130,246,0.4)] group">
+                    <i class="fa-solid fa-rocket group-hover:translate-x-1 transition-transform"></i> Gerar Meta & SEO
+                </button>
+            </div>
+        `;
+    } catch (e) {
+        const isCoinError = e.message.includes('Coins insuficientes');
+        const erroClass = isCoinError ? 'text-yellow-400 bg-yellow-500/10 border-yellow-500/20' : 'text-red-400 bg-red-500/10 border-red-500/20';
+        playerContainer.innerHTML = `<div class="${erroClass} border p-4 rounded-lg text-center font-bold text-sm"><i class="fa-solid fa-triangle-exclamation mb-2 text-2xl block"></i> ${e.message}</div>`;
+    } finally {
+        btn.disabled = false;
+        btn.classList.remove('opacity-70', 'cursor-not-allowed');
+        recalcularCustoVoz();
+    }
+}
+
+function contarPalavrasLocal(texto) {
+    if (!texto || texto.trim() === "") return 0;
+    return texto.trim().split(/\s+/).length;
+}
+
+// ==========================================
+// MÓDULO: HISTÓRICO DE PRODUÇÃO
 // ==========================================
 async function carregarHistorico() {
     const tabela = document.getElementById('tabela_historico');
@@ -146,8 +727,417 @@ async function carregarHistorico() {
     }
 }
 
+function mudarFiltroHistorico(ferramenta) {
+    histFiltroAtual = ferramenta;
+    histPaginaAtual = 1;
+    
+    document.querySelectorAll('.filtro-btn').forEach(btn => {
+        btn.classList.remove('bg-emerald-500', 'text-white', 'shadow-[0_0_15px_rgba(16,185,129,0.3)]', 'border-emerald-400');
+        btn.classList.add('bg-[#121214]', 'text-zinc-400', 'border-zinc-800');
+    });
+
+    let btnId = 'btn_filtro_todos';
+    if(ferramenta.includes("Insights")) btnId = 'btn_filtro_insights';
+    if(ferramenta.includes("Miner")) btnId = 'btn_filtro_miner';
+    if(ferramenta.includes("Paraph")) btnId = 'btn_filtro_paraphraser';
+    if(ferramenta.includes("Script")) btnId = 'btn_filtro_script';
+    if(ferramenta.includes("Voice")) btnId = 'btn_filtro_voice';
+    if(ferramenta.includes("SEO")) btnId = 'btn_filtro_seo';
+    if(ferramenta.includes("Thumb")) btnId = 'btn_filtro_thumb';
+
+    const btnAtivo = document.getElementById(btnId);
+    if(btnAtivo) {
+        btnAtivo.classList.remove('bg-[#121214]', 'text-zinc-400', 'border-zinc-800');
+        btnAtivo.classList.add('bg-emerald-500', 'text-white', 'shadow-[0_0_15px_rgba(16,185,129,0.3)]', 'border-emerald-400');
+    }
+
+    carregarHistorico();
+}
+
+function mudarPaginaHistorico(delta) {
+    histPaginaAtual += delta;
+    carregarHistorico();
+}
+
+async function excluirRegistro(id) {
+    if(!confirm("Tem certeza que deseja excluir permanentemente este registro da base de dados?")) return;
+    
+    try {
+        const response = await fetch(`/api/v1/historico/${id}`, { method: 'DELETE' });
+        if(response.ok) {
+            carregarHistorico();
+        } else {
+            alert("Erro ao excluir registro.");
+        }
+    } catch(e) {
+        alert("Falha na comunicação: " + e.message);
+    }
+}
+
+function abrirModal(index) {
+    const reg = histDadosAtuais[index];
+    const modal = document.getElementById('modal_resultado');
+    const conteudo = document.getElementById('modal_conteudo_interno');
+    
+    const titulo = document.getElementById('modal_titulo');
+    const dataTxt = document.getElementById('modal_data');
+    const iconeContainer = document.getElementById('modal_icone');
+    const inputTxt = document.getElementById('modal_input');
+    const outputContainer = document.getElementById('modal_output_container');
+    const acoesContainer = document.getElementById('modal_acoes_container');
+
+    titulo.innerText = reg.ferramenta;
+    dataTxt.innerText = reg.data_formatada;
+    inputTxt.innerText = reg.input_usuario;
+    
+    let iconeHtml = '<i class="fa-solid fa-code text-zinc-400"></i>';
+    let bgGradient = 'from-zinc-500/20 to-zinc-600/20';
+    let borderColor = 'border-zinc-500/30';
+    
+    if(reg.ferramenta.includes("Voice")) { iconeHtml = '<i class="fa-solid fa-microphone-lines text-purple-400 text-xl"></i>'; bgGradient = 'from-purple-500/20 to-fuchsia-600/20'; borderColor = 'border-purple-500/50'; }
+    else if(reg.ferramenta.includes("Script")) { iconeHtml = '<i class="fa-solid fa-pen-nib text-orange-400 text-xl"></i>'; bgGradient = 'from-orange-500/20 to-red-600/20'; borderColor = 'border-orange-500/50'; }
+    else if(reg.ferramenta.includes("Meta")) { iconeHtml = '<i class="fa-solid fa-magnifying-glass-chart text-blue-400 text-xl"></i>'; bgGradient = 'from-blue-500/20 to-indigo-600/20'; borderColor = 'border-blue-500/50'; }
+    else if(reg.ferramenta.includes("Thumb")) { iconeHtml = '<i class="fa-solid fa-image text-rose-400 text-xl"></i>'; bgGradient = 'from-rose-500/20 to-pink-600/20'; borderColor = 'border-rose-500/50'; }
+    else if(reg.ferramenta.includes("Gen")) { iconeHtml = '<i class="fa-solid fa-lightbulb text-yellow-400 text-xl"></i>'; bgGradient = 'from-yellow-400/20 to-amber-600/20'; borderColor = 'border-yellow-400/50'; }
+    else if(reg.ferramenta.includes("Miner")) { iconeHtml = '<i class="fa-solid fa-magnet text-indigo-400 text-xl"></i>'; bgGradient = 'from-indigo-500/20 to-purple-600/20'; borderColor = 'border-indigo-500/50'; }
+    else if(reg.ferramenta.includes("Paraph")) { iconeHtml = '<i class="fa-solid fa-rotate text-pink-400 text-xl"></i>'; bgGradient = 'from-pink-500/20 to-rose-600/20'; borderColor = 'border-pink-500/50'; }
+    else if(reg.ferramenta.includes("Scene")) { iconeHtml = '<i class="fa-solid fa-clapperboard text-cyan-400 text-xl"></i>'; bgGradient = 'from-cyan-500/20 to-blue-600/20'; borderColor = 'border-cyan-500/50'; }
+    else if(reg.ferramenta.includes("Video Forge")) { iconeHtml = '<i class="fa-solid fa-hammer text-indigo-400 text-xl"></i>'; bgGradient = 'from-indigo-500/20 to-purple-600/20'; borderColor = 'border-indigo-500/50'; }
+
+    iconeContainer.className = `w-12 h-12 rounded-xl flex items-center justify-center shadow-lg border ${borderColor} bg-gradient-to-br ${bgGradient}`;
+    iconeContainer.innerHTML = iconeHtml;
+
+    acoesContainer.innerHTML = '';
+    
+    if (reg.ferramenta.includes("Voice")) {
+        let pathAudio = reg.resultado;
+        let srtTexto = "";
+
+        if(pathAudio.includes("|SRT:")) {
+             let partes = pathAudio.split("|SRT:");
+             pathAudio = partes[0];
+             srtTexto = partes[1];
+        }
+
+        outputContainer.innerHTML = `
+            <div class="p-6 text-center">
+                <i class="fa-solid fa-compact-disc fa-spin text-4xl text-purple-500/30 mb-4 inline-block"></i>
+                <audio controls class="w-full mt-2 rounded-lg" src="${pathAudio}"></audio>
+            </div>
+        `;
+
+        acoesContainer.innerHTML += `
+            <a href="${pathAudio}" download class="col-span-1 py-3 bg-[#18181b] hover:bg-emerald-600 hover:border-emerald-500 border border-zinc-800 text-zinc-300 hover:text-white rounded-xl font-bold text-xs transition-all flex justify-center items-center gap-2 shadow-sm text-center">
+                <i class="fa-solid fa-download"></i> Baixar MP3
+            </a>
+        `;
+        
+        if(srtTexto) {
+             acoesContainer.innerHTML += `
+                 <button onclick="baixarSRTDireto(\`${srtTexto.replace(/`/g, "\\`")}\`)" class="col-span-1 py-3 bg-[#18181b] hover:bg-blue-600 hover:border-blue-500 border border-zinc-800 text-zinc-300 hover:text-white rounded-xl font-bold text-xs transition-all flex justify-center items-center gap-2 shadow-sm">
+                     <i class="fa-solid fa-closed-captioning"></i> Baixar .SRT
+                 </button>
+             `;
+        }
+
+    } else if (reg.ferramenta.includes("Video Forge")) {
+        outputContainer.innerHTML = `
+            <div class="p-6 text-center bg-[#09090b]">
+                <video controls class="max-w-full max-h-[50vh] mx-auto rounded-lg shadow-lg border border-zinc-800 outline-none" src="${reg.resultado}"></video>
+            </div>
+        `;
+        acoesContainer.innerHTML = `
+            <a href="${reg.resultado}" download class="col-span-4 py-3 bg-[#18181b] hover:bg-indigo-600 hover:border-indigo-500 border border-zinc-800 text-zinc-300 hover:text-white rounded-xl font-bold text-xs transition-all flex justify-center items-center gap-2 shadow-sm text-center">
+                <i class="fa-solid fa-download"></i> Baixar Vídeo MP4
+            </a>
+        `;
+    } else {
+        outputContainer.innerHTML = `<pre id="texto_resgate" class="text-sm text-zinc-300 font-mono whitespace-pre-wrap p-6 relative z-10 max-h-64 overflow-y-auto custom-scrollbar">${reg.resultado}</pre>`;
+        
+        acoesContainer.innerHTML = `
+            <button onclick="copiarTextoHist()" class="col-span-1 py-3 bg-[#18181b] hover:bg-emerald-600 hover:border-emerald-500 border border-zinc-800 text-zinc-300 hover:text-white rounded-xl font-bold text-xs transition-all flex justify-center items-center gap-2 shadow-sm">
+                <i class="fa-solid fa-copy"></i> Copiar
+            </button>
+            <button onclick="baixarTxtHist('${reg.ferramenta}', '${reg.data_formatada}')" class="col-span-1 py-3 bg-[#18181b] hover:bg-zinc-700 hover:border-zinc-500 border border-zinc-800 text-zinc-300 hover:text-white rounded-xl font-bold text-xs transition-all flex justify-center items-center gap-2 shadow-sm">
+                <i class="fa-solid fa-file-arrow-down"></i> .TXT
+            </button>
+        `;
+
+        if(reg.ferramenta.includes("Gen Insights")) {
+             acoesContainer.innerHTML += `
+                <button onclick="encaminharPara('script', ${index})" class="col-span-2 py-3 bg-[#18181b] hover:bg-orange-600 hover:border-orange-500 border border-zinc-800 text-zinc-300 hover:text-white rounded-xl font-bold text-xs transition-all flex justify-center items-center gap-2 shadow-sm">
+                    <i class="fa-solid fa-pen-nib"></i> Enviar para Script Forge
+                </button>
+            `;
+        } else if(reg.ferramenta.includes("Paraphraser")) {
+             acoesContainer.innerHTML += `
+                <button onclick="encaminharPara('voice', ${index})" class="col-span-2 py-3 bg-[#18181b] hover:bg-purple-600 hover:border-purple-500 border border-zinc-800 text-zinc-300 hover:text-white rounded-xl font-bold text-xs transition-all flex justify-center items-center gap-2 shadow-sm">
+                    <i class="fa-solid fa-microphone-lines"></i> Enviar para Voice Synth
+                </button>
+            `;
+        } else if(reg.ferramenta.includes("Script Forge")) {
+             acoesContainer.innerHTML += `
+                <button onclick="encaminharPara('voice', ${index})" class="col-span-1 py-3 bg-[#18181b] hover:bg-purple-600 hover:border-purple-500 border border-zinc-800 text-zinc-300 hover:text-white rounded-xl font-bold text-xs transition-all flex justify-center items-center gap-2 shadow-sm">
+                    <i class="fa-solid fa-microphone"></i> Voice Synth
+                </button>
+                <button onclick="encaminharPara('seo', ${index})" class="col-span-1 py-3 bg-[#18181b] hover:bg-blue-600 hover:border-blue-500 border border-zinc-800 text-zinc-300 hover:text-white rounded-xl font-bold text-xs transition-all flex justify-center items-center gap-2 shadow-sm">
+                    <i class="fa-solid fa-rocket"></i> Meta & SEO
+                </button>
+            `;
+        }
+    }
+
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    
+    setTimeout(() => {
+        conteudo.classList.remove('scale-95');
+        conteudo.classList.add('scale-100');
+    }, 10);
+}
+
+function fecharModal() {
+    const modal = document.getElementById('modal_resultado');
+    const conteudo = document.getElementById('modal_conteudo_interno');
+    
+    conteudo.classList.remove('scale-100');
+    conteudo.classList.add('scale-95');
+    
+    setTimeout(() => {
+        modal.classList.remove('flex');
+        modal.classList.add('hidden');
+        
+        const audioPlayer = document.querySelector('#modal_output_container audio');
+        if (audioPlayer) audioPlayer.pause();
+
+        const videoPlayer = document.querySelector('#modal_output_container video');
+        if (videoPlayer) videoPlayer.pause();
+    }, 200);
+}
+
+function copiarTextoHist() {
+    const texto = document.getElementById('texto_resgate').innerText;
+    navigator.clipboard.writeText(texto).then(() => {
+        alert("Conteúdo copiado para a área de transferência!");
+    });
+}
+
+function baixarTxtHist(ferramenta, dataStr) {
+    const texto = document.getElementById('texto_resgate').innerText;
+    const blob = new Blob([texto], { type: 'text/plain' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `${ferramenta.replace(' ', '_')}_${dataStr.replace(/[\\/:]/g, '-')}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+}
+
+function baixarSRTDireto(srt) {
+    const blob = new Blob([srt], { type: 'text/plain' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `legenda_${new Date().getTime()}.srt`;
+    link.click();
+}
+
+function encaminharPara(destino, index) {
+    const reg = histDadosAtuais[index];
+    const texto = reg.resultado;
+    
+    if (destino === 'script') {
+        sessionStorage.setItem('script_ideia_base', texto);
+        window.location.href = '/script-forge';
+    } else if (destino === 'voice') {
+        localStorage.setItem('texto_pendente_voice', texto);
+        window.location.href = '/voice-synthesizer';
+    } else if (destino === 'seo') {
+        sessionStorage.setItem('seo_conteudo', texto);
+        window.location.href = '/meta-seo';
+    }
+}
+
 // ==========================================
-// MÓDULO: VIDEO FORGE (ATUALIZADO)
+// MÓDULO: SCENEMAKER
+// ==========================================
+let formatoSceneAtual = "Imagem"; 
+let cenasGlobaisGeradas = [];
+
+function setFormatoScene(formato) {
+    formatoSceneAtual = formato;
+    const btnImagem = document.getElementById('btn_formato_imagem');
+    const btnVideo = document.getElementById('btn_formato_video');
+
+    if(formato === 'Imagem') {
+        btnImagem.className = "flex-1 py-2 text-xs font-bold rounded-lg bg-zinc-800 text-white border border-zinc-700/50 shadow-sm transition-all flex items-center justify-center gap-2";
+        btnVideo.className = "flex-1 py-2 text-xs font-bold rounded-lg text-zinc-500 hover:text-white transition-all flex items-center justify-center gap-2";
+    } else {
+        btnVideo.className = "flex-1 py-2 text-xs font-bold rounded-lg bg-zinc-800 text-white border border-zinc-700/50 shadow-sm transition-all flex items-center justify-center gap-2";
+        btnImagem.className = "flex-1 py-2 text-xs font-bold rounded-lg text-zinc-500 hover:text-white transition-all flex items-center justify-center gap-2";
+    }
+}
+
+function atualizarContadorScene() {
+    const texto = document.getElementById('texto_scenemaker').value;
+    const contador = document.getElementById('contador_scenemaker');
+    if(contador && typeof contarPalavrasLocal === 'function') {
+        contador.innerText = contarPalavrasLocal(texto) + ' palavras';
+    }
+}
+
+async function gerarScenes() {
+    const roteiro = document.getElementById('texto_scenemaker').value;
+    const btn = document.getElementById('btn_gerar_scenes');
+    const txtBtn = document.getElementById('txt_btn_scenes');
+    const container = document.getElementById('container_cenas');
+
+    if(!roteiro || roteiro.trim() === "") {
+        return alert("Cole o roteiro antes de gerar a direção de arte!");
+    }
+
+    btn.disabled = true;
+    btn.classList.add('opacity-70', 'cursor-not-allowed');
+    txtBtn.innerHTML = `Analisando Roteiro... <i class="fa-solid fa-circle-notch fa-spin ml-2"></i>`;
+    
+    container.innerHTML = `
+        <div class="flex flex-col items-center justify-center h-full">
+            <i class="fa-solid fa-circle-notch fa-spin text-4xl text-cyan-500/50 mb-4"></i>
+            <p class="text-sm font-bold text-zinc-400 animate-pulse">A Dark Neural Engine está fatiando a sua história...</p>
+        </div>
+    `;
+
+    try {
+        const response = await fetch("/api/v1/scenemaker", {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                roteiro: roteiro,
+                formato: formatoSceneAtual
+            })
+        });
+
+        const dados = await response.json();
+        
+        if(!response.ok) {
+            throw new Error(dados.detail || "Erro na comunicação com a IA.");
+        }
+
+        cenasGlobaisGeradas = dados.dados.cenas;
+        renderizarTimeline(cenasGlobaisGeradas, formatoSceneAtual);
+
+        if(dados.novo_saldo !== undefined) {
+            const paineisDeCoins = document.querySelectorAll('.fa-coins');
+            paineisDeCoins.forEach(icone => {
+                const elementoPai = icone.closest('p'); 
+                if(elementoPai) {
+                    elementoPai.innerHTML = `<i class="fa-solid fa-coins"></i> ${dados.novo_saldo.toLocaleString('pt-BR')} coins`;
+                    elementoPai.classList.add('text-cyan-400', 'scale-110');
+                    setTimeout(() => elementoPai.classList.remove('text-cyan-400', 'scale-110'), 500);
+                }
+            });
+        }
+
+    } catch (e) {
+        const isCoinError = e.message.includes('Coins insuficientes');
+        const erroClass = isCoinError ? 'text-yellow-400 border-yellow-500/30 bg-yellow-500/5' : 'text-red-400 border-red-500/30 bg-red-500/5';
+        
+        container.innerHTML = `
+        <div class="flex items-center justify-center h-full">
+            <p class="${erroClass} border font-bold p-5 rounded-lg relative z-10 text-center shadow-lg">
+                <i class="fa-solid fa-triangle-exclamation text-2xl mb-2 block"></i> 
+                ${e.message}
+            </p>
+        </div>`;
+    } finally {
+        btn.disabled = false;
+        btn.classList.remove('opacity-70', 'cursor-not-allowed');
+        txtBtn.innerText = "Gerar Direção de Arte";
+    }
+}
+
+function renderizarTimeline(cenas, formato) {
+    const container = document.getElementById('container_cenas');
+    container.innerHTML = '';
+
+    const iconePrincipal = formato === 'Imagem' ? 'fa-image' : 'fa-film';
+    const corTema = formato === 'Imagem' ? 'text-emerald-400' : 'text-purple-400';
+    const badgeLabel = formato === 'Imagem' ? 'Midjourney / DALL-E' : 'Sora / Runway / Kling';
+
+    cenas.forEach((cena, index) => {
+        container.innerHTML += `
+            <div class="bg-[#121214] border border-zinc-800 rounded-xl overflow-hidden hover:border-cyan-500/30 transition-colors shadow-lg relative group">
+                <div class="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-cyan-600 to-cyan-900 opacity-50 group-hover:opacity-100 transition-opacity"></div>
+                
+                <div class="p-5 pl-7 flex flex-col gap-4">
+                    <div class="flex justify-between items-start">
+                        <div class="flex items-center gap-3">
+                            <span class="w-8 h-8 rounded-lg bg-zinc-900 border border-zinc-700 flex items-center justify-center font-black text-sm text-zinc-300 shadow-inner">${index + 1}</span>
+                            <div>
+                                <h4 class="text-[10px] font-black uppercase tracking-wider text-zinc-500 mb-1">Fala do Narrador</h4>
+                                <p class="text-sm text-zinc-300 italic">"${cena.trecho_narrado}"</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-[#09090b] p-4 rounded-lg border border-zinc-800/50 shadow-inner">
+                        <div>
+                            <h4 class="text-[10px] font-black uppercase tracking-wider text-cyan-500 mb-1"><i class="fa-solid fa-clapperboard mr-1"></i> Ação da Cena</h4>
+                            <p class="text-xs text-zinc-400">${cena.acao}</p>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <h4 class="text-[10px] font-black uppercase tracking-wider text-zinc-500 mb-1"><i class="fa-solid fa-video mr-1"></i> Câmera</h4>
+                                <p class="text-xs text-zinc-400">${cena.camera}</p>
+                            </div>
+                            <div>
+                                <h4 class="text-[10px] font-black uppercase tracking-wider text-zinc-500 mb-1"><i class="fa-solid fa-lightbulb mr-1"></i> Iluminação</h4>
+                                <p class="text-xs text-zinc-400">${cena.iluminacao}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between items-center mb-2">
+                            <h4 class="text-[10px] font-black uppercase tracking-wider ${corTema}"><i class="fa-solid ${iconePrincipal} mr-1"></i> Prompt Gringo (${badgeLabel})</h4>
+                            <button onclick="copiarPromptCena(this, \`${cena.prompt_gringo.replace(/`/g, "\\`")}\`)" class="text-[10px] font-bold text-zinc-400 hover:text-white px-2 py-1 rounded border border-zinc-700/50 bg-zinc-800/50 transition-colors">
+                                <i class="fa-solid fa-copy"></i> Copiar
+                            </button>
+                        </div>
+                        <textarea readonly class="w-full h-20 bg-black/50 border border-zinc-800 rounded-lg p-3 text-xs text-zinc-300 font-mono resize-none custom-scrollbar outline-none">${cena.prompt_gringo}</textarea>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+}
+
+function copiarPromptCena(btnElement, texto) {
+    navigator.clipboard.writeText(texto).then(() => {
+        const iconOriginal = btnElement.innerHTML;
+        btnElement.innerHTML = `<i class="fa-solid fa-check"></i> Copiado`;
+        btnElement.classList.add('text-emerald-400', 'border-emerald-500/50');
+        setTimeout(() => {
+            btnElement.innerHTML = iconOriginal;
+            btnElement.classList.remove('text-emerald-400', 'border-emerald-500/50');
+        }, 2000);
+    });
+}
+
+function copiarTodosPrompts() {
+    if(cenasGlobaisGeradas.length === 0) return alert("Não há prompts gerados para copiar.");
+    
+    let textoFinal = "--- SCENEMAKER: PROMPTS DA TIMELINE ---\n\n";
+    cenasGlobaisGeradas.forEach((cena, index) => {
+        textoFinal += `CENA ${index + 1}:\n${cena.prompt_gringo}\n\n`;
+    });
+
+    navigator.clipboard.writeText(textoFinal).then(() => {
+        alert("Todos os prompts foram copiados para a área de transferência!");
+    });
+}
+
+// ==========================================
+// MÓDULO: VIDEO FORGE (RENDER NATIVO)
 // ==========================================
 let formatoVideoForgeAtual = "vertical";
 let midiaTypeForgeAtual = "imagem";
@@ -158,11 +1148,11 @@ function setFormatoVideoForge(formato) {
     const btnH = document.getElementById('btn_vf_horizontal');
 
     if(formato === 'vertical') {
-        btnV.className = "flex-1 py-2.5 text-[10px] font-bold rounded-lg bg-indigo-600 text-white shadow-md transition-all flex flex-col items-center gap-1 border border-indigo-500";
-        btnH.className = "flex-1 py-2.5 text-[10px] font-bold rounded-lg text-zinc-500 hover:text-white transition-all flex flex-col items-center gap-1";
+        btnV.className = "flex-1 py-2.5 text-[10px] font-bold rounded-lg bg-indigo-600 text-white shadow-md transition-all flex items-center justify-center gap-1 border border-indigo-500";
+        btnH.className = "flex-1 py-2.5 text-[10px] font-bold rounded-lg text-zinc-500 hover:text-white transition-all flex items-center justify-center gap-1";
     } else {
-        btnH.className = "flex-1 py-2.5 text-[10px] font-bold rounded-lg bg-indigo-600 text-white shadow-md transition-all flex flex-col items-center gap-1 border border-indigo-500";
-        btnV.className = "flex-1 py-2.5 text-[10px] font-bold rounded-lg text-zinc-500 hover:text-white transition-all flex flex-col items-center gap-1";
+        btnH.className = "flex-1 py-2.5 text-[10px] font-bold rounded-lg bg-indigo-600 text-white shadow-md transition-all flex items-center justify-center gap-1 border border-indigo-500";
+        btnV.className = "flex-1 py-2.5 text-[10px] font-bold rounded-lg text-zinc-500 hover:text-white transition-all flex items-center justify-center gap-1";
     }
 }
 
@@ -172,24 +1162,66 @@ function setMidiaTypeForge(tipo) {
     const btnVid = document.getElementById('btn_type_vid');
     const labelMidia = document.getElementById('label_midia_principal');
     const inputMidia = document.getElementById('upload_midias');
+    const iconMidia = document.getElementById('icon_midia_principal');
 
     if(tipo === 'imagem') {
-        btnImg.className = "flex-1 py-2 text-[10px] font-bold rounded-lg bg-zinc-800 text-white border border-zinc-700/50 shadow-sm transition-all flex items-center justify-center gap-2";
-        btnVid.className = "flex-1 py-2 text-[10px] font-bold rounded-lg text-zinc-500 hover:text-white transition-all flex items-center justify-center gap-2";
-        labelMidia.innerHTML = '<i class="fa-solid fa-images text-cyan-400 mr-1"></i> Selecione as Imagens';
+        btnImg.className = "flex-1 py-2.5 text-[10px] font-bold rounded-lg bg-zinc-800 text-white border border-zinc-700/50 shadow-sm transition-all flex items-center justify-center gap-1";
+        btnVid.className = "flex-1 py-2.5 text-[10px] font-bold rounded-lg text-zinc-500 hover:text-white transition-all flex items-center justify-center gap-1";
+        labelMidia.innerText = 'Selecionar Cenas (Imagens)';
+        iconMidia.className = "fa-solid fa-images text-3xl text-cyan-400 mb-3 drop-shadow-lg";
         inputMidia.accept = "image/jpeg,image/png,image/webp";
     } else {
-        btnVid.className = "flex-1 py-2 text-[10px] font-bold rounded-lg bg-zinc-800 text-white border border-zinc-700/50 shadow-sm transition-all flex items-center justify-center gap-2";
-        btnImg.className = "flex-1 py-2 text-[10px] font-bold rounded-lg text-zinc-500 hover:text-white transition-all flex items-center justify-center gap-2";
-        labelMidia.innerHTML = '<i class="fa-solid fa-video text-purple-400 mr-1"></i> Selecione os Clipes de Vídeo';
+        btnVid.className = "flex-1 py-2.5 text-[10px] font-bold rounded-lg bg-zinc-800 text-white border border-zinc-700/50 shadow-sm transition-all flex items-center justify-center gap-1";
+        btnImg.className = "flex-1 py-2.5 text-[10px] font-bold rounded-lg text-zinc-500 hover:text-white transition-all flex items-center justify-center gap-1";
+        labelMidia.innerText = 'Selecionar Clipes (Vídeos)';
+        iconMidia.className = "fa-solid fa-video text-3xl text-purple-400 mb-3 drop-shadow-lg";
         inputMidia.accept = "video/mp4,video/x-m4v,video/*";
     }
+}
+
+// INICIA O MOTOR DE DRAG AND DROP VISUAL
+function iniciarDropzones() {
+    document.querySelectorAll('.dropzone input[type="file"]').forEach(input => {
+        input.addEventListener('change', function(e) {
+            const label = this.parentElement.querySelector('.file-name-label');
+            const icon = this.parentElement.querySelector('i');
+            
+            if (this.files && this.files.length > 1) {
+                label.innerText = `${this.files.length} arquivos anexados`;
+                label.classList.add('text-indigo-400', 'font-bold');
+                icon.classList.add('scale-110');
+            } else if (this.files && this.files.length === 1) {
+                let name = this.files[0].name;
+                if(name.length > 18) name = name.substring(0, 15) + '...';
+                label.innerText = name;
+                label.classList.add('text-indigo-400', 'font-bold');
+                icon.classList.add('scale-110');
+            } else {
+                label.innerText = "Arrastar ou Clicar";
+                label.classList.remove('text-indigo-400', 'font-bold');
+                icon.classList.remove('scale-110');
+            }
+        });
+
+        input.addEventListener('dragenter', function() {
+            this.parentElement.classList.add('border-indigo-500', 'bg-indigo-500/10', 'scale-[1.02]');
+        });
+
+        input.addEventListener('dragleave', function() {
+            this.parentElement.classList.remove('border-indigo-500', 'bg-indigo-500/10', 'scale-[1.02]');
+        });
+
+        input.addEventListener('drop', function() {
+            this.parentElement.classList.remove('border-indigo-500', 'bg-indigo-500/10', 'scale-[1.02]');
+        });
+    });
 }
 
 async function renderizarVideo() {
     const inputVoz = document.getElementById('upload_voz');
     const inputSrt = document.getElementById('upload_srt');
     const inputBgm = document.getElementById('upload_bgm');
+    const inputWm = document.getElementById('upload_watermark');
     const inputMidias = document.getElementById('upload_midias');
     const btn = document.getElementById('btn_render');
     const txtBtn = document.getElementById('txt_btn_render');
@@ -204,9 +1236,16 @@ async function renderizarVideo() {
     formData.append("voz", inputVoz.files[0]);
     formData.append("legenda", inputSrt.files[0]);
     formData.append("formato_video", formatoVideoForgeAtual);
-    formData.append("midia_type", midiaTypeForgeAtual);
     
+    // Novas Customizações
+    formData.append("fonte_legenda", document.getElementById('fonte_legenda').value);
+    formData.append("cor_legenda", document.getElementById('cor_legenda').value);
+    formData.append("cor_contorno", document.getElementById('cor_contorno').value);
+    formData.append("fundo_legenda", document.getElementById('fundo_legenda').checked ? "true" : "false");
+    formData.append("posicao_legenda", document.getElementById('posicao_legenda').value);
+
     if (inputBgm && inputBgm.files[0]) formData.append("bgm", inputBgm.files[0]);
+    if (inputWm && inputWm.files[0]) formData.append("watermark", inputWm.files[0]);
     
     for (let i = 0; i < inputMidias.files.length; i++) {
         formData.append("imagens", inputMidias.files[i]);
