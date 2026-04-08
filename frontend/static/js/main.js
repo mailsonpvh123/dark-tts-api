@@ -32,7 +32,6 @@ document.addEventListener('DOMContentLoaded', async function() {
             if (path === '/script-forge') icon.classList.add('text-orange-400');
             if (path === '/voice-synthesizer') icon.classList.add('text-purple-400');
             if (path === '/scenemaker') icon.classList.add('text-cyan-400');
-            if (path === '/video-forge') icon.classList.add('text-indigo-400'); 
             if (path === '/meta-seo') icon.classList.add('text-blue-400');
             if (path === '/thumb-maker') icon.classList.add('text-pink-400');
             if (path === '/clip-hunter') icon.classList.add('text-emerald-400');
@@ -42,10 +41,6 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     if (path === '/historico') {
         carregarHistorico();
-    }
-
-    if (path === '/video-forge') {
-        iniciarDropzones();
     }
 
     const textoVoice = localStorage.getItem('texto_pendente_voice');
@@ -689,7 +684,6 @@ async function carregarHistorico() {
                 else if(h.ferramenta.includes("Miner")) { cor = 'text-indigo-400'; icone = 'fa-magnet'; bgIcone = 'bg-indigo-500/10 border-indigo-500/30 text-indigo-400';}
                 else if(h.ferramenta.includes("Paraph")) { cor = 'text-pink-400'; icone = 'fa-rotate'; bgIcone = 'bg-pink-500/10 border-pink-500/30 text-pink-400';}
                 else if(h.ferramenta.includes("Scene")) { cor = 'text-cyan-400'; icone = 'fa-clapperboard'; bgIcone = 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400';}
-                else if(h.ferramenta.includes("Video Forge")) { cor = 'text-indigo-400'; icone = 'fa-hammer'; bgIcone = 'bg-indigo-500/10 border-indigo-500/30 text-indigo-400';}
 
                 let inputCurto = h.input_usuario.length > 50 ? h.input_usuario.substring(0, 50) + '...' : h.input_usuario;
 
@@ -802,7 +796,6 @@ function abrirModal(index) {
     else if(reg.ferramenta.includes("Miner")) { iconeHtml = '<i class="fa-solid fa-magnet text-indigo-400 text-xl"></i>'; bgGradient = 'from-indigo-500/20 to-purple-600/20'; borderColor = 'border-indigo-500/50'; }
     else if(reg.ferramenta.includes("Paraph")) { iconeHtml = '<i class="fa-solid fa-rotate text-pink-400 text-xl"></i>'; bgGradient = 'from-pink-500/20 to-rose-600/20'; borderColor = 'border-pink-500/50'; }
     else if(reg.ferramenta.includes("Scene")) { iconeHtml = '<i class="fa-solid fa-clapperboard text-cyan-400 text-xl"></i>'; bgGradient = 'from-cyan-500/20 to-blue-600/20'; borderColor = 'border-cyan-500/50'; }
-    else if(reg.ferramenta.includes("Video Forge")) { iconeHtml = '<i class="fa-solid fa-hammer text-indigo-400 text-xl"></i>'; bgGradient = 'from-indigo-500/20 to-purple-600/20'; borderColor = 'border-indigo-500/50'; }
 
     iconeContainer.className = `w-12 h-12 rounded-xl flex items-center justify-center shadow-lg border ${borderColor} bg-gradient-to-br ${bgGradient}`;
     iconeContainer.innerHTML = iconeHtml;
@@ -840,17 +833,6 @@ function abrirModal(index) {
              `;
         }
 
-    } else if (reg.ferramenta.includes("Video Forge")) {
-        outputContainer.innerHTML = `
-            <div class="p-6 text-center bg-[#09090b]">
-                <video controls class="max-w-full max-h-[50vh] mx-auto rounded-lg shadow-lg border border-zinc-800 outline-none" src="${reg.resultado}"></video>
-            </div>
-        `;
-        acoesContainer.innerHTML = `
-            <a href="${reg.resultado}" download class="col-span-4 py-3 bg-[#18181b] hover:bg-indigo-600 hover:border-indigo-500 border border-zinc-800 text-zinc-300 hover:text-white rounded-xl font-bold text-xs transition-all flex justify-center items-center gap-2 shadow-sm text-center">
-                <i class="fa-solid fa-download"></i> Baixar Vídeo MP4
-            </a>
-        `;
     } else {
         outputContainer.innerHTML = `<pre id="texto_resgate" class="text-sm text-zinc-300 font-mono whitespace-pre-wrap p-6 relative z-10 max-h-64 overflow-y-auto custom-scrollbar">${reg.resultado}</pre>`;
         
@@ -909,9 +891,6 @@ function fecharModal() {
         
         const audioPlayer = document.querySelector('#modal_output_container audio');
         if (audioPlayer) audioPlayer.pause();
-
-        const videoPlayer = document.querySelector('#modal_output_container video');
-        if (videoPlayer) videoPlayer.pause();
     }, 200);
 }
 
@@ -1134,178 +1113,4 @@ function copiarTodosPrompts() {
     navigator.clipboard.writeText(textoFinal).then(() => {
         alert("Todos os prompts foram copiados para a área de transferência!");
     });
-}
-
-// ==========================================
-// MÓDULO: VIDEO FORGE (RENDER NATIVO)
-// ==========================================
-let formatoVideoForgeAtual = "vertical";
-let midiaTypeForgeAtual = "imagem";
-
-function setFormatoVideoForge(formato) {
-    formatoVideoForgeAtual = formato;
-    const btnV = document.getElementById('btn_vf_vertical');
-    const btnH = document.getElementById('btn_vf_horizontal');
-
-    if(formato === 'vertical') {
-        btnV.className = "flex-1 py-2.5 text-[10px] font-bold rounded-lg bg-indigo-600 text-white shadow-md transition-all flex items-center justify-center gap-1 border border-indigo-500";
-        btnH.className = "flex-1 py-2.5 text-[10px] font-bold rounded-lg text-zinc-500 hover:text-white transition-all flex items-center justify-center gap-1";
-    } else {
-        btnH.className = "flex-1 py-2.5 text-[10px] font-bold rounded-lg bg-indigo-600 text-white shadow-md transition-all flex items-center justify-center gap-1 border border-indigo-500";
-        btnV.className = "flex-1 py-2.5 text-[10px] font-bold rounded-lg text-zinc-500 hover:text-white transition-all flex items-center justify-center gap-1";
-    }
-}
-
-function setMidiaTypeForge(tipo) {
-    midiaTypeForgeAtual = tipo;
-    const btnImg = document.getElementById('btn_type_img');
-    const btnVid = document.getElementById('btn_type_vid');
-    const labelMidia = document.getElementById('label_midia_principal');
-    const inputMidia = document.getElementById('upload_midias');
-    const iconMidia = document.getElementById('icon_midia_principal');
-
-    if(tipo === 'imagem') {
-        btnImg.className = "flex-1 py-2.5 text-[10px] font-bold rounded-lg bg-zinc-800 text-white border border-zinc-700/50 shadow-sm transition-all flex items-center justify-center gap-1";
-        btnVid.className = "flex-1 py-2.5 text-[10px] font-bold rounded-lg text-zinc-500 hover:text-white transition-all flex items-center justify-center gap-1";
-        labelMidia.innerText = 'Selecionar Cenas (Imagens)';
-        iconMidia.className = "fa-solid fa-images text-3xl text-cyan-400 mb-3 drop-shadow-lg";
-        inputMidia.accept = "image/jpeg,image/png,image/webp";
-    } else {
-        btnVid.className = "flex-1 py-2.5 text-[10px] font-bold rounded-lg bg-zinc-800 text-white border border-zinc-700/50 shadow-sm transition-all flex items-center justify-center gap-1";
-        btnImg.className = "flex-1 py-2.5 text-[10px] font-bold rounded-lg text-zinc-500 hover:text-white transition-all flex items-center justify-center gap-1";
-        labelMidia.innerText = 'Selecionar Clipes (Vídeos)';
-        iconMidia.className = "fa-solid fa-video text-3xl text-purple-400 mb-3 drop-shadow-lg";
-        inputMidia.accept = "video/mp4,video/x-m4v,video/*";
-    }
-}
-
-// INICIA O MOTOR DE DRAG AND DROP VISUAL
-function iniciarDropzones() {
-    document.querySelectorAll('.dropzone input[type="file"]').forEach(input => {
-        input.addEventListener('change', function(e) {
-            const label = this.parentElement.querySelector('.file-name-label');
-            const icon = this.parentElement.querySelector('i');
-            
-            if (this.files && this.files.length > 1) {
-                label.innerText = `${this.files.length} arquivos anexados`;
-                label.classList.add('text-indigo-400', 'font-bold');
-                icon.classList.add('scale-110');
-            } else if (this.files && this.files.length === 1) {
-                let name = this.files[0].name;
-                if(name.length > 18) name = name.substring(0, 15) + '...';
-                label.innerText = name;
-                label.classList.add('text-indigo-400', 'font-bold');
-                icon.classList.add('scale-110');
-            } else {
-                label.innerText = "Arrastar ou Clicar";
-                label.classList.remove('text-indigo-400', 'font-bold');
-                icon.classList.remove('scale-110');
-            }
-        });
-
-        input.addEventListener('dragenter', function() {
-            this.parentElement.classList.add('border-indigo-500', 'bg-indigo-500/10', 'scale-[1.02]');
-        });
-
-        input.addEventListener('dragleave', function() {
-            this.parentElement.classList.remove('border-indigo-500', 'bg-indigo-500/10', 'scale-[1.02]');
-        });
-
-        input.addEventListener('drop', function() {
-            this.parentElement.classList.remove('border-indigo-500', 'bg-indigo-500/10', 'scale-[1.02]');
-        });
-    });
-}
-
-async function renderizarVideo() {
-    const inputVoz = document.getElementById('upload_voz');
-    const inputSrt = document.getElementById('upload_srt');
-    const inputBgm = document.getElementById('upload_bgm');
-    const inputWm = document.getElementById('upload_watermark');
-    const inputMidias = document.getElementById('upload_midias');
-    const btn = document.getElementById('btn_render');
-    const txtBtn = document.getElementById('txt_btn_render');
-    const statusDiv = document.getElementById('status_render');
-    const resultDiv = document.getElementById('resultado_video');
-
-    if (!inputVoz.files[0] || !inputSrt.files[0] || inputMidias.files.length === 0) {
-        return alert("Voz, Legenda e os arquivos de Mídia são obrigatórios!");
-    }
-
-    const formData = new FormData();
-    formData.append("voz", inputVoz.files[0]);
-    formData.append("legenda", inputSrt.files[0]);
-    formData.append("formato_video", formatoVideoForgeAtual);
-    
-    // Novas Customizações
-    formData.append("fonte_legenda", document.getElementById('fonte_legenda').value);
-    formData.append("cor_legenda", document.getElementById('cor_legenda').value);
-    formData.append("cor_contorno", document.getElementById('cor_contorno').value);
-    formData.append("fundo_legenda", document.getElementById('fundo_legenda').checked ? "true" : "false");
-    formData.append("posicao_legenda", document.getElementById('posicao_legenda').value);
-
-    if (inputBgm && inputBgm.files[0]) formData.append("bgm", inputBgm.files[0]);
-    if (inputWm && inputWm.files[0]) formData.append("watermark", inputWm.files[0]);
-    
-    for (let i = 0; i < inputMidias.files.length; i++) {
-        formData.append("imagens", inputMidias.files[i]);
-    }
-
-    btn.disabled = true;
-    btn.classList.add('opacity-70', 'cursor-not-allowed');
-    txtBtn.innerHTML = `Aquecendo a Forja... <i class="fa-solid fa-circle-notch fa-spin ml-2"></i>`;
-    
-    resultDiv.classList.add('hidden');
-    resultDiv.classList.remove('flex');
-    statusDiv.classList.remove('hidden');
-    statusDiv.innerHTML = `
-        <div class="w-20 h-20 mx-auto rounded-2xl bg-[#09090b] border border-indigo-500/50 flex items-center justify-center mb-6 shadow-[0_0_20px_rgba(99,102,241,0.3)] relative">
-            <i class="fa-solid fa-fire-burner text-4xl text-indigo-500 fa-beat"></i>
-        </div>
-        <h3 class="text-base font-black text-indigo-400 tracking-tight animate-pulse italic">FUNDINDO MATERIAIS...</h3>
-        <p class="text-xs text-zinc-500 mt-2">A nossa IA está processando e fundindo todos os materiais no backend. Aguarde alguns minutos e não feche esta tela.</p>
-    `;
-
-    try {
-        const response = await fetch("/api/v1/video-forge", {
-            method: 'POST',
-            body: formData
-        });
-
-        const dados = await response.json();
-        
-        if (!response.ok) throw new Error(dados.detail || "Erro ao forjar vídeo.");
-
-        statusDiv.classList.add('hidden');
-        resultDiv.classList.remove('hidden');
-        resultDiv.classList.add('flex');
-        
-        document.getElementById('player_final').src = dados.video_url;
-        document.getElementById('btn_baixar_mp4').href = dados.video_url;
-
-        if (dados.novo_saldo !== undefined) {
-            const paineisDeCoins = document.querySelectorAll('.fa-coins');
-            paineisDeCoins.forEach(icone => {
-                const elementoPai = icone.closest('p'); 
-                if (elementoPai) {
-                    elementoPai.innerHTML = `<i class="fa-solid fa-coins"></i> ${dados.novo_saldo.toLocaleString('pt-BR')} coins`;
-                    elementoPai.classList.add('text-indigo-400', 'scale-110');
-                    setTimeout(() => elementoPai.classList.remove('text-indigo-400', 'scale-110'), 500);
-                }
-            });
-        }
-
-    } catch (error) {
-        statusDiv.innerHTML = `
-            <div class="w-20 h-20 mx-auto rounded-2xl bg-red-500/10 border border-red-500/30 flex items-center justify-center mb-6">
-                <i class="fa-solid fa-triangle-exclamation text-4xl text-red-500"></i>
-            </div>
-            <h3 class="text-base font-black text-red-400 tracking-tight">FALHA NA FORJA</h3>
-            <p class="text-xs text-zinc-500 mt-2">${error.message}</p>
-        `;
-    } finally {
-        btn.disabled = false;
-        btn.classList.remove('opacity-70', 'cursor-not-allowed');
-        txtBtn.innerHTML = `FORJAR VÍDEO MP4`;
-    }
 }
