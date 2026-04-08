@@ -254,7 +254,7 @@ async def gerar_narracao(
         if is_cinematic:
             api_key = os.environ.get("ELEVENLABS_API_KEY")
             modelo_eleven = os.environ.get("ELEVENLABS_MODEL_ID", "eleven_turbo_v2_5")
-            if not api_key: raise ValueError("Chave ELEVENLABS_API_KEY não configurada.")
+            if not api_key: raise ValueError("Chave ELEVENLABS_API_KEY não configurada. Configure no painel de ambiente.")
             
             voz_real = req.voz.replace("cinematic-", "")
             
@@ -273,7 +273,8 @@ async def gerar_narracao(
                     
                     response = await client.post(url, json=data, headers=headers)
                     if response.status_code != 200:
-                        raise Exception(f"Falha na API Cinematic: {response.text}")
+                        erro_msg = response.text if response.text else "Erro sem corpo na resposta."
+                        raise Exception(f"Falha na API Cinematic (HTTP {response.status_code}): {erro_msg}")
                     
                     seg = AudioSegment.from_file(io.BytesIO(response.content), format="mp3")
                     final_audio += (pause_seg + seg) if i > 0 else seg
@@ -289,8 +290,9 @@ async def gerar_narracao(
 
         elif is_creator:
             api_key = os.environ.get("GEMINI_API_KEY_PAID")
+            # Muitas vezes o modelo muda ou fica fora do ar, o padrão correto costuma ser o modelo experiemental para áudio.
             modelo_gemini = os.environ.get("GEMINI_MODEL_VOICE", "gemini-2.5-flash-tts")
-            if not api_key: raise ValueError("Chave GEMINI_API_KEY_PAID não configurada.")
+            if not api_key: raise ValueError("Chave GEMINI_API_KEY_PAID não configurada no painel de ambiente.")
 
             voz_real = req.voz.replace("creator-", "")
 
@@ -316,17 +318,39 @@ async def gerar_narracao(
                     for attempt in range(max_retries):
                         try:
                             response = await client.post(url, json=data, headers=headers)
-                            if response.status_code != 200: raise Exception(response.text)
+                            
+                            # Captura de erro pesada: Se não for 200, grita o texto exato da API
+                            if response.status_code != 200: 
+                                erro_txt = response.text if response.text else "Nenhum texto retornado pela API."
+                                raise Exception(f"HTTP {response.status_code} - {erro_txt}")
+                            
                             resp_json = response.json()
-                            for part in resp_json.get('candidates', [{}])[0].get('content', {}).get('parts', []):
-                                if 'inlineData' in part and part['inlineData']['mimeType'].startswith('audio/'):
+                            
+                            # Tenta extrair o áudio de forma segura
+                            candidatos = resp_json.get('candidates', [])
+                            if not candidatos:
+                                raise Exception(f"API respondeu sem 'candidates'. Retorno: {response.text}")
+                                
+                            partes = candidatos[0].get('content', {}).get('parts', [])
+                            for part in partes:
+                                if 'inlineData' in part and part['inlineData'].get('mimeType', '').startswith('audio/'):
                                     audio_b64 = part['inlineData']['data']
                                     break
-                            if audio_b64: break
-                            else: raise Exception("A API do Gemini não retornou dados de áudio.")
+                                    
+                            if audio_b64: 
+                                break
+                            else: 
+                                raise Exception(f"A API do Gemini não retornou dados de áudio no JSON. Retorno: {response.text}")
+                                
                         except Exception as api_err:
-                            if attempt < max_retries - 1: time.sleep(3)
-                            else: raise Exception(f"Falha na API Creator: {str(api_err)}")
+                            # Se for o último erro da tentativa, a gente passa pra frente
+                            erro_detalhado = str(api_err) if str(api_err) else repr(api_err)
+                            print(f"⚠️ Aviso (Tentativa {attempt+1}/{max_retries}): {erro_detalhado}")
+                            
+                            if attempt < max_retries - 1: 
+                                time.sleep(3)
+                            else: 
+                                raise Exception(f"Detalhe Técnico do Google: {erro_detalhado}")
                     
                     audio_bytes = base64.b64decode(audio_b64)
                     seg = AudioSegment(data=audio_bytes, sample_width=2, frame_rate=24000, channels=1)
@@ -383,4 +407,4 @@ async def gerar_narracao(
             usuario.coins += custo_operacao
             db.commit()
         print(f"❌ Erro na Geração de Áudio: {e}")
-        raise HTTPException(status_code=500, detail=f"Falha ao gerar o áudio: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Falha na API Creator: {str(e)}")
