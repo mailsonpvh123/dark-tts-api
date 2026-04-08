@@ -55,6 +55,7 @@ async def processar_video_forge(
     os.makedirs(work_dir, exist_ok=True)
 
     try:
+        # 1. Salva Arquivos de Base
         path_voz = os.path.join(work_dir, "voz.mp3")
         with open(path_voz, "wb") as f:
             f.write(await voz.read())
@@ -76,136 +77,111 @@ async def processar_video_forge(
             with open(path_wm, "wb") as f:
                 f.write(await watermark.read())
 
+        # 2. Leitura Matemática de Tempo
         audio_voz = AudioSegment.from_file(path_voz)
         duracao_segundos = len(audio_voz) / 1000.0
 
-        # --- A NOVA ESTRUTURA PARA EVITAR CONGELAMENTOS ---
-        ext_comum = "jpg" # Padronizamos a extensão internamente
-        
-        if midia_type == "imagem":
-            # Calcula quanto tempo cada imagem deve durar na tela
-            tempo_por_img = duracao_segundos / len(imagens) if len(imagens) > 0 else 5.0
-            
-            # Para o FFmpeg entender que queremos uma imagem a cada X segundos, 
-            # dizemos que o framerate (fps de entrada) é 1 frame dividido pelo tempo (ex: 1/5 = 0.2 fps)
-            framerate_entrada = str(1.0 / tempo_por_img)
+        num_midias = len(imagens)
+        tempo_por_midia = duracao_segundos / num_midias if num_midias > 0 else 5.0
 
-            # Salva as imagens com nomes sequenciais padrão do FFmpeg (ex: img_001.jpg, img_002.jpg)
-            for i, img_file in enumerate(imagens):
-                img_path = os.path.join(work_dir, f"img_{i+1:03d}.{ext_comum}")
-                with open(img_path, "wb") as f_img:
-                    f_img.write(await img_file.read())
-                    
-        else: # Se for vídeo
-            # Mantemos a lógica do concat para vídeos (pois vídeos têm tempo próprio)
-            path_images_txt = os.path.join(work_dir, "imagens.txt")
-            with open(path_images_txt, "w") as f:
-                f.write("ffconcat version 1.0\n")
-                tempo_total_calculado = 0
-                loops_necessarios = 1
-                
-                while tempo_total_calculado < duracao_segundos and loops_necessarios <= 50:
-                    for i, img_file in enumerate(imagens):
-                        ext = img_file.filename.split(".")[-1]
-                        img_path = os.path.join(work_dir, f"vid_{i}.{ext}")
-                        
-                        if loops_necessarios == 1:
-                            with open(img_path, "wb") as f_img:
-                                f_img.write(await img_file.read())
-                        
-                        f.write(f"file 'vid_{i}.{ext}'\n")
-                        tempo_total_calculado += 5 
-                            
-                    loops_necessarios += 1
+        cmd = ["ffmpeg", "-y"]
+        
+        # 3. Mapeamento de Entradas (A Solução Anti-Congelamento)
+        for i, img_file in enumerate(imagens):
+            ext = img_file.filename.split(".")[-1]
+            img_path = os.path.join(work_dir, f"midia_{i}.{ext}")
+            with open(img_path, "wb") as f_img:
+                f_img.write(await img_file.read())
+            
+            # Se imagem: Congela a imagem na tela exatamente pelo tempo fracionado
+            if midia_type == "imagem":
+                cmd.extend(["-loop", "1", "-t", str(tempo_por_midia), "-i", f"midia_{i}.{ext}"])
+            # Se vídeo: Repete o vídeo (caso seja curto) até preencher o tempo fracionado
+            else:
+                cmd.extend(["-stream_loop", "-1", "-t", str(tempo_por_midia), "-i", f"midia_{i}.{ext}"])
+
+        # Mapeamento do Áudio da Voz
+        idx_voz = num_midias
+        cmd.extend(["-i", "voz.mp3"])
+        
+        # Mapeamento BGM
+        idx_bgm = -1
+        if path_bgm:
+            cmd.extend(["-stream_loop", "-1", "-i", "bgm.mp3"])
+            idx_bgm = num_midias + 1
+            
+        # Mapeamento Marca D'água
+        idx_wm = -1
+        if path_wm:
+            ext_wm = path_wm.split('.')[-1]
+            cmd.extend(["-i", f"watermark.{ext_wm}"])
+            idx_wm = num_midias + 2 if path_bgm else num_midias + 1
 
         nome_saida = f"videoforge_{usuario.id}_{int(time.time())}.mp4"
         pasta_destino = os.path.join("frontend", "static", "videos", "historico")
         os.makedirs(pasta_destino, exist_ok=True)
-        
         path_saida = os.path.join(pasta_destino, nome_saida)
         path_saida_absoluto = os.path.abspath(path_saida)
-        
-        # ==========================================
-        # CONSTRUÇÃO DO COMANDO FFMPEG DINÂMICO
-        # ==========================================
-        
-        cmd = ["ffmpeg", "-y"]
-        
-        # Mapeamento de Inputs
-        if midia_type == "imagem":
-            # Usa o formato nativo image2 com loop infinito e framerate calculado
-            cmd.extend(["-loop", "1", "-framerate", framerate_entrada, "-i", f"img_%03d.{ext_comum}"])
-        else:
-            cmd.extend(["-f", "concat", "-safe", "0", "-i", "imagens.txt"])
-            
-        cmd.extend(["-i", "voz.mp3"])
-        
-        idx_v_img = 0
-        idx_a_voz = 1
-        curr_idx = 2
-        
-        idx_a_bgm = -1
-        if path_bgm:
-            cmd.extend(["-stream_loop", "-1", "-i", "bgm.mp3"])
-            idx_a_bgm = 2
-            curr_idx += 1
-            
-        idx_v_wm = -1
-        if path_wm:
-            cmd.extend(["-i", f"watermark.{path_wm.split('.')[-1]}"])
-            idx_v_wm = curr_idx
-            curr_idx += 1
 
+        # 4. A Usina de Filtragem (Resolvendo Sincronia de Legenda)
+        filter_complex = []
+        resolucao_escala = "1920:1080" if formato_video == "horizontal" else "1080:1920"
+        
+        for i in range(num_midias):
+            # Força o vídeo/imagem para o formato exato, com FPS 30 rígido, evitando bugs na legenda
+            filter_complex.append(f"[{i}:v]scale={resolucao_escala}:force_original_aspect_ratio=increase,crop={resolucao_escala},fps=30,format=yuv420p,setsar=1[v{i}]")
+        
+        # Concatena os clipes de forma segura
+        concat_str = "".join([f"[v{i}]" for i in range(num_midias)])
+        filter_complex.append(f"{concat_str}concat=n={num_midias}:v=1:a=0[v_concat]")
+        curr_v = "[v_concat]"
+        
+        # Formatação Visual da Legenda Exata
         ass_cor = hex_to_ass_color(cor_legenda)
         ass_contorno = hex_to_ass_color(cor_contorno)
         b_style = "3" if fundo_legenda == "true" else "1"
         align = "8" if posicao_legenda == "top" else ("5" if posicao_legenda == "middle" else "2")
         margin_v = "120" if (formato_video == "vertical" and align == "2") else "40"
         font_size = "14" if formato_video == "horizontal" else "16"
-        resolucao_escala = "1920:1080" if formato_video == "horizontal" else "1080:1920"
         
         estilo_leg = f"FontName={fonte_legenda},FontSize={font_size},PrimaryColour={ass_cor},OutlineColour={ass_contorno},BorderStyle={b_style},Bold=-1,Alignment={align},MarginV={margin_v},BackColour=&H66000000"
         filtro_legenda = f"subtitles=legenda.srt:force_style='{estilo_leg}'"
-
-        filter_complex = []
         
-        if path_bgm:
-            filter_complex.append(f"[{idx_a_bgm}:a]volume=0.1[bgm_low];[{idx_a_voz}:a][bgm_low]amix=inputs=2:duration=first:dropout_transition=2[a_mix]")
-            out_a = "[a_mix]"
-        else:
-            out_a = f"{idx_a_voz}:a"
-
-        # Aplicamos r=30 aqui para forçar a saída do vídeo em 30fps constante, evitando o congelamento
-        filter_complex.append(f"[{idx_v_img}:v]scale={resolucao_escala}:force_original_aspect_ratio=increase,crop={resolucao_escala},fps=30[v_scaled]")
-        filter_complex.append(f"[v_scaled]{filtro_legenda}[v_sub]")
+        filter_complex.append(f"{curr_v}{filtro_legenda}[v_sub]")
         curr_v = "[v_sub]"
         
+        # Posição da Marca D'água
         if path_wm:
             wm_width = "250" if formato_video == "horizontal" else "150"
-            filter_complex.append(f"[{idx_v_wm}:v]scale={wm_width}:-1[wm_scaled]")
+            filter_complex.append(f"[{idx_wm}:v]scale={wm_width}:-1[wm_scaled]")
             filter_complex.append(f"{curr_v}[wm_scaled]overlay=W-w-30:30[v_out]")
             curr_v = "[v_out]"
-
+            
+        # Ducking do Áudio de Fundo
+        if path_bgm:
+            filter_complex.append(f"[{idx_bgm}:a]volume=0.1[bgm_low];[{idx_voz}:a][bgm_low]amix=inputs=2:duration=first:dropout_transition=2[a_mix]")
+            curr_a = "[a_mix]"
+        else:
+            curr_a = f"{idx_voz}:a"
+            
         cmd.extend(["-filter_complex", ";".join(filter_complex)])
-        cmd.extend(["-map", curr_v, "-map", out_a])
+        cmd.extend(["-map", curr_v, "-map", curr_a])
         
+        # 5. Aceleração Extrema da Forja
         cmd.extend([
             "-c:v", "libx264", 
-            "-crf", "18", 
-            "-preset", "slow", 
-            "-pix_fmt", "yuv420p", 
-            "-sws_flags", "bicubic",
+            "-preset", "ultrafast", # O segredo para não demorar 1 hora
+            "-crf", "23",           # Qualidade limpa sem estourar o tamanho do arquivo
             "-c:a", "aac", 
             "-b:a", "192k", 
-            "-r", "30", # Força 30fps na saída
-            "-t", str(duracao_segundos),
+            "-t", str(duracao_segundos), # Corta o vídeo magicamente no segundo exato do fim do áudio
             path_saida_absoluto
         ])
-
+        
         processo = subprocess.run(cmd, cwd=work_dir, capture_output=True, text=True)
 
         if processo.returncode != 0:
-            raise Exception(f"Falha técnica na Dark Neural Forge. Tente gerar novamente. Detalhe: {processo.stderr[:50]}")
+            raise Exception(f"A Forja falhou ao fundir o MP4. Verifique se as imagens são válidas.")
 
         url_video = f"/static/videos/historico/{nome_saida}"
         
