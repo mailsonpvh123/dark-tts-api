@@ -20,7 +20,7 @@ def hex_to_ass_color(hex_str: str) -> str:
     if len(hex_str) == 6:
         r, g, b = hex_str[0:2], hex_str[2:4], hex_str[4:6]
         return f"&H00{b}{g}{r}"
-    return "&H00FFFFFF" # Branco fallback
+    return "&H00FFFFFF" 
 
 @router.post("/video-forge")
 async def processar_video_forge(
@@ -30,6 +30,7 @@ async def processar_video_forge(
     bgm: Optional[UploadFile] = File(None),
     watermark: Optional[UploadFile] = File(None),
     formato_video: str = Form("vertical"),
+    midia_type: str = Form("imagem"),
     fonte_legenda: str = Form("Arial"),
     cor_legenda: str = Form("#00FFFF"),
     cor_contorno: str = Form("#000000"),
@@ -54,7 +55,6 @@ async def processar_video_forge(
     os.makedirs(work_dir, exist_ok=True)
 
     try:
-        # 1. Salva os arquivos essenciais
         path_voz = os.path.join(work_dir, "voz.mp3")
         with open(path_voz, "wb") as f:
             f.write(await voz.read())
@@ -63,14 +63,12 @@ async def processar_video_forge(
         with open(path_srt, "wb") as f:
             f.write(await legenda.read())
 
-        # 2. Salva BGM (Opcional)
         path_bgm = None
         if bgm and bgm.filename:
             path_bgm = os.path.join(work_dir, "bgm.mp3")
             with open(path_bgm, "wb") as f:
                 f.write(await bgm.read())
                 
-        # 3. Salva Watermark (Opcional)
         path_wm = None
         if watermark and watermark.filename:
             ext = watermark.filename.split('.')[-1]
@@ -81,22 +79,44 @@ async def processar_video_forge(
         audio_voz = AudioSegment.from_file(path_voz)
         duracao_segundos = len(audio_voz) / 1000.0
 
-        tempo_por_img = duracao_segundos / len(imagens) if len(imagens) > 0 else 5.0
+        # --- A NOVA ESTRUTURA PARA EVITAR CONGELAMENTOS ---
+        ext_comum = "jpg" # Padronizamos a extensão internamente
         
-        path_images_txt = os.path.join(work_dir, "imagens.txt")
-        with open(path_images_txt, "w") as f:
+        if midia_type == "imagem":
+            # Calcula quanto tempo cada imagem deve durar na tela
+            tempo_por_img = duracao_segundos / len(imagens) if len(imagens) > 0 else 5.0
+            
+            # Para o FFmpeg entender que queremos uma imagem a cada X segundos, 
+            # dizemos que o framerate (fps de entrada) é 1 frame dividido pelo tempo (ex: 1/5 = 0.2 fps)
+            framerate_entrada = str(1.0 / tempo_por_img)
+
+            # Salva as imagens com nomes sequenciais padrão do FFmpeg (ex: img_001.jpg, img_002.jpg)
             for i, img_file in enumerate(imagens):
-                ext = img_file.filename.split(".")[-1]
-                img_path = os.path.join(work_dir, f"img_{i}.{ext}")
+                img_path = os.path.join(work_dir, f"img_{i+1:03d}.{ext_comum}")
                 with open(img_path, "wb") as f_img:
                     f_img.write(await img_file.read())
+                    
+        else: # Se for vídeo
+            # Mantemos a lógica do concat para vídeos (pois vídeos têm tempo próprio)
+            path_images_txt = os.path.join(work_dir, "imagens.txt")
+            with open(path_images_txt, "w") as f:
+                f.write("ffconcat version 1.0\n")
+                tempo_total_calculado = 0
+                loops_necessarios = 1
                 
-                f.write(f"file 'img_{i}.{ext}'\n")
-                f.write(f"duration {tempo_por_img:.2f}\n")
-            
-            if imagens:
-                ext = imagens[-1].filename.split(".")[-1]
-                f.write(f"file 'img_{len(imagens)-1}.{ext}'\n")
+                while tempo_total_calculado < duracao_segundos and loops_necessarios <= 50:
+                    for i, img_file in enumerate(imagens):
+                        ext = img_file.filename.split(".")[-1]
+                        img_path = os.path.join(work_dir, f"vid_{i}.{ext}")
+                        
+                        if loops_necessarios == 1:
+                            with open(img_path, "wb") as f_img:
+                                f_img.write(await img_file.read())
+                        
+                        f.write(f"file 'vid_{i}.{ext}'\n")
+                        tempo_total_calculado += 5 
+                            
+                    loops_necessarios += 1
 
         nome_saida = f"videoforge_{usuario.id}_{int(time.time())}.mp4"
         pasta_destino = os.path.join("frontend", "static", "videos", "historico")
@@ -108,7 +128,17 @@ async def processar_video_forge(
         # ==========================================
         # CONSTRUÇÃO DO COMANDO FFMPEG DINÂMICO
         # ==========================================
-        cmd = ["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", "imagens.txt", "-i", "voz.mp3"]
+        
+        cmd = ["ffmpeg", "-y"]
+        
+        # Mapeamento de Inputs
+        if midia_type == "imagem":
+            # Usa o formato nativo image2 com loop infinito e framerate calculado
+            cmd.extend(["-loop", "1", "-framerate", framerate_entrada, "-i", f"img_%03d.{ext_comum}"])
+        else:
+            cmd.extend(["-f", "concat", "-safe", "0", "-i", "imagens.txt"])
+            
+        cmd.extend(["-i", "voz.mp3"])
         
         idx_v_img = 0
         idx_a_voz = 1
@@ -116,8 +146,8 @@ async def processar_video_forge(
         
         idx_a_bgm = -1
         if path_bgm:
-            cmd.extend(["-i", "bgm.mp3"])
-            idx_a_bgm = curr_idx
+            cmd.extend(["-stream_loop", "-1", "-i", "bgm.mp3"])
+            idx_a_bgm = 2
             curr_idx += 1
             
         idx_v_wm = -1
@@ -126,7 +156,6 @@ async def processar_video_forge(
             idx_v_wm = curr_idx
             curr_idx += 1
 
-        # Lógica de Legendas
         ass_cor = hex_to_ass_color(cor_legenda)
         ass_contorno = hex_to_ass_color(cor_contorno)
         b_style = "3" if fundo_legenda == "true" else "1"
@@ -140,19 +169,17 @@ async def processar_video_forge(
 
         filter_complex = []
         
-        # Audio Mix
         if path_bgm:
-            filter_complex.append(f"[{idx_a_bgm}:a]volume=0.1[bgm_low];[{idx_a_voz}:a][bgm_low]amix=inputs=2:duration=first[a_mix]")
+            filter_complex.append(f"[{idx_a_bgm}:a]volume=0.1[bgm_low];[{idx_a_voz}:a][bgm_low]amix=inputs=2:duration=first:dropout_transition=2[a_mix]")
             out_a = "[a_mix]"
         else:
             out_a = f"{idx_a_voz}:a"
 
-        # Video Pipeline
-        filter_complex.append(f"[{idx_v_img}:v]scale={resolucao_escala}:force_original_aspect_ratio=increase,crop={resolucao_escala}[v_scaled]")
+        # Aplicamos r=30 aqui para forçar a saída do vídeo em 30fps constante, evitando o congelamento
+        filter_complex.append(f"[{idx_v_img}:v]scale={resolucao_escala}:force_original_aspect_ratio=increase,crop={resolucao_escala},fps=30[v_scaled]")
         filter_complex.append(f"[v_scaled]{filtro_legenda}[v_sub]")
         curr_v = "[v_sub]"
         
-        # Adiciona Marca D'água por cima de tudo
         if path_wm:
             wm_width = "250" if formato_video == "horizontal" else "150"
             filter_complex.append(f"[{idx_v_wm}:v]scale={wm_width}:-1[wm_scaled]")
@@ -161,6 +188,7 @@ async def processar_video_forge(
 
         cmd.extend(["-filter_complex", ";".join(filter_complex)])
         cmd.extend(["-map", curr_v, "-map", out_a])
+        
         cmd.extend([
             "-c:v", "libx264", 
             "-crf", "18", 
@@ -169,6 +197,7 @@ async def processar_video_forge(
             "-sws_flags", "bicubic",
             "-c:a", "aac", 
             "-b:a", "192k", 
+            "-r", "30", # Força 30fps na saída
             "-t", str(duracao_segundos),
             path_saida_absoluto
         ])
