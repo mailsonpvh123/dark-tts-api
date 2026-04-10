@@ -13,21 +13,22 @@ INÍCIO DO KIT DE SEO DE ELITE (NÃO PULE LINHAS ANTES DESTA)
 📺 CANAL: {canal}
 
 1️⃣ TÍTULO MAGNÉTICO (Foco em CTR):
-Forneça 3 opções de títulos de até 55 caracteres. A AI deve criar títulos que usem gatilhos mentais (Curiosidade, Urgência, Dor, Transformação), focados na retenção. O primeiro deve ser SEMPRE 'TÍTULO FOCADO NA KEYWORD PRINCIPAL ( {keyword} )'. Use emojis estrategicamente.
-
+Forneça 3 opções de títulos de até 60 caracteres. A AI deve criar títulos que usem gatilhos mentais (Curiosidade, Urgência, Dor, Transformação), focados na retenção. O primeiro deve ser SEMPRE 'TÍTULO FOCADO NA KEYWORD PRINCIPAL ( {keyword} )'. Use emojis estrategicamente.
 🚨 REGRA ABSOLUTA: Não use aspas nos títulos.
 
 2️⃣ DESCRIÇÃO OPTIMIZADA (Para o YouTube):
-Crie uma descrição persuasiva e engajadora com, no mínimo, 1200 caracteres (pode ser maior). Comece com um gancho forte nas primeiras duas linhas. O texto deve descrever os benefícios, o que o usuário vai aprender, e por que assistir até o fim. Use gatilhos mentais. A AI deve obrigatoriamente integrar de forma natural as 30 palavras-chave geradas na Parte 3 (abaixo) várias vezes ao longo do texto, garantindo que as palavras-chave principais estejam nas primeiras 3 frases. EVITE filler genérico e adicione detalhes do roteiro.
+Crie uma descrição abrangente e persuasiva com, no mínimo, 1200 caracteres. Comece com um gancho forte. 
+🚨 REGRA DE OURO VIDIQ (200 CARACTERES): A palavra-chave principal e as variações mais fortes DEVEM aparecer obrigatoriamente dentro dos primeiros 200 caracteres do texto inicial. 
+O restante do texto deve descrever os benefícios, o que o usuário vai aprender, e por que assistir até o fim. A AI deve integrar de forma natural as 30 palavras-chave geradas na Parte 3 várias vezes ao longo do texto. EVITE filler genérico e adicione detalhes precisos do roteiro.
 
 3️⃣ KIT DE DADOS SEO (Para SEO e Sugestões):
 - KEYWORD PRINCIPAL: (AI deve definir com base na {keyword} do usuário)
-- TAGS RELACIONADAS (AI deve criar 10 tags fortes em português, separadas por vírgulas, ex: tag 1, tag 2, tag 3, etc. Use a keyword principal na primeira tag).
-- 30 PALAVRAS-CHAVE SECUNDÁRIAS (A AI deve gerar uma lista com 30 palavras-chave secundárias, de calda longa e calda curta, em português, focadas na intenção de busca. O kit de 30 palavras-chave deve ser gerado antes da criação da descrição para garantir a integração).
+- TAGS RELACIONADAS: (AI deve criar 15 a 20 tags fortes em português, separadas por vírgulas, ex: tag 1, tag 2, tag 3. Use a keyword principal rigorosamente na primeira tag).
+- 30 PALAVRAS-CHAVE SECUNDÁRIAS: (Lista de palavras-chave de cauda longa e curta para reforçar a semântica da descrição. Gere isso mentalmente antes da descrição para inseri-las no texto).
 
 4️⃣ CAPÍTULOS (TIMESTAMPS):
 Crie 5-10 capítulos para a descrição. A AI deve analisar o roteiro e criar títulos impactantes e curiosos, com base nos ganchos principais.
-🚨 REGRA ABSOLUTA: O formato deve ser EXATAMENTE '{Timestamp} — {Título do Capítulo}' (ex: 03:15 — O Dia que Mudei Minha Vida). Não use caracteres especiais no início (asteriscos, etc.). O primeiro capítulo deve ser SEMPRE '00:00 — Introdução' (ou similar).
+🚨 REGRA ABSOLUTA: O formato deve ser EXATAMENTE '{Timestamp} — {Título do Capítulo}' (ex: 03:15 — O Dia que Mudei Minha Vida). O primeiro capítulo deve ser SEMPRE '00:00 — Introdução' (ou similar). Não utilize asteriscos ou negritos para formatar os timestamps.
 
 ---
 FIM DO KIT DE SEO DE ELITE
