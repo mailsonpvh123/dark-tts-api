@@ -63,7 +63,8 @@ async def process_seo(
     if not template_prompt:
         raise ValueError("O arquivo meta_seo.txt sumiu da pasta prompts!")
         
-    system_prompt = template_prompt.format(canal=req.canal)
+    # AQUI ESTÁ A CORREÇÃO: Passando o canal E a keyword para o Python formatar o .txt
+    system_prompt = template_prompt.format(canal=req.canal, keyword=req.keyword)
 
     user_content = f"Palavra-chave Foco Sugerida pelo Usuário: {req.keyword}\n\nROTEIRO/CONTEÚDO PARA ANÁLISE:\n{req.conteudo}"
 
