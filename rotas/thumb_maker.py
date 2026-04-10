@@ -43,7 +43,7 @@ async def process_thumb(
     if not req.roteiro or not req.titulo:
         raise HTTPException(status_code=400, detail="Título e roteiro são obrigatórios.")
 
-    custo_operacao = 15
+    custo_operacao = 10 # ATUALIZADO PARA 10 COINS
 
     if usuario.coins < custo_operacao:
         raise HTTPException(status_code=402, detail=f"Coins insuficientes! Você precisa de {custo_operacao} coins para gerar ideias de Thumbnail.")
