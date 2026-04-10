@@ -28,7 +28,7 @@
                 </div>
             </div>
             <div class="flex-1 space-y-4 mb-8">
-                <p class="flex items-center gap-3 text-sm text-zinc-300"><i class="fa-solid fa-check text-emerald-500"></i> Acesso às 8 Ferramentas</p>
+                <p class="flex items-center gap-3 text-sm text-zinc-300"><i class="fa-solid fa-check text-emerald-500"></i> Acesso a Todas as Ferramentas</p>
                 <p class="flex items-center gap-3 text-sm text-zinc-300"><i class="fa-solid fa-check text-emerald-500"></i> Vozes Padrão (Edge TTS)</p>
                 <p class="flex items-center gap-3 text-sm text-zinc-300"><i class="fa-solid fa-bolt text-yellow-500"></i> Acesso às Vozes Premium</p>
             </div>
@@ -117,7 +117,7 @@
 
     <div class="max-w-4xl mx-auto bg-[#18181b] border border-zinc-800 rounded-2xl p-8 shadow-xl relative z-10">
         <h3 class="text-xl font-bold text-white mb-6 text-center">Como os seus Coins são investidos?</h3>
-        <p class="text-zinc-400 text-center text-sm mb-8">O nosso sistema modular permite que construa o seu vídeo à la carte. Um vídeo completo padrão custa <strong>100 Coins</strong>.</p>
+        <p class="text-zinc-400 text-center text-sm mb-8">O nosso sistema modular permite que construa o seu vídeo à la carte. Um vídeo completo padrão custa <strong>~70 a 100 Coins</strong>.</p>
         
         <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
             <div class="bg-[#09090b] border border-zinc-800 p-4 rounded-xl flex justify-between items-center">
@@ -126,31 +126,31 @@
             </div>
             <div class="bg-[#09090b] border border-zinc-800 p-4 rounded-xl flex justify-between items-center">
                 <span class="text-sm text-zinc-300"><i class="fa-solid fa-pen-nib text-orange-400 w-5"></i> Roteiro</span>
-                <span class="text-xs font-bold text-zinc-500 bg-zinc-800 px-2 py-1 rounded">25 Coins</span>
+                <span class="text-xs font-bold text-zinc-500 bg-zinc-800 px-2 py-1 rounded">1 / min</span>
+            </div>
+            <div class="bg-[#09090b] border border-zinc-800 p-4 rounded-xl flex justify-between items-center">
+                <span class="text-sm text-zinc-300"><i class="fa-solid fa-rotate text-pink-400 w-5"></i> Paraphraser</span>
+                <span class="text-xs font-bold text-zinc-500 bg-zinc-800 px-2 py-1 rounded">1 / min</span>
             </div>
             <div class="bg-[#09090b] border border-zinc-800 p-4 rounded-xl flex justify-between items-center">
                 <span class="text-sm text-zinc-300"><i class="fa-solid fa-microphone text-purple-400 w-5"></i> Voz Padrão</span>
                 <span class="text-xs font-bold text-zinc-500 bg-zinc-800 px-2 py-1 rounded">30 Coins</span>
             </div>
             <div class="bg-[#09090b] border border-zinc-800 p-4 rounded-xl flex justify-between items-center">
-                <span class="text-sm text-zinc-300"><i class="fa-solid fa-sliders text-amber-400 w-5"></i> Mixagem</span>
+                <span class="text-sm text-zinc-300"><i class="fa-solid fa-image text-rose-400 w-5"></i> Thumb</span>
                 <span class="text-xs font-bold text-zinc-500 bg-zinc-800 px-2 py-1 rounded">10 Coins</span>
             </div>
             <div class="bg-[#09090b] border border-zinc-800 p-4 rounded-xl flex justify-between items-center">
-                <span class="text-sm text-zinc-300"><i class="fa-solid fa-image text-pink-400 w-5"></i> Thumb</span>
-                <span class="text-xs font-bold text-zinc-500 bg-zinc-800 px-2 py-1 rounded">15 Coins</span>
-            </div>
-            <div class="bg-[#09090b] border border-zinc-800 p-4 rounded-xl flex justify-between items-center">
                 <span class="text-sm text-zinc-300"><i class="fa-solid fa-chart-line text-blue-400 w-5"></i> SEO</span>
-                <span class="text-xs font-bold text-zinc-500 bg-zinc-800 px-2 py-1 rounded">15 Coins</span>
+                <span class="text-xs font-bold text-zinc-500 bg-zinc-800 px-2 py-1 rounded">10 Coins</span>
             </div>
         </div>
 
         <div class="mt-8 p-4 bg-yellow-500/5 border border-yellow-500/20 rounded-xl flex gap-4 items-start">
             <i class="fa-solid fa-bolt text-yellow-500 text-xl mt-1"></i>
             <div>
-                <h4 class="text-sm font-bold text-yellow-400 mb-1">Vozes Premium (Gemini Flash Ultra-Realista)</h4>
-                <p class="text-xs text-zinc-400 leading-relaxed">As vozes premium utilizam um modelo dinâmico de cobrança baseado no tamanho do seu texto. O custo é de <strong>10 Coins por cada minuto de áudio gerado</strong> (~900 caracteres). O estúdio calculará o valor exato na tela antes de você confirmar a geração.</p>
+                <h4 class="text-sm font-bold text-yellow-400 mb-1">Vozes Premium (Gemini Flash e ElevenLabs)</h4>
+                <p class="text-xs text-zinc-400 leading-relaxed">As vozes premium utilizam um modelo dinâmico de cobrança baseado no tamanho do seu texto. O Tier Creator custa <strong>10 Coins por minuto</strong> (~900 caracteres) e o Tier Cinematic <strong>50 Coins por minuto</strong>. O estúdio calculará o valor exato na tela antes de você confirmar a geração.</p>
             </div>
         </div>
     </div>
@@ -209,11 +209,9 @@
 
             if (!res.ok) throw new Error(dados.detail || "Erro ao gerar cobrança.");
 
-            // Preenche o Modal
             document.getElementById('pix_qr_code').src = `data:image/jpeg;base64,${dados.qr_code_base64}`;
             document.getElementById('pix_copia_cola').value = dados.qr_code;
             
-            // Exibe o Modal
             const modal = document.getElementById('modal_pix');
             const conteudo = document.getElementById('modal_pix_conteudo');
             modal.classList.remove('hidden');
@@ -222,7 +220,6 @@
                 conteudo.classList.add('scale-100');
             }, 10);
 
-            // Inicia o Loop para verificar se o usuário já pagou (atualiza a página)
             iniciarVerificacaoPagamento();
 
         } catch (error) {
@@ -250,14 +247,12 @@
     }
 
     function iniciarVerificacaoPagamento() {
-        // Um pequeno "hack" de UX: A cada 5 segundos ele recarrega a página. 
-        // Se o webhook do back-end já tiver adicionado as moedas, ao recarregar, o saldo novo vai aparecer no menu!
         setInterval(() => {
             const modal = document.getElementById('modal_pix');
             if(!modal.classList.contains('hidden')) {
                 window.location.reload(); 
             }
-        }, 10000); // Checa a cada 10 segundos
+        }, 10000);
     }
 </script>
 {% endblock %}
