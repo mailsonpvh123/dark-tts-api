@@ -127,6 +127,14 @@ async def page_planos(request: Request, db: Session = Depends(get_db)):
     if not usuario: return RedirectResponse(url="/login")
     return templates.TemplateResponse("planos.html", {"request": request, "title": "Comprar Coins", "user": usuario})
 
+@app.get("/checkout")
+async def render_checkout(request: Request):
+    return templates.TemplateResponse("checkout.html", {"request": request})
+
+@app.get("/obrigado")
+async def render_obrigado(request: Request):
+    return templates.TemplateResponse("obrigado.html", {"request": request})
+
 @app.post("/api/logout")
 async def logout():
     response = JSONResponse(content={"msg": "Logout efetuado"})
