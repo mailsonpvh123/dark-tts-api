@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="min-h-[80vh] flex flex-col items-center justify-center p-4 text-center animate-fade-in">
+    <div class="w-32 h-32 rounded-full bg-emerald-500/20 flex items-center justify-center mb-8 relative">
+        <div class="absolute inset-0 rounded-full border-4 border-emerald-500/50 animate-ping"></div>
+        <i class="fa-solid fa-check text-6xl text-emerald-500"></i>
+    </div>
+    
+    <h1 class="text-4xl md:text-5xl font-black text-white mb-4 tracking-tight">
+        Pagamento <span class="text-emerald-400">Aprovado!</span>
+    </h1>
+    
+    <p class="text-lg text-zinc-400 max-w-lg mb-10 leading-relaxed">
+        Bem-vindo à Elite do Dark Creator OS! As suas Coins já foram injetadas na sua conta. A sua linha de produção massiva está pronta para ligar os motores.
+    </p>
+    
+    <a href="/dashboard" class="bg-emerald-600 hover:bg-emerald-500 text-white font-black py-4 px-10 rounded-xl shadow-[0_0_30px_rgba(16,185,129,0.3)] transition-all transform hover:scale-105 flex items-center justify-center gap-3">
+        <i class="fa-solid fa-rocket"></i> Ir para o Dashboard
+    </a>
+</section>
+{% endblock %}
