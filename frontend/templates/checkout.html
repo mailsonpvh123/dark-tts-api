@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="min-h-[80vh] flex items-center justify-center p-4">
+    <div class="bg-[#121214] border border-zinc-800/80 rounded-2xl p-8 max-w-md w-full shadow-2xl relative overflow-hidden">
+        <div class="absolute -top-20 -right-20 w-40 h-40 bg-emerald-500/10 rounded-full blur-[60px] pointer-events-none"></div>
+        
+        <div class="text-center mb-8 relative z-10">
+            <h1 class="text-2xl font-black text-white flex items-center justify-center gap-2 mb-2">
+                <i class="fa-brands fa-pix text-emerald-400"></i> Checkout Seguro
+            </h1>
+            <p class="text-zinc-400 text-sm" id="desc_pacote">A carregar informações do pacote...</p>
+        </div>
+
+        <div id="loading_area" class="flex flex-col items-center justify-center py-10">
+            <i class="fa-solid fa-circle-notch fa-spin text-4xl text-emerald-500 mb-4"></i>
+            <p class="text-sm font-bold text-zinc-400">Gerando seu PIX...</p>
+        </div>
+
+        <div id="pix_area" class="hidden flex-col items-center relative z-10">
+            <div class="bg-white p-3 rounded-2xl mb-6 shadow-inner w-full max-w-[220px]">
+                <img id="pix_qr_code" src="" alt="QR Code PIX" class="w-full h-auto object-contain">
+            </div>
+
+            <p class="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2 w-full text-left">Pix Copia e Cola</p>
+            <div class="w-full flex items-center gap-2 bg-[#09090b] border border-zinc-800 rounded-lg p-2 mb-8">
+                <input type="text" id="pix_copia_cola" class="flex-1 bg-transparent text-zinc-300 text-xs font-mono outline-none truncate px-2" readonly>
+                <button onclick="copiarPix()" class="bg-emerald-500/10 hover:bg-emerald-500 text-emerald-500 hover:text-white border border-emerald-500/20 px-4 py-2 rounded transition-colors text-xs font-bold shrink-0">Copiar</button>
+            </div>
+
+            <div class="w-full p-4 bg-emerald-500/5 border border-emerald-500/20 rounded-xl flex items-center justify-center gap-3">
+                <i class="fa-solid fa-circle-notch fa-spin text-emerald-500"></i>
+                <p class="text-xs font-bold text-emerald-400" id="status_text">Aguardando pagamento no app...</p>
+            </div>
+            
+            <a href="/planos" class="mt-6 text-xs text-zinc-500 hover:text-white transition-colors underline">Cancelar e voltar aos planos</a>
+        </div>
+        
+        <div id="error_area" class="hidden flex-col items-center text-center py-10">
+            <i class="fa-solid fa-triangle-exclamation text-4xl text-red-500 mb-4"></i>
+            <p class="text-sm font-bold text-red-400 mb-4" id="error_msg">Ocorreu um erro.</p>
+            <a href="/planos" class="bg-zinc-800 text-white px-6 py-2 rounded-lg text-sm font-bold">Tentar Novamente</a>
+        </div>
+    </div>
+</section>
+
+<script>
+    let currentPaymentId = null;
+    let pollInterval = null;
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const pacote = urlParams.get('pacote');
+        
+        if(!pacote) {
+            window.location.href = '/planos';
+            return;
+        }
+
+        const nomes = {
+            'basic': 'Plano Basic', 'plus': 'Plano Plus', 'pro': 'Plano Pro',
+            'avulso_1000': '1.000 Coins', 'avulso_2000': '2.000 Coins', 'avulso_4000': '4.000 Coins'
+        };
+        document.getElementById('desc_pacote').innerText = `Processando ${nomes[pacote] || pacote}...`;
+
+        try {
+            const res = await fetch('/api/v1/pagamentos/gerar-pix', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ pacote: pacote })
+            });
+
+            const dados = await res.json();
+            if (!res.ok) throw new Error(dados.detail || "Erro ao gerar PIX.");
+
+            document.getElementById('pix_qr_code').src = `data:image/jpeg;base64,${dados.qr_code_base64}`;
+            document.getElementById('pix_copia_cola').value = dados.qr_code;
+            currentPaymentId = dados.payment_id;
+
+            document.getElementById('loading_area').classList.add('hidden');
+            document.getElementById('pix_area').classList.remove('hidden');
+            document.getElementById('pix_area').classList.add('flex');
+
+            // Começa a escutar o Mercado Pago a cada 3 segundos
+            pollInterval = setInterval(verificarStatus, 3000);
+
+        } catch (e) {
+            document.getElementById('loading_area').classList.add('hidden');
+            const errorArea = document.getElementById('error_area');
+            errorArea.classList.remove('hidden');
+            errorArea.classList.add('flex');
+            document.getElementById('error_msg').innerText = e.message;
+        }
+    });
+
+    function copiarPix() {
+        const input = document.getElementById('pix_copia_cola');
+        input.select();
+        navigator.clipboard.writeText(input.value);
+        alert("Código copiado!");
+    }
+
+    async function verificarStatus() {
+        if(!currentPaymentId) return;
+        try {
+            const res = await fetch(`/api/v1/pagamentos/status/${currentPaymentId}`);
+            const data = await res.json();
+            
+            if(data.status === 'approved') {
+                clearInterval(pollInterval);
+                document.getElementById('status_text').innerText = "Pagamento Aprovado! Redirecionando...";
+                document.getElementById('status_text').classList.replace('text-emerald-400', 'text-white');
+                setTimeout(() => { window.location.href = '/obrigado'; }, 1500);
+            }
+        } catch(e) {
+            console.log("Aguardando webhook...");
+        }
+    }
+</script>
+{% endblock %}
