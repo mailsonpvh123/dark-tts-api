@@ -458,7 +458,7 @@ function recalcularCustoVoz() {
                 btnTxt.innerHTML = `Sintetizar Cinematic (<span class="text-amber-900 drop-shadow-md">${custo} Coins</span>)`;
                 document.getElementById('btn_gerar_voz').className = "w-full mt-6 bg-amber-500 hover:bg-amber-400 text-amber-950 font-black py-4 px-4 rounded-xl shadow-[0_0_20px_rgba(245,158,11,0.3)] transition-all flex items-center justify-center gap-2 group border border-amber-400 relative z-10";
             } else if (isCreator) {
-                let custo = Math.max(1, Math.ceil((tamanho / 900.0) * 10)); // Atualizado para 10 coins / min
+                let custo = Math.max(1, Math.ceil((tamanho / 900.0) * 12));
                 btnTxt.innerHTML = `Sintetizar Creator (<span class="text-blue-900 drop-shadow-md">${custo} Coins</span>)`;
                 document.getElementById('btn_gerar_voz').className = "w-full mt-6 bg-blue-500 hover:bg-blue-400 text-blue-950 font-black py-4 px-4 rounded-xl shadow-[0_0_20px_rgba(59,130,246,0.3)] transition-all flex items-center justify-center gap-2 group border border-blue-400 relative z-10";
             } else {
@@ -496,8 +496,13 @@ async function tocarPreview(event, shortName) {
     const icon = document.getElementById(`play_icon_${shortName}`);
     if(icon) icon.className = "fa-solid fa-circle-notch fa-spin text-white"; 
     
+    let fileName = shortName;
+    if (fileName.startsWith('padrao-')) {
+        fileName = fileName.replace('padrao-', '');
+    }
+
     try {
-        const audioUrl = `/static/audios/previews/${shortName}.mp3`;
+        const audioUrl = `/static/audios/previews/${fileName}.mp3`;
         const playerPreview = new Audio(audioUrl);
         window.playerPreviewAtual = playerPreview; 
         
@@ -509,7 +514,7 @@ async function tocarPreview(event, shortName) {
         };
 
     } catch(e) {
-        alert(`Arquivo de prévia não encontrado!\n\n(Certifique-se de que baixou e enviou para /static/audios/previews/${shortName}.mp3 no painel)`);
+        alert(`Arquivo de prévia não encontrado!\n\n(Certifique-se de que baixou e enviou para /static/audios/previews/${fileName}.mp3 no painel)`);
         if(icon) icon.className = "fa-solid fa-play text-xs ml-0.5 text-red-500"; 
     } 
 }
