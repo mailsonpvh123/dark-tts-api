@@ -21,7 +21,7 @@ router = APIRouter(tags=["Voice Synthesizer"])
 
 class AudioRequest(BaseModel):
     texto: str
-    voz: str = "pt-BR-AntonioNeural"
+    voz: str = "padrao-pt-BR-AntonioNeural"
     velocidade: float = 1.0
     pitch: int = 0
     temperatura: float = 0.7
@@ -114,7 +114,6 @@ async def carregar_vozes_memoria():
                 "tipo": "creator"
             })
         
-        # AQUI ESTÁ A MÁGICA RESTAURADA: Busca dinâmica direto da Microsoft sem alterar os nomes!
         voices = await edge_tts.list_voices()
         for v in voices:
             if v["Locale"].startswith("pt-") or "Multilingual" in v["ShortName"]:
@@ -122,7 +121,7 @@ async def carregar_vozes_memoria():
                 nome_limpo = v["ShortName"].replace('pt-BR-', '').replace('pt-PT-', '').replace('Neural', '').replace('Multilingual', '')
                 vozes_cache.append({
                     "name": nome_limpo,
-                    "shortName": v['ShortName'], # NOME ORIGINAL INTACTO!
+                    "shortName": f"padrao-{v['ShortName']}",
                     "gender": gen_pt,
                     "desc": "Voz Digital Neural",
                     "tipo": "padrao"
@@ -359,10 +358,7 @@ async def gerar_narracao(
             srt_content = gerar_srt_matematico(texto, audio_final_bytes)
 
         else:
-            # ========================================================
-            # NOME ORIGINAL USADO DIRETO NO MOTOR (Sem gambiarras)
-            # ========================================================
-            voz_engine = req.voz
+            voz_engine = req.voz.replace("padrao-", "") 
             velocidade_formatada = f"{int((req.velocidade - 1.0) * 100):+d}%"
             pitch_formatado = f"{req.pitch:+d}Hz"
             
