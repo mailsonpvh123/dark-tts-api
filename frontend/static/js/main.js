@@ -495,14 +495,10 @@ async function tocarPreview(event, shortName) {
 
     const icon = document.getElementById(`play_icon_${shortName}`);
     if(icon) icon.className = "fa-solid fa-circle-notch fa-spin text-white"; 
-    
-    let fileName = shortName;
-    if (fileName.startsWith('padrao-')) {
-        fileName = fileName.replace('padrao-', '');
-    }
 
     try {
-        const audioUrl = `/static/audios/previews/${fileName}.mp3`;
+        // AQUI ESTÁ A CORREÇÃO: O JS agora procura o nome EXATO que está no GitHub (com o 'padrao-')
+        const audioUrl = `/static/audios/previews/${shortName}.mp3`;
         const playerPreview = new Audio(audioUrl);
         window.playerPreviewAtual = playerPreview; 
         
@@ -514,7 +510,7 @@ async function tocarPreview(event, shortName) {
         };
 
     } catch(e) {
-        alert(`Arquivo de prévia não encontrado!\n\n(Certifique-se de que baixou e enviou para /static/audios/previews/${fileName}.mp3 no painel)`);
+        alert(`Arquivo de prévia não encontrado!\n\n(Certifique-se de que baixou e enviou para /static/audios/previews/${shortName}.mp3 no painel)`);
         if(icon) icon.className = "fa-solid fa-play text-xs ml-0.5 text-red-500"; 
     } 
 }
