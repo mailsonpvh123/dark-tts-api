@@ -89,32 +89,6 @@ VOICES_CINEMATIC = {
     "bIHbv24MWmeRgasZH58o": {"nome": "Will", "desc": "Otimista e Relaxado", "genero": "Masculino"}
 }
 
-VOICES_STANDARD = {
-    "pt-BR-AntonioNeural": {"nome": "Antonio", "genero": "Masculino"},
-    "pt-BR-FranciscaNeural": {"nome": "Francisca", "genero": "Feminino"},
-    "pt-BR-BrendaNeural": {"nome": "Brenda", "genero": "Feminino"},
-    "pt-BR-DonatoNeural": {"nome": "Donato", "genero": "Masculino"},
-    "pt-BR-ElzaNeural": {"nome": "Elza", "genero": "Feminino"},
-    "pt-BR-FabioNeural": {"nome": "Fabio", "genero": "Masculino"},
-    "pt-BR-GiovannaNeural": {"nome": "Giovanna", "genero": "Feminino"},
-    "pt-BR-HumbertoNeural": {"nome": "Humberto", "genero": "Masculino"},
-    "pt-BR-JulioNeural": {"nome": "Julio", "genero": "Masculino"},
-    "pt-BR-LeilaNeural": {"nome": "Leila", "genero": "Feminino"},
-    "pt-BR-LeticiaNeural": {"nome": "Leticia", "genero": "Feminino"},
-    "pt-BR-ManuelaNeural": {"nome": "Manuela", "genero": "Feminino"},
-    "pt-BR-NicolauNeural": {"nome": "Nicolau", "genero": "Masculino"},
-    "pt-BR-ValerioNeural": {"nome": "Valerio", "genero": "Masculino"},
-    "pt-BR-YaraNeural": {"nome": "Yara", "genero": "Feminino"},
-    "pt-PT-DuarteNeural": {"nome": "Duarte (PT)", "genero": "Masculino"},
-    "pt-PT-FernandaNeural": {"nome": "Fernanda (PT)", "genero": "Feminino"},
-    "pt-PT-RaquelNeural": {"nome": "Raquel (PT)", "genero": "Feminino"},
-    "en-US-AndrewMultilingualNeural": {"nome": "Andrew (Multi)", "genero": "Masculino"},
-    "en-US-AvaMultilingualNeural": {"nome": "Ava (Multi)", "genero": "Feminino"},
-    "en-US-BrianMultilingualNeural": {"nome": "Brian (Multi)", "genero": "Masculino"},
-    "en-US-EmmaMultilingualNeural": {"nome": "Emma (Multi)", "genero": "Feminino"},
-    "en-US-WilliamMultilingualNeural": {"nome": "William (Multi)", "genero": "Masculino"}
-}
-
 vozes_cache = []
 
 @router.on_event("startup")
@@ -124,15 +98,35 @@ async def carregar_vozes_memoria():
     
     try:
         for v_id, info in VOICES_CINEMATIC.items():
-            vozes_cache.append({"name": info['nome'], "shortName": f"cinematic-{v_id}", "gender": info['genero'], "desc": info['desc'], "tipo": "cinematic"})
+            vozes_cache.append({
+                "name": info['nome'],
+                "shortName": f"cinematic-{v_id}",
+                "gender": info['genero'],
+                "desc": info['desc'],
+                "tipo": "cinematic"
+            })
 
         for v_name, v_info in VOICES_CREATOR.items():
-            vozes_cache.append({"name": v_name, "shortName": f"creator-{v_name}", "gender": v_info['genero'], "desc": v_info['desc'], "tipo": "creator"})
+            vozes_cache.append({
+                "name": v_name,
+                "shortName": f"creator-{v_name}",
+                "gender": v_info['genero'],
+                "desc": v_info['desc'],
+                "tipo": "creator"
+            })
         
-        # Mapeamento Instantâneo sem depender da Microsoft!
-        for v_id, info in VOICES_STANDARD.items():
-            vozes_cache.append({"name": info['nome'], "shortName": f"padrao-{v_id}", "gender": info['genero'], "desc": "Voz Digital Neural", "tipo": "padrao"})
-            
+        voices = await edge_tts.list_voices()
+        for v in voices:
+            if v["Locale"].startswith("pt-") or "Multilingual" in v["ShortName"]:
+                gen_pt = "Feminino" if v["Gender"] == "Female" else "Masculino"
+                nome_limpo = v["ShortName"].replace('pt-BR-', '').replace('pt-PT-', '').replace('Neural', '').replace('Multilingual', '')
+                vozes_cache.append({
+                    "name": nome_limpo,
+                    "shortName": f"padrao-{v['ShortName']}",
+                    "gender": gen_pt,
+                    "desc": "Voz Digital Neural",
+                    "tipo": "padrao"
+                })
         print(f"✅ {len(vozes_cache)} Vozes carregadas com sucesso na memória!")
     except Exception as e:
         print(f"❌ Erro ao carregar vozes: {e}")
@@ -239,7 +233,7 @@ async def gerar_narracao(
     elif is_cinematic:
         custo_operacao = max(1, math.ceil((tamanho_texto / 900.0) * 50))
     elif is_creator:
-        custo_operacao = max(1, math.ceil((tamanho_texto / 900.0) * 10)) # ATUALIZADO PARA 10 COINS
+        custo_operacao = max(1, math.ceil((tamanho_texto / 900.0) * 12))
     else:
         custo_operacao = 30 
 
@@ -258,15 +252,17 @@ async def gerar_narracao(
         pause_seg = AudioSegment.silent(duration=300)
 
         if is_cinematic:
-            api_key = os.environ.get("ELEVENLABS_API_KEY")
-            modelo_eleven = os.environ.get("ELEVENLABS_MODEL_ID", "eleven_turbo_v2_5")
+            # BLINDAGEM: .strip() para limpar chaves do .env
+            api_key = os.environ.get("ELEVENLABS_API_KEY", "").strip()
+            modelo_eleven = os.environ.get("ELEVENLABS_MODEL_ID", "eleven_turbo_v2_5").strip()
+            
             if not api_key: raise ValueError("Chave ELEVENLABS_API_KEY não configurada. Configure no painel de ambiente.")
             
             voz_real = req.voz.replace("cinematic-", "")
             
             async with httpx.AsyncClient(timeout=120.0) as client:
                 for i, chunk in enumerate(chunks):
-                    url = f"[https://api.elevenlabs.io/v1/text-to-speech/](https://api.elevenlabs.io/v1/text-to-speech/){voz_real}"
+                    url = f"https://api.elevenlabs.io/v1/text-to-speech/{voz_real}"
                     headers = {"xi-api-key": api_key, "Content-Type": "application/json"}
                     data = {
                         "text": chunk,
@@ -295,15 +291,17 @@ async def gerar_narracao(
             srt_content = gerar_srt_matematico(texto, audio_final_bytes)
 
         elif is_creator:
-            api_key = os.environ.get("GEMINI_API_KEY_PAID")
-            modelo_gemini = os.environ.get("GEMINI_MODEL_VOICE", "gemini-2.5-flash-tts")
+            # BLINDAGEM: .strip() para limpar chaves do .env
+            api_key = os.environ.get("GEMINI_API_KEY_PAID", "").strip()
+            modelo_gemini = os.environ.get("GEMINI_MODEL_VOICE", "gemini-2.5-flash-tts").strip()
+            
             if not api_key: raise ValueError("Chave GEMINI_API_KEY_PAID não configurada no painel de ambiente.")
 
             voz_real = req.voz.replace("creator-", "")
 
             async with httpx.AsyncClient(timeout=120.0) as client:
                 for i, chunk in enumerate(chunks):
-                    url = f"[https://generativelanguage.googleapis.com/v1beta/models/](https://generativelanguage.googleapis.com/v1beta/models/){modelo_gemini}:generateContent?key={api_key}"
+                    url = f"https://generativelanguage.googleapis.com/v1beta/models/{modelo_gemini}:generateContent?key={api_key}"
                     headers = {"Content-Type": "application/json"}
                     data = {
                         "contents": [{"parts": [{"text": chunk}]}],
