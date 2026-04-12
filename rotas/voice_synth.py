@@ -17,12 +17,11 @@ import models
 from database import get_db
 from auth import get_usuario_atual
 
-# SEM PREFIXO: Alinhado perfeitamente com o seu frontend
 router = APIRouter(tags=["Voice Synthesizer"])
 
 class AudioRequest(BaseModel):
     texto: str
-    voz: str = "padrao-pt-BR-AntonioNeural"
+    voz: str = "pt-BR-AntonioNeural"
     velocidade: float = 1.0
     pitch: int = 0
     temperatura: float = 0.7
@@ -30,7 +29,7 @@ class AudioRequest(BaseModel):
     similaridade: float = 0.75
 
 # ==========================================
-# CATÁLOGOS DE VOZES (Género e Personalidade)
+# CATÁLOGOS DE VOZES PREMIUM
 # ==========================================
 VOICES_CREATOR = {
     "Achernar": {"desc": "Suave", "genero": "Feminino"},
@@ -115,6 +114,7 @@ async def carregar_vozes_memoria():
                 "tipo": "creator"
             })
         
+        # AQUI ESTÁ A MÁGICA RESTAURADA: Busca dinâmica direto da Microsoft sem alterar os nomes!
         voices = await edge_tts.list_voices()
         for v in voices:
             if v["Locale"].startswith("pt-") or "Multilingual" in v["ShortName"]:
@@ -122,7 +122,7 @@ async def carregar_vozes_memoria():
                 nome_limpo = v["ShortName"].replace('pt-BR-', '').replace('pt-PT-', '').replace('Neural', '').replace('Multilingual', '')
                 vozes_cache.append({
                     "name": nome_limpo,
-                    "shortName": f"padrao-{v['ShortName']}",
+                    "shortName": v['ShortName'], # NOME ORIGINAL INTACTO!
                     "gender": gen_pt,
                     "desc": "Voz Digital Neural",
                     "tipo": "padrao"
@@ -224,7 +224,6 @@ async def gerar_narracao(
     
     is_cinematic = req.voz.startswith("cinematic-")
     is_creator = req.voz.startswith("creator-")
-    is_padrao = req.voz.startswith("padrao-")
     
     tamanho_texto = len(texto)
 
@@ -233,7 +232,7 @@ async def gerar_narracao(
     elif is_cinematic:
         custo_operacao = max(1, math.ceil((tamanho_texto / 900.0) * 50))
     elif is_creator:
-        custo_operacao = max(1, math.ceil((tamanho_texto / 900.0) * 12))
+        custo_operacao = max(1, math.ceil((tamanho_texto / 900.0) * 10))
     else:
         custo_operacao = 30 
 
@@ -252,7 +251,6 @@ async def gerar_narracao(
         pause_seg = AudioSegment.silent(duration=300)
 
         if is_cinematic:
-            # BLINDAGEM: .strip() para limpar chaves do .env
             api_key = os.environ.get("ELEVENLABS_API_KEY", "").strip()
             modelo_eleven = os.environ.get("ELEVENLABS_MODEL_ID", "eleven_turbo_v2_5").strip()
             
@@ -291,10 +289,8 @@ async def gerar_narracao(
             srt_content = gerar_srt_matematico(texto, audio_final_bytes)
 
         elif is_creator:
-            # BLINDAGEM: .strip() para limpar chaves do .env
             api_key = os.environ.get("GEMINI_API_KEY_PAID", "").strip()
             modelo_gemini = os.environ.get("GEMINI_MODEL_VOICE", "gemini-2.5-flash-tts").strip()
-            
             if not api_key: raise ValueError("Chave GEMINI_API_KEY_PAID não configurada no painel de ambiente.")
 
             voz_real = req.voz.replace("creator-", "")
@@ -363,7 +359,10 @@ async def gerar_narracao(
             srt_content = gerar_srt_matematico(texto, audio_final_bytes)
 
         else:
-            voz_engine = req.voz.replace("padrao-", "") 
+            # ========================================================
+            # NOME ORIGINAL USADO DIRETO NO MOTOR (Sem gambiarras)
+            # ========================================================
+            voz_engine = req.voz
             velocidade_formatada = f"{int((req.velocidade - 1.0) * 100):+d}%"
             pitch_formatado = f"{req.pitch:+d}Hz"
             
@@ -394,7 +393,7 @@ async def gerar_narracao(
                 usuario_id=usuario.id,
                 ferramenta=ferramenta_nome,
                 input_usuario=f"Voz: {req.voz} | Tamanho: {tamanho_texto} chars",
-                resultado=f"/static/audios/historico/{nome_arquivo}|SRT:{srt_content}", 
+                resultado=f"/static/audios/historico/{nome_arquivo}|SRT:{srt_content}",
                 custo_coins=custo_operacao
             )
             db.add(novo_historico)
