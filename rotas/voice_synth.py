@@ -124,22 +124,10 @@ async def carregar_vozes_memoria():
     
     try:
         for v_id, info in VOICES_CINEMATIC.items():
-            vozes_cache.append({
-                "name": info['nome'],
-                "shortName": f"cinematic-{v_id}",
-                "gender": info['genero'],
-                "desc": info['desc'],
-                "tipo": "cinematic"
-            })
+            vozes_cache.append({"name": info['nome'], "shortName": f"cinematic-{v_id}", "gender": info['genero'], "desc": info['desc'], "tipo": "cinematic"})
 
         for v_name, v_info in VOICES_CREATOR.items():
-            vozes_cache.append({
-                "name": v_name,
-                "shortName": f"creator-{v_name}",
-                "gender": v_info['genero'],
-                "desc": v_info['desc'],
-                "tipo": "creator"
-            })
+            vozes_cache.append({"name": v_name, "shortName": f"creator-{v_name}", "gender": v_info['genero'], "desc": v_info['desc'], "tipo": "creator"})
         
         # Mapeamento Instantâneo sem depender da Microsoft!
         for v_id, info in VOICES_STANDARD.items():
