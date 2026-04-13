@@ -114,6 +114,7 @@ async def carregar_vozes_memoria():
                 "tipo": "creator"
             })
         
+        # Busca dinâmica com o prefixo 'padrao-' garantido
         voices = await edge_tts.list_voices()
         for v in voices:
             if v["Locale"].startswith("pt-") or "Multilingual" in v["ShortName"]:
@@ -347,8 +348,19 @@ async def gerar_narracao(
                             else: 
                                 raise Exception(f"Detalhe Técnico do Google: {erro_detalhado}")
                     
+                    # ----------------------------------------------------
+                    # CORREÇÃO DA RENDERIZAÇÃO DO ÁUDIO GEMINI (O BUG DE DURAÇÃO)
+                    # O Pydub não deve interpretar os dados comprimidos como PCM cru.
+                    # ----------------------------------------------------
                     audio_bytes = base64.b64decode(audio_b64)
-                    seg = AudioSegment(data=audio_bytes, sample_width=2, frame_rate=24000, channels=1)
+                    
+                    try:
+                        # Lê os metadados reais do arquivo (Sample Rate real, formato WAV, etc)
+                        seg = AudioSegment.from_file(io.BytesIO(audio_bytes))
+                    except Exception as parse_err:
+                        print(f"Fallback Pydub ativado: {parse_err}")
+                        seg = AudioSegment(data=audio_bytes, sample_width=2, frame_rate=24000, channels=1)
+                        
                     final_audio += (pause_seg + seg) if i > 0 else seg
 
             mp3_io = io.BytesIO()
