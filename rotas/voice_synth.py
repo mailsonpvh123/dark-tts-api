@@ -7,6 +7,7 @@ import time
 import re
 import textwrap
 import httpx 
+import asyncio
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -114,7 +115,6 @@ async def carregar_vozes_memoria():
                 "tipo": "creator"
             })
         
-        # Busca dinâmica com o prefixo 'padrao-' garantido
         voices = await edge_tts.list_voices()
         for v in voices:
             if v["Locale"].startswith("pt-") or "Multilingual" in v["ShortName"]:
@@ -246,7 +246,12 @@ async def gerar_narracao(
         srt_content = ""
         audio_base64 = ""
         
-        chunks = split_text_for_api(texto, max_chars=4000)
+        # BLINDAGEM DE LIMITE: O Gemini não suporta chunks gigantescos. Fatiamos menor para ele.
+        if is_creator:
+            chunks = split_text_for_api(texto, max_chars=800)
+        else:
+            chunks = split_text_for_api(texto, max_chars=4000)
+            
         final_audio = AudioSegment.empty()
         pause_seg = AudioSegment.silent(duration=300)
 
@@ -314,6 +319,8 @@ async def gerar_narracao(
                     
                     max_retries = 3
                     audio_b64 = None
+                    mime_type = "audio/pcm"
+                    
                     for attempt in range(max_retries):
                         try:
                             response = await client.post(url, json=data, headers=headers)
@@ -323,7 +330,6 @@ async def gerar_narracao(
                                 raise Exception(f"HTTP {response.status_code} - {erro_txt}")
                             
                             resp_json = response.json()
-                            
                             candidatos = resp_json.get('candidates', [])
                             if not candidatos:
                                 raise Exception(f"API respondeu sem 'candidates'. Retorno: {response.text}")
@@ -332,31 +338,40 @@ async def gerar_narracao(
                             for part in partes:
                                 if 'inlineData' in part and part['inlineData'].get('mimeType', '').startswith('audio/'):
                                     audio_b64 = part['inlineData']['data']
+                                    mime_type = part['inlineData']['mimeType']
                                     break
                                     
                             if audio_b64: 
                                 break
                             else: 
-                                raise Exception(f"A API do Gemini não retornou dados de áudio no JSON. Retorno: {response.text}")
+                                raise Exception(f"A API do Gemini não retornou dados de áudio no JSON.")
                                 
                         except Exception as api_err:
                             erro_detalhado = str(api_err) if str(api_err) else repr(api_err)
-                            print(f"⚠️ Aviso (Tentativa {attempt+1}/{max_retries}): {erro_detalhado}")
+                            print(f"⚠️ Aviso Gemini (Tentativa {attempt+1}/{max_retries}): {erro_detalhado}")
                             
                             if attempt < max_retries - 1: 
-                                time.sleep(3)
+                                # BLINDAGEM DE TRAVAMENTO: Aguarda de forma assíncrona (não derruba a aplicação)
+                                await asyncio.sleep(4 + attempt * 2) 
                             else: 
                                 raise Exception(f"Detalhe Técnico do Google: {erro_detalhado}")
                     
-                    # ----------------------------------------------------
-                    # CORREÇÃO DA RENDERIZAÇÃO DO ÁUDIO GEMINI (O BUG DE DURAÇÃO)
-                    # O Pydub não deve interpretar os dados comprimidos como PCM cru.
-                    # ----------------------------------------------------
+                    # BLINDAGEM DO FORMATO DE ÁUDIO (MATA O BUG DO TEMPO ESTICADO E O ERRO DO FFmpeg)
                     audio_bytes = base64.b64decode(audio_b64)
                     
                     try:
-                        # Lê os metadados reais do arquivo (Sample Rate real, formato WAV, etc)
-                        seg = AudioSegment.from_file(io.BytesIO(audio_bytes))
+                        if "wav" in mime_type.lower():
+                            seg = AudioSegment.from_file(io.BytesIO(audio_bytes), format="wav")
+                        elif "mp3" in mime_type.lower():
+                            seg = AudioSegment.from_file(io.BytesIO(audio_bytes), format="mp3")
+                        else:
+                            # Tenta puxar a taxa exata do mimeType (ex: audio/pcm;rate=24000)
+                            rate = 24000
+                            if "rate=" in mime_type:
+                                try:
+                                    rate = int(re.search(r'rate=(\d+)', mime_type).group(1))
+                                except: pass
+                            seg = AudioSegment(data=audio_bytes, sample_width=2, frame_rate=rate, channels=1)
                     except Exception as parse_err:
                         print(f"Fallback Pydub ativado: {parse_err}")
                         seg = AudioSegment(data=audio_bytes, sample_width=2, frame_rate=24000, channels=1)
