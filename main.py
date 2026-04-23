@@ -135,6 +135,13 @@ async def render_checkout(request: Request, usuario: models.Usuario = Depends(ge
 async def render_obrigado(request: Request, usuario: models.Usuario = Depends(get_usuario_atual)):
     return templates.TemplateResponse("obrigado.html", {"request": request, "usuario": usuario})
 
+@app.get("/saiba-mais", response_class=HTMLResponse)
+async def page_saiba_mais(request: Request, db: Session = Depends(get_db)):
+    # Usamos o get_usuario_atual para enviar o usuário caso ele esteja logado
+    # Se ele for um visitante novo (deslogado), o 'usuario' será None e o template lida com isso.
+    usuario = await get_usuario_atual(request, db)
+    return templates.TemplateResponse("saiba_mais.html", {"request": request, "title": "Saiba Mais - Dark Creator OS", "user": usuario})
+
 
 @app.post("/api/logout")
 async def logout():
