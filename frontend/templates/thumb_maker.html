@@ -32,15 +32,30 @@
                     </div>
                     
                     <div class="grid grid-cols-2 gap-3 p-3 bg-[#09090b] border border-zinc-800/80 rounded-xl shadow-inner">
-                        <div>
+                        <div class="col-span-2">
                             <label class="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Estilo Visual</label>
                             <select id="thumb_estilo" onchange="salvarEstado('thumb_estilo')" class="w-full bg-[#121214] border border-zinc-700 rounded-lg px-2 py-2.5 text-zinc-200 focus:border-rose-500 outline-none text-xs cursor-pointer shadow-inner">
                                 <option value="Realista/Cinematográfico">Realista/Cinemático</option>
-                                <option value="3D Pixar/Disney">3D Cartoon</option>
-                                <option value="Ilustração Dark">Ilustração Dark</option>
-                                <option value="Anime/Mangá">Anime</option>
-                                <option value="Retrô 80s/VHS">Retrô VHS</option>
+                                <option value="Print de Post / Rede Social">Print de Post / Falso Print</option>
+                                <option value="Ilustração Dark / Macabra">Ilustração Dark / Macabra</option>
+                                <option value="Fotografia Documental / Raw">Fotografia Documental / Raw</option>
+                                <option value="3D Pixar/Disney">3D Cartoon / Pixar</option>
+                                <option value="Anime/Mangá Sombrio">Anime Sombrio</option>
+                                <option value="Retrô 80s/VHS Found Footage">Retrô VHS / Found Footage</option>
+                                <option value="Cyberpunk / Neon">Cyberpunk / Neon</option>
+                                <option value="Pintura a Óleo Clássica">Pintura a Óleo Clássica</option>
+                                <option value="Minimalista / Flat Design">Minimalista / Flat Design</option>
+                                <option value="Estilo Quadrinhos / Comic Book">Estilo Quadrinhos / Comic Book</option>
+                                <option value="GTA Art Style">GTA Art Style</option>
+                                <option value="Colagem Surrealista">Colagem Surrealista</option>
                             </select>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3 p-3 bg-[#09090b] border border-zinc-800/80 rounded-xl shadow-inner">
+                        <div class="col-span-2">
+                            <label class="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Texto na Arte (Opcional mas Recomendado)</label>
+                            <input type="text" id="thumb_texto_arte" oninput="salvarEstado('thumb_texto_arte')" class="w-full bg-[#121214] border border-zinc-700 rounded-lg px-2 py-2 text-zinc-200 focus:border-rose-500 outline-none text-xs shadow-inner" placeholder="Ex: FUI DEMITIDO!">
                         </div>
                         <div>
                             <label class="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Cor do Texto</label>
@@ -49,21 +64,24 @@
                                 <option value="Vermelho Sangue">Vermelho Sangue</option>
                                 <option value="Branco Brilhante">Branco Brilhante</option>
                                 <option value="Verde Tóxico">Verde Tóxico</option>
+                                <option value="Rosa Choque">Rosa Choque / Magenta</option>
+                                <option value="Laranja Fogo">Laranja Fogo</option>
+                                <option value="Azul Ciano">Azul Ciano</option>
+                                <option value="Dourado Metálico">Dourado Metálico</option>
+                                <option value="Prata Metálico">Prata Metálico</option>
+                                <option value="Preto (Alto Contraste)">Preto Sólido</option>
                             </select>
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-3 p-3 bg-[#09090b] border border-zinc-800/80 rounded-xl shadow-inner">
-                        <div>
-                            <label class="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Texto na Arte (Opcional)</label>
-                            <input type="text" id="thumb_texto_arte" oninput="salvarEstado('thumb_texto_arte')" class="w-full bg-[#121214] border border-zinc-700 rounded-lg px-2 py-2 text-zinc-200 focus:border-rose-500 outline-none text-xs shadow-inner" placeholder="Ex: FUI DEMITIDO!">
                         </div>
                         <div>
                             <label class="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Posição do Texto</label>
                             <select id="thumb_posicao_texto" onchange="salvarEstado('thumb_posicao_texto')" class="w-full bg-[#121214] border border-zinc-700 rounded-lg px-2 py-2.5 text-zinc-200 focus:border-rose-500 outline-none text-xs cursor-pointer shadow-inner">
-                                <option value="Centro Maior">Centro (Maior)</option>
-                                <option value="Topo Esquerda">Topo (Esquerda)</option>
-                                <option value="Embaixo Centralizado">Embaixo (Centralizado)</option>
+                                <option value="Centro da imagem (Destaque principal)">Centro (Maior)</option>
+                                <option value="Topo à esquerda">Topo (Esquerda)</option>
+                                <option value="Topo centralizado">Topo (Centro)</option>
+                                <option value="Topo à direita">Topo (Direita)</option>
+                                <option value="Embaixo à esquerda">Embaixo (Esquerda)</option>
+                                <option value="Embaixo centralizado">Embaixo (Centralizado)</option>
+                                <option value="Ocupando metade da tela à esquerda">Metade Esquerda (Split)</option>
                                 <option value="Sem Texto">Sem Texto</option>
                             </select>
                         </div>
@@ -73,7 +91,7 @@
                 
                 <div class="flex gap-3 mt-8 relative z-10">
                     <button id="btn_gerar_thumb" onclick="chamarThumbMaker()" class="flex-1 bg-rose-600 hover:bg-rose-500 text-white font-black py-4 rounded-xl shadow-[0_0_20px_rgba(244,63,94,0.4)] transition-all flex items-center justify-center gap-2 group border border-rose-500/50">
-                        <i class="fa-solid fa-paintbrush group-hover:scale-110 transition-transform"></i> <span id="txt_btn_thumb">Direção de Arte (15 Coins)</span>
+                        <i class="fa-solid fa-paintbrush group-hover:scale-110 transition-transform"></i> <span id="txt_btn_thumb">Direção de Arte (10 Coins)</span>
                     </button>
                     <button onclick="limparThumb()" class="bg-[#09090b] hover:bg-red-500/20 text-zinc-500 hover:text-red-400 border border-zinc-700 hover:border-red-500/50 font-bold px-4 rounded-xl transition-all flex items-center justify-center group shadow-inner" title="Limpar Tela">
                         <i class="fa-solid fa-trash-can group-hover:scale-110 transition-transform"></i>
@@ -148,7 +166,7 @@
         btn.classList.add('opacity-70', 'cursor-not-allowed');
         txtBtn.innerHTML = `Criando Arte... <i class="fa-solid fa-circle-notch fa-spin ml-1"></i>`;
         
-        container.innerHTML = `<div class="flex flex-col items-center justify-center h-full py-20 text-rose-500"><i class="fa-solid fa-paintbrush fa-fade text-5xl mb-6 drop-shadow-[0_0_15px_rgba(244,63,94,0.5)]"></i><p class="font-black tracking-tight text-white">O Diretor IA está a compor...</p><p class="text-xs text-zinc-500 font-mono mt-2">Isto pode demorar alguns segundos (-15 Coins)</p></div>`;
+        container.innerHTML = `<div class="flex flex-col items-center justify-center h-full py-20 text-rose-500"><i class="fa-solid fa-paintbrush fa-fade text-5xl mb-6 drop-shadow-[0_0_15px_rgba(244,63,94,0.5)]"></i><p class="font-black tracking-tight text-white">O Diretor IA está a compor...</p><p class="text-xs text-zinc-500 font-mono mt-2">Isto pode demorar alguns segundos (-10 Coins)</p></div>`;
 
         try {
             const res = await fetch("/api/v1/thumb-maker", {
@@ -199,7 +217,7 @@
                         <span class="text-xs font-bold text-zinc-500 italic"><i class="fa-solid fa-chess-knight mr-1"></i> ${capa.estrategia}</span>
                     </div>
                     <p class="text-sm text-zinc-300 mb-3 border-l-2 border-rose-500/50 pl-3 leading-relaxed"><strong>Psicologia Visual:</strong> ${capa.psicologia}</p>
-                    <p class="text-sm text-zinc-300 mb-4 border-l-2 border-rose-500/50 pl-3 leading-relaxed"><strong>🔤 Texto sugerido na arte:</strong> ${textoExibido}</p>
+                    <p class="text-sm text-zinc-300 mb-4 border-l-2 border-rose-500/50 pl-3 leading-relaxed"><strong>🔤 Texto cravado na arte:</strong> ${textoExibido}</p>
                     
                     <div class="bg-[#121214] border border-zinc-800 p-4 rounded-lg shadow-inner relative mt-4">
                         <p class="text-xs text-rose-400 font-mono mb-2 uppercase font-bold flex items-center gap-2"><i class="fa-solid fa-robot"></i> Prompt Midjourney / DALL-E</p>
@@ -220,7 +238,7 @@
                 container.innerHTML = `<p class="text-red-400 text-center font-bold py-10 bg-red-500/10 border border-red-500/20 rounded-xl m-4"><i class="fa-solid fa-triangle-exclamation"></i> Erro Técnico: ${error.message}</p>`;
             }
         } finally {
-            btn.disabled = false; btn.classList.remove('opacity-70', 'cursor-not-allowed'); txtBtn.innerHTML = "Direção de Arte (15 Coins)";
+            btn.disabled = false; btn.classList.remove('opacity-70', 'cursor-not-allowed'); txtBtn.innerHTML = "Direção de Arte (10 Coins)";
         }
     }
 
