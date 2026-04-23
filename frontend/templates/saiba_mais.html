@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 py-12 relative">
+    <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[300px] bg-emerald-600/10 rounded-full blur-[120px] pointer-events-none"></div>
+
+    <div class="text-center mb-20 relative z-10">
+        <h1 class="text-4xl md:text-6xl font-black text-white tracking-tighter mb-6 uppercase">
+            Sua <span class="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-500">Máquina de Vendas</span> Dark
+        </h1>
+        <p class="text-lg md:text-xl text-zinc-400 max-w-3xl mx-auto leading-relaxed">
+            O <strong class="text-white">Dark Creator OS</strong> é o ecossistema definitivo para dominar o YouTube.
+            8 ferramentas brutais alimentadas por inteligência artificial para automatizar da mineração à conversão.
+        </p>
+        
+        {% if not user %}
+        <div class="mt-8">
+            <a href="/registro" class="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-black py-4 px-8 rounded-xl shadow-[0_0_25px_rgba(16,185,129,0.4)] transition-all transform hover:scale-105 border border-emerald-400">
+                <i class="fa-solid fa-bolt"></i> Criar Conta Agora (Ganhe 30 Coins)
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 relative z-10">
+        
+        <div class="bg-[#121214] border border-zinc-800 rounded-2xl p-6 hover:border-yellow-500/50 transition-all duration-300 group shadow-lg">
+            <div class="w-12 h-12 rounded-lg bg-yellow-500/10 border border-yellow-500/30 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
+                <i class="fa-solid fa-lightbulb text-yellow-400 text-xl"></i>
+            </div>
+            <h3 class="text-lg font-black text-white mb-2 tracking-tight">Gen Insights</h3>
+            <p class="text-sm text-zinc-400 leading-relaxed">Gere ideias validadas, ganchos emocionais e títulos impossíveis de serem ignorados.</p>
+        </div>
+
+        <div class="bg-[#121214] border border-zinc-800 rounded-2xl p-6 hover:border-orange-500/50 transition-all duration-300 group shadow-lg">
+            <div class="w-12 h-12 rounded-lg bg-orange-500/10 border border-orange-500/30 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
+                <i class="fa-solid fa-pen-nib text-orange-400 text-xl"></i>
+            </div>
+            <h3 class="text-lg font-black text-white mb-2 tracking-tight">Script Forge</h3>
+            <p class="text-sm text-zinc-400 leading-relaxed">O seu roteirista particular de alta retenção. Estruturas narrativas feitas para prender a atenção do segundo 0 ao fim.</p>
+        </div>
+
+        <div class="bg-[#121214] border border-zinc-800 rounded-2xl p-6 hover:border-pink-500/50 transition-all duration-300 group shadow-lg">
+            <div class="w-12 h-12 rounded-lg bg-pink-500/10 border border-pink-500/30 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
+                <i class="fa-solid fa-rotate text-pink-400 text-xl"></i>
+            </div>
+            <h3 class="text-lg font-black text-white mb-2 tracking-tight">Paraphraser</h3>
+            <p class="text-sm text-zinc-400 leading-relaxed">Transmutador de textos. Pegue conteúdos virais, altere a matriz e crie roteiros blindados contra plágio e strikes.</p>
+        </div>
+
+        <div class="bg-[#121214] border border-zinc-800 rounded-2xl p-6 hover:border-purple-500/50 transition-all duration-300 group shadow-lg">
+            <div class="w-12 h-12 rounded-lg bg-purple-500/10 border border-purple-500/30 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
+                <i class="fa-solid fa-microphone-lines text-purple-400 text-xl"></i>
+            </div>
+            <h3 class="text-lg font-black text-white mb-2 tracking-tight">Voice Synth</h3>
+            <p class="text-sm text-zinc-400 leading-relaxed">Estúdio de dublagem neural. Vozes emocionais de qualidade Creator e Cinematic para dar vida aos seus canais dark.</p>
+        </div>
+
+        <div class="bg-[#121214] border border-zinc-800 rounded-2xl p-6 hover:border-cyan-500/50 transition-all duration-300 group shadow-lg">
+            <div class="w-12 h-12 rounded-lg bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
+                <i class="fa-solid fa-clapperboard text-cyan-400 text-xl"></i>
+            </div>
+            <h3 class="text-lg font-black text-white mb-2 tracking-tight">SceneMaker</h3>
+            <p class="text-sm text-zinc-400 leading-relaxed">A IA analisa o seu roteiro e fatia linha por linha, cuspindo os Prompts Gringos exatos para Midjourney ou Sora.</p>
+        </div>
+
+        <div class="bg-[#121214] border border-zinc-800 rounded-2xl p-6 hover:border-blue-500/50 transition-all duration-300 group shadow-lg">
+            <div class="w-12 h-12 rounded-lg bg-blue-500/10 border border-blue-500/30 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
+                <i class="fa-solid fa-rocket text-blue-400 text-xl"></i>
+            </div>
+            <h3 class="text-lg font-black text-white mb-2 tracking-tight">Meta & SEO</h3>
+            <p class="text-sm text-zinc-400 leading-relaxed">Tags, descrição e capítulos automáticos calibrados com o algoritmo para hackear o ranqueamento no YouTube.</p>
+        </div>
+
+        <div class="bg-[#121214] border border-zinc-800 rounded-2xl p-6 hover:border-rose-500/50 transition-all duration-300 group shadow-lg">
+            <div class="w-12 h-12 rounded-lg bg-rose-500/10 border border-rose-500/30 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
+                <i class="fa-solid fa-image text-rose-400 text-xl"></i>
+            </div>
+            <h3 class="text-lg font-black text-white mb-2 tracking-tight">Thumb Maker</h3>
+            <p class="text-sm text-zinc-400 leading-relaxed">Direção de Arte completa. Gatilhos psicológicos e Prompts precisos para gerar a capa com o CTR mais alto possível.</p>
+        </div>
+
+        <div class="bg-[#121214] border border-zinc-800 rounded-2xl p-6 hover:border-emerald-500/50 transition-all duration-300 group shadow-lg">
+            <div class="w-12 h-12 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
+                <i class="fa-solid fa-magnet text-emerald-400 text-xl"></i>
+            </div>
+            <h3 class="text-lg font-black text-white mb-2 tracking-tight">Clip Hunter</h3>
+            <p class="text-sm text-zinc-400 leading-relaxed">Minerador implacável de mídias royalty-free. Busque vídeos, áudios e imagens em altíssima resolução para b-rolls.</p>
+        </div>
+    </div>
+
+    <div class="mt-24 bg-gradient-to-b from-[#121214] to-[#09090b] border border-zinc-800 p-10 rounded-3xl text-center relative overflow-hidden shadow-2xl">
+        <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5"></div>
+        <h2 class="text-2xl md:text-3xl font-black text-white tracking-tight relative z-10 mb-4">Economia Integrada via <span class="text-emerald-400">PIX</span></h2>
+        <p class="text-zinc-400 max-w-2xl mx-auto mb-8 relative z-10">
+            Acesso escalável. Pague apenas pelo que usar no sistema de Coins internos. Sem assinaturas presas, total liberdade para crescer sua operação Dark.
+        </p>
+        <div class="relative z-10">
+            <a href="{% if user %}/planos{% else %}/registro{% endif %}" class="inline-flex items-center gap-2 bg-zinc-100 hover:bg-white text-zinc-900 font-black py-4 px-8 rounded-xl transition-all border border-zinc-300 shadow-lg">
+                <i class="fa-solid fa-coins text-yellow-500"></i> {% if user %}Recarregar Coins{% else %}Experimentar a Plataforma{% endif %}
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
