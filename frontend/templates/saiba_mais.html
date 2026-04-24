@@ -1,104 +1,136 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="max-w-6xl mx-auto px-4 py-12 relative">
-    <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[300px] bg-emerald-600/10 rounded-full blur-[120px] pointer-events-none"></div>
+<div class="bg-[#09090b] min-h-screen pb-20">
+    <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-emerald-600/10 rounded-full blur-[150px] pointer-events-none"></div>
 
-    <div class="text-center mb-20 relative z-10">
-        <h1 class="text-4xl md:text-6xl font-black text-white tracking-tighter mb-6 uppercase">
-            Sua <span class="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-500">Máquina de Vendas</span> Dark
+    <div class="max-w-5xl mx-auto px-4 pt-20 pb-16 relative z-10 text-center border-b border-zinc-800/50">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-black uppercase tracking-widest mb-6">
+            <i class="fa-solid fa-bolt"></i> Acelere sua produção em até 10x
+        </div>
+        <h1 class="text-5xl md:text-7xl font-black text-white tracking-tighter mb-6 uppercase leading-tight">
+            Deixe de ser o operário do seu canal. <br>
+            <span class="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-500">Torne-se o Diretor.</span>
         </h1>
-        <p class="text-lg md:text-xl text-zinc-400 max-w-3xl mx-auto leading-relaxed">
-            O <strong class="text-white">Dark Creator OS</strong> é o ecossistema definitivo para dominar o YouTube.
-            8 ferramentas brutais alimentadas por inteligência artificial para automatizar da mineração à conversão.
+        <p class="text-lg md:text-2xl text-zinc-400 max-w-3xl mx-auto leading-relaxed mb-10">
+            O <strong class="text-white">Dark Creator OS</strong> é o ecossistema definitivo de Inteligência Artificial para Canais Dark. Automatize da mineração de conteúdo à criação da Thumbnail e escale seus ganhos no YouTube.
         </p>
         
         {% if not user %}
-        <div class="mt-8">
-            <a href="/registro" class="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-black py-4 px-8 rounded-xl shadow-[0_0_25px_rgba(16,185,129,0.4)] transition-all transform hover:scale-105 border border-emerald-400">
-                <i class="fa-solid fa-bolt"></i> Criar Conta Agora (Ganhe 30 Coins)
+        <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <a href="/registro" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-black py-4 px-10 rounded-xl shadow-[0_0_30px_rgba(16,185,129,0.3)] transition-all transform hover:scale-105 border border-emerald-400 text-lg">
+                <i class="fa-solid fa-rocket"></i> Criar Conta (Ganhe 30 Coins)
             </a>
+            <p class="text-xs text-zinc-500 font-bold"><i class="fa-solid fa-check text-emerald-500"></i> Sem assinatura mensal. Pague via PIX.</p>
         </div>
         {% endif %}
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 relative z-10">
-        
-        <div class="bg-[#121214] border border-zinc-800 rounded-2xl p-6 hover:border-yellow-500/50 transition-all duration-300 group shadow-lg">
-            <div class="w-12 h-12 rounded-lg bg-yellow-500/10 border border-yellow-500/30 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
-                <i class="fa-solid fa-lightbulb text-yellow-400 text-xl"></i>
+    <div class="max-w-4xl mx-auto px-4 py-20 relative z-10">
+        <div class="bg-[#121214] border border-red-500/20 rounded-3xl p-8 md:p-12 shadow-2xl relative overflow-hidden">
+            <div class="absolute top-0 right-0 w-64 h-64 bg-red-500/5 rounded-full blur-[80px] pointer-events-none"></div>
+            
+            <h2 class="text-3xl md:text-4xl font-black text-white mb-6 tracking-tight">O Gargalo do Canal Dark é o <span class="text-red-500">Seu Tempo</span>.</h2>
+            <div class="space-y-6 text-zinc-400 text-base md:text-lg leading-relaxed">
+                <p>Nós sabemos como é a trincheira. Você passa <strong>horas pesquisando ideias</strong>, dias tentando escrever um roteiro que prenda a atenção, sofre para achar uma voz natural que não soe como um robô barato, e gasta o resto da sua energia caçando vídeos de fundo (b-rolls) e mendigando cliques com thumbnails medianas.</p>
+                <p>No final, você levou <strong>15 horas para produzir um único vídeo</strong>. Enquanto isso, os gigantes do seu nicho estão postando 3 vezes por semana e dominando o algoritmo.</p>
+                <p class="text-white font-bold text-xl border-l-4 border-emerald-500 pl-4 mt-8">A nossa ferramenta não cria apenas conteúdo. Ela compra o seu tempo de volta para você focar no que dá dinheiro: Estratégia e Escala.</p>
             </div>
-            <h3 class="text-lg font-black text-white mb-2 tracking-tight">Gen Insights</h3>
-            <p class="text-sm text-zinc-400 leading-relaxed">Gere ideias validadas, ganchos emocionais e títulos impossíveis de serem ignorados.</p>
-        </div>
-
-        <div class="bg-[#121214] border border-zinc-800 rounded-2xl p-6 hover:border-orange-500/50 transition-all duration-300 group shadow-lg">
-            <div class="w-12 h-12 rounded-lg bg-orange-500/10 border border-orange-500/30 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
-                <i class="fa-solid fa-pen-nib text-orange-400 text-xl"></i>
-            </div>
-            <h3 class="text-lg font-black text-white mb-2 tracking-tight">Script Forge</h3>
-            <p class="text-sm text-zinc-400 leading-relaxed">O seu roteirista particular de alta retenção. Estruturas narrativas feitas para prender a atenção do segundo 0 ao fim.</p>
-        </div>
-
-        <div class="bg-[#121214] border border-zinc-800 rounded-2xl p-6 hover:border-pink-500/50 transition-all duration-300 group shadow-lg">
-            <div class="w-12 h-12 rounded-lg bg-pink-500/10 border border-pink-500/30 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
-                <i class="fa-solid fa-rotate text-pink-400 text-xl"></i>
-            </div>
-            <h3 class="text-lg font-black text-white mb-2 tracking-tight">Paraphraser</h3>
-            <p class="text-sm text-zinc-400 leading-relaxed">Transmutador de textos. Pegue conteúdos virais, altere a matriz e crie roteiros blindados contra plágio e strikes.</p>
-        </div>
-
-        <div class="bg-[#121214] border border-zinc-800 rounded-2xl p-6 hover:border-purple-500/50 transition-all duration-300 group shadow-lg">
-            <div class="w-12 h-12 rounded-lg bg-purple-500/10 border border-purple-500/30 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
-                <i class="fa-solid fa-microphone-lines text-purple-400 text-xl"></i>
-            </div>
-            <h3 class="text-lg font-black text-white mb-2 tracking-tight">Voice Synth</h3>
-            <p class="text-sm text-zinc-400 leading-relaxed">Estúdio de dublagem neural. Vozes emocionais de qualidade Creator e Cinematic para dar vida aos seus canais dark.</p>
-        </div>
-
-        <div class="bg-[#121214] border border-zinc-800 rounded-2xl p-6 hover:border-cyan-500/50 transition-all duration-300 group shadow-lg">
-            <div class="w-12 h-12 rounded-lg bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
-                <i class="fa-solid fa-clapperboard text-cyan-400 text-xl"></i>
-            </div>
-            <h3 class="text-lg font-black text-white mb-2 tracking-tight">SceneMaker</h3>
-            <p class="text-sm text-zinc-400 leading-relaxed">A IA analisa o seu roteiro e fatia linha por linha, cuspindo os Prompts Gringos exatos para Midjourney ou Sora.</p>
-        </div>
-
-        <div class="bg-[#121214] border border-zinc-800 rounded-2xl p-6 hover:border-blue-500/50 transition-all duration-300 group shadow-lg">
-            <div class="w-12 h-12 rounded-lg bg-blue-500/10 border border-blue-500/30 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
-                <i class="fa-solid fa-rocket text-blue-400 text-xl"></i>
-            </div>
-            <h3 class="text-lg font-black text-white mb-2 tracking-tight">Meta & SEO</h3>
-            <p class="text-sm text-zinc-400 leading-relaxed">Tags, descrição e capítulos automáticos calibrados com o algoritmo para hackear o ranqueamento no YouTube.</p>
-        </div>
-
-        <div class="bg-[#121214] border border-zinc-800 rounded-2xl p-6 hover:border-rose-500/50 transition-all duration-300 group shadow-lg">
-            <div class="w-12 h-12 rounded-lg bg-rose-500/10 border border-rose-500/30 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
-                <i class="fa-solid fa-image text-rose-400 text-xl"></i>
-            </div>
-            <h3 class="text-lg font-black text-white mb-2 tracking-tight">Thumb Maker</h3>
-            <p class="text-sm text-zinc-400 leading-relaxed">Direção de Arte completa. Gatilhos psicológicos e Prompts precisos para gerar a capa com o CTR mais alto possível.</p>
-        </div>
-
-        <div class="bg-[#121214] border border-zinc-800 rounded-2xl p-6 hover:border-emerald-500/50 transition-all duration-300 group shadow-lg">
-            <div class="w-12 h-12 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
-                <i class="fa-solid fa-magnet text-emerald-400 text-xl"></i>
-            </div>
-            <h3 class="text-lg font-black text-white mb-2 tracking-tight">Clip Hunter</h3>
-            <p class="text-sm text-zinc-400 leading-relaxed">Minerador implacável de mídias royalty-free. Busque vídeos, áudios e imagens em altíssima resolução para b-rolls.</p>
         </div>
     </div>
 
-    <div class="mt-24 bg-gradient-to-b from-[#121214] to-[#09090b] border border-zinc-800 p-10 rounded-3xl text-center relative overflow-hidden shadow-2xl">
-        <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5"></div>
-        <h2 class="text-2xl md:text-3xl font-black text-white tracking-tight relative z-10 mb-4">Economia Integrada via <span class="text-emerald-400">PIX</span></h2>
-        <p class="text-zinc-400 max-w-2xl mx-auto mb-8 relative z-10">
-            Acesso escalável. Pague apenas pelo que usar no sistema de Coins internos. Sem assinaturas presas, total liberdade para crescer sua operação Dark.
-        </p>
-        <div class="relative z-10">
-            <a href="{% if user %}/planos{% else %}/registro{% endif %}" class="inline-flex items-center gap-2 bg-zinc-100 hover:bg-white text-zinc-900 font-black py-4 px-8 rounded-xl transition-all border border-zinc-300 shadow-lg">
-                <i class="fa-solid fa-coins text-yellow-500"></i> {% if user %}Recarregar Coins{% else %}Experimentar a Plataforma{% endif %}
-            </a>
+    <div class="max-w-6xl mx-auto px-4 py-16 relative z-10">
+        <div class="text-center mb-16">
+            <h2 class="text-3xl md:text-5xl font-black text-white tracking-tighter mb-4">Conheça a sua <span class="text-emerald-400">Máquina de Vendas</span></h2>
+            <p class="text-zinc-400">8 Motores de Inteligência Artificial trabalhando em sincronia para o seu canal.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+            <div class="bg-[#121214] border border-zinc-800 rounded-2xl p-8 hover:border-yellow-500/50 transition-all duration-300 group shadow-lg flex flex-col h-full">
+                <div class="w-14 h-14 rounded-xl bg-yellow-500/10 border border-yellow-500/30 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                    <i class="fa-solid fa-lightbulb text-yellow-400 text-2xl"></i>
+                </div>
+                <h3 class="text-xl font-black text-white mb-3 tracking-tight">Gen Insights: O Fim do Bloqueio Criativo</h3>
+                <p class="text-sm text-zinc-400 leading-relaxed flex-1">Não sabe sobre o que gravar hoje? O algoritmo de Insights minera tendências e te entrega ideias validadas. Em segundos, você recebe o tema central, os gatilhos emocionais necessários e sugestões de títulos impossíveis de serem ignorados pelo seu público.</p>
+            </div>
+
+            <div class="bg-[#121214] border border-zinc-800 rounded-2xl p-8 hover:border-orange-500/50 transition-all duration-300 group shadow-lg flex flex-col h-full">
+                <div class="w-14 h-14 rounded-xl bg-orange-500/10 border border-orange-500/30 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                    <i class="fa-solid fa-pen-nib text-orange-400 text-2xl"></i>
+                </div>
+                <h3 class="text-xl font-black text-white mb-3 tracking-tight">Script Forge: Roteiros de Alta Retenção</h3>
+                <p class="text-sm text-zinc-400 leading-relaxed flex-1">O seu roteirista particular. Chega de vídeos chatos. O Script Forge utiliza estruturas narrativas de Hollywood aplicadas ao YouTube para criar roteiros dinâmicos, garantindo que o espectador fique preso do segundo zero até a chamada para ação final.</p>
+            </div>
+
+            <div class="bg-[#121214] border border-zinc-800 rounded-2xl p-8 hover:border-pink-500/50 transition-all duration-300 group shadow-lg flex flex-col h-full">
+                <div class="w-14 h-14 rounded-xl bg-pink-500/10 border border-pink-500/30 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                    <i class="fa-solid fa-rotate text-pink-400 text-2xl"></i>
+                </div>
+                <h3 class="text-xl font-black text-white mb-3 tracking-tight">Paraphraser: Clonagem de Virais Blindada</h3>
+                <p class="text-sm text-zinc-400 leading-relaxed flex-1">Viu um vídeo viral na gringa ou no Reddit e quer adaptar para o seu canal? O Paraphraser não faz uma simples tradução. Ele transmuta a essência do texto, reescrevendo com o tom do seu canal e criando um conteúdo 100% original, blindado contra strikes de direitos autorais e plágio.</p>
+            </div>
+
+            <div class="bg-[#121214] border border-zinc-800 rounded-2xl p-8 hover:border-purple-500/50 transition-all duration-300 group shadow-lg flex flex-col h-full">
+                <div class="w-14 h-14 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                    <i class="fa-solid fa-microphone-lines text-purple-400 text-2xl"></i>
+                </div>
+                <h3 class="text-xl font-black text-white mb-3 tracking-tight">Voice Synth: Locução Nível Cinema</h3>
+                <p class="text-sm text-zinc-400 leading-relaxed flex-1">O áudio é 50% do seu vídeo. Pare de usar vozes robóticas gratuitas que destroem a retenção. Nosso estúdio neural possui Tiers de qualidade 'Creator' e 'Cinematic' (alimentados pelas melhores IAs do mundo), gerando locuções humanas com respiração, pausas dramáticas e emoção real.</p>
+            </div>
+
+            <div class="bg-[#121214] border border-zinc-800 rounded-2xl p-8 hover:border-cyan-500/50 transition-all duration-300 group shadow-lg flex flex-col h-full">
+                <div class="w-14 h-14 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                    <i class="fa-solid fa-clapperboard text-cyan-400 text-2xl"></i>
+                </div>
+                <h3 class="text-xl font-black text-white mb-3 tracking-tight">SceneMaker: Direção de Arte Automatizada</h3>
+                <p class="text-sm text-zinc-400 leading-relaxed flex-1">Você tem o roteiro, mas não sabe o que colocar na tela? O SceneMaker fatia o seu texto linha por linha e cospe os "Prompts Gringos" perfeitos, já formatados em inglês, detalhando iluminação, ângulo de câmera e ação para você gerar cenas épicas no Midjourney, Sora ou Kling em minutos.</p>
+            </div>
+
+            <div class="bg-[#121214] border border-zinc-800 rounded-2xl p-8 hover:border-emerald-500/50 transition-all duration-300 group shadow-lg flex flex-col h-full">
+                <div class="w-14 h-14 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                    <i class="fa-solid fa-magnet text-emerald-400 text-2xl"></i>
+                </div>
+                <h3 class="text-xl font-black text-white mb-3 tracking-tight">Clip Hunter: Minerador de B-Rolls</h3>
+                <p class="text-sm text-zinc-400 leading-relaxed flex-1">Diga adeus a horas perdidas navegando em bancos de imagens confusos. O Clip Hunter minera vídeos, imagens e áudios de altíssima qualidade (Royalty-Free) diretamente na nossa plataforma. Busque, visualize e baixe a mídia perfeita para ilustrar sua narração com um clique.</p>
+            </div>
+
+            <div class="bg-[#121214] border border-zinc-800 rounded-2xl p-8 hover:border-rose-500/50 transition-all duration-300 group shadow-lg flex flex-col h-full">
+                <div class="w-14 h-14 rounded-xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                    <i class="fa-solid fa-image text-rose-400 text-2xl"></i>
+                </div>
+                <h3 class="text-xl font-black text-white mb-3 tracking-tight">Thumb Maker: Ganchos Visuais de Alto CTR</h3>
+                <p class="text-sm text-zinc-400 leading-relaxed flex-1">O vídeo não existe se ninguém clicar. O Thumb Maker atua como um Diretor de Arte gringo. Ele analisa o contexto do seu vídeo e gera 3 conceitos visuais baseados em psicologia e curiosidade mórbida, te entregando os prompts exatos de design para criar capas com Taxa de Clique brutal.</p>
+            </div>
+
+            <div class="bg-[#121214] border border-zinc-800 rounded-2xl p-8 hover:border-blue-500/50 transition-all duration-300 group shadow-lg flex flex-col h-full">
+                <div class="w-14 h-14 rounded-xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                    <i class="fa-solid fa-rocket text-blue-400 text-2xl"></i>
+                </div>
+                <h3 class="text-xl font-black text-white mb-3 tracking-tight">Meta & SEO: Hackeando o Algoritmo</h3>
+                <p class="text-sm text-zinc-400 leading-relaxed flex-1">A cereja do bolo. Após o vídeo pronto, nós geramos toda a estrutura de indexação. Descrições ricas em palavras-chave ocultas, Tags de alto volume e Capítulos automáticos com base no seu roteiro. É só copiar e colar na hora do Upload no YouTube e ver a mágica do ranqueamento orgânico acontecer.</p>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="max-w-4xl mx-auto px-4 mt-12 mb-20">
+        <div class="bg-gradient-to-b from-[#121214] to-[#09090b] border border-zinc-700/80 p-10 md:p-14 rounded-3xl text-center relative overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.5)]">
+            <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5"></div>
+            
+            <span class="inline-block bg-emerald-500/10 text-emerald-400 text-xs font-black px-4 py-1.5 rounded-full border border-emerald-500/20 mb-6 relative z-10"><i class="fa-brands fa-pix"></i> SISTEMA PREPAGO</span>
+            
+            <h2 class="text-3xl md:text-5xl font-black text-white tracking-tighter relative z-10 mb-6">Escalabilidade Justa. <br>Sem Assinaturas Presas.</h2>
+            
+            <p class="text-zinc-300 max-w-2xl mx-auto mb-10 relative z-10 text-lg leading-relaxed">
+                Nós odiamos mensalidades que debitam do seu cartão sem você usar. No Dark Creator OS, você opera com uma <strong>Economia Interna de Coins</strong>. Você recarrega via PIX, os Coins caem na hora, e você gasta APENAS pelas ferramentas que rodar. Liberdade total para faturar.
+            </p>
+            
+            <div class="relative z-10 flex flex-col sm:flex-row items-center justify-center gap-4">
+                <a href="{% if user %}/planos{% else %}/registro{% endif %}" class="w-full sm:w-auto inline-flex items-center justify-center gap-3 bg-white hover:bg-zinc-200 text-zinc-900 font-black py-5 px-10 rounded-xl transition-all border border-white shadow-[0_0_20px_rgba(255,255,255,0.2)] text-lg transform hover:scale-105">
+                    <i class="fa-solid fa-bolt text-yellow-500"></i> {% if user %}Acessar o Sistema{% else %}Criar Conta Gratuita{% endif %}
+                </a>
+            </div>
         </div>
     </div>
 </div>
