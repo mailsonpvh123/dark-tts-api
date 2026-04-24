@@ -59,11 +59,12 @@ async def process_script(
     db.commit()
 
     try:
-        api_key = os.environ.get("GEMINI_API_KEY_FREE") or os.environ.get("GEMINI_API_KEY")
+        # --- MUDANÇA ESTRATÉGICA AQUI: USANDO A CHAVE PAGA ---
+        api_key = os.environ.get("GEMINI_API_KEY_PAID") or os.environ.get("GEMINI_API_KEY")
         modelo_texto = os.environ.get("GEMINI_MODEL_TEXT", "gemini-2.5-flash")
 
         if not api_key:
-            raise ValueError("Chave GEMINI_API_KEY_FREE não configurada no servidor.")
+            raise ValueError("Chave GEMINI_API_KEY_PAID não configurada no servidor.")
 
         client = genai.Client(api_key=api_key)
 
@@ -107,10 +108,9 @@ async def process_script(
             # ==========================================
             # ROTEIRO CURTO (Geração Padrão em 1 Passagem)
             # ==========================================
-            max_retries = 5
+            max_retries = 4
             for attempt in range(max_retries):
                 try:
-                    # Implementação assíncrona para não travar a thread do FastAPI
                     response = await client.aio.models.generate_content(
                         model=modelo_texto,
                         contents=prompt_base_formatado,
@@ -122,18 +122,19 @@ async def process_script(
                     err_msg = str(e_api).lower()
                     if any(x in err_msg for x in ["503", "429", "unavailable", "demand", "quota", "exhausted", "too many"]):
                         if attempt < max_retries - 1:
-                            espera = (10 * (2 ** attempt)) + random.uniform(1, 5)
-                            print(f"⚠️ Motor Ocupado/Rate Limit. A aguardar {espera:.1f}s... (Tentativa {attempt+1}/{max_retries})")
+                            # Tempos reduzidos para a API Paga: ~2s, ~4s, ~8s
+                            espera = (2 * (2 ** attempt)) + random.uniform(0.5, 1.5)
+                            print(f"⚠️ Pequeno gargalo. Retentando em {espera:.1f}s... (Tentativa {attempt+1}/{max_retries})")
                             await asyncio.sleep(espera)
                         else:
-                            raise Exception("A Dark Neural Engine está sob tráfego extremo após várias tentativas. Tente novamente.")
+                            raise Exception("A API Neural está instável no momento. Tente novamente.")
                     else:
                         raise e_api
         else:
             # ==========================================
             # ROTEIRO LONGO (Geração em Linha de Montagem)
             # ==========================================
-            print(f"🔥 Ativando Forja Iterativa: Quebrando roteiro em {num_partes} partes para atingir o volume massivo!")
+            print(f"🔥 Ativando Forja Iterativa: Quebrando roteiro em {num_partes} partes com API Paga!")
             historia_acumulada = ""
             
             for parte_atual in range(1, num_partes + 1):
@@ -152,11 +153,10 @@ async def process_script(
                     contexto_continuacao = " ".join(historia_acumulada.split()[-150:])
                     prompt_iterativo += f"\n\nPara garantir a transição perfeita, o último trecho que você escreveu na parte anterior foi:\n'...{contexto_continuacao}'\nContinue a história fluindo naturalmente a partir deste exato ponto."
 
-                max_retries = 5
+                max_retries = 4
                 texto_parte = ""
                 for attempt in range(max_retries):
                     try:
-                        # Implementação assíncrona e tempo de temperatura reajustado
                         response = await client.aio.models.generate_content(
                             model=modelo_texto,
                             contents=prompt_iterativo,
@@ -166,15 +166,14 @@ async def process_script(
                         break
                     except Exception as e_api:
                         err_msg = str(e_api).lower()
-                        # Verificação abrangente de erros de limite e disponibilidade
                         if any(x in err_msg for x in ["503", "429", "unavailable", "demand", "quota", "exhausted", "too many"]):
                             if attempt < max_retries - 1:
-                                # Espera progressiva muito maior: ~10s, ~20s, ~40s, ~80s
-                                espera = (10 * (2 ** attempt)) + random.uniform(1, 5)
-                                print(f"⚠️ Tráfego pesado na IA. Pausa de resfriamento de {espera:.1f}s... (Tentativa {attempt+1}/{max_retries})")
+                                # Tempos reduzidos para a API Paga: ~2s, ~4s, ~8s
+                                espera = (2 * (2 ** attempt)) + random.uniform(0.5, 1.5)
+                                print(f"⚠️ Pausa leve de resfriamento: {espera:.1f}s... (Tentativa {attempt+1}/{max_retries})")
                                 await asyncio.sleep(espera)
                             else:
-                                raise Exception("O tráfego esmagou a conexão da IA definitivamente. A geração iterativa falhou.")
+                                raise Exception("Falha de conexão com a IA após múltiplas tentativas. A geração foi interrompida.")
                         else:
                             raise e_api
                             
@@ -190,11 +189,8 @@ async def process_script(
         # ==========================================
         # LIMPEZA E FORMATAÇÃO FINAL (TEXTO LISO PARA TTS)
         # ==========================================
-        # Removemos tudo que for marcação (asteriscos, hashtags, underlines, crases)
         texto_limpo = re.sub(r'[*#_`]', '', texto_limpo)
-        # Limpa excesso de pontos e quebras
         texto_limpo = re.sub(r'\.{2,}', '.', texto_limpo)
-        # Remove lixo como "Título:", "Parte 1:", "Narrador:" caso a IA tenha inserido
         texto_limpo = re.sub(r'^(?i)(título|parte \d+|capítulo \d+|gancho|narrador):?\s*', '', texto_limpo, flags=re.MULTILINE)
         
         novo_historico = models.Historico(
