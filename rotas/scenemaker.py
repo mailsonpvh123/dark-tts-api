@@ -16,7 +16,11 @@ router = APIRouter(prefix="/api/v1", tags=["SceneMaker"])
 
 class SceneMakerRequest(BaseModel):
     roteiro: str
-    formato: str  # "Imagem" ou "Vídeo"
+    formato: str  
+    estilo: str
+    proporcao: str
+    qtd_prompts: str
+    instrucoes: str
 
 def ler_prompt_arquivo(nome_arquivo: str) -> str:
     caminho = os.path.join(os.getcwd(), "prompts", nome_arquivo)
@@ -53,7 +57,17 @@ async def process_scenemaker(
         if not system_prompt:
             raise Exception("Prompt scenemaker.txt não encontrado na base.")
 
-        user_content = f"FORMATO DESEJADO: {req.formato}\n\nROTEIRO:\n{req.roteiro}"
+        # Construção da String de Contexto Blindada com as novas Diretrizes
+        instrucoes_finais = req.instrucoes if req.instrucoes.strip() else "Nenhuma instrução específica. Use sua criatividade máxima."
+        
+        user_content = f"""FORMATO DE MÍDIA: {req.formato}
+PROPORÇÃO DA TELA (ASPECT RATIO): {req.proporcao}
+ESTILO DE ARTE DOMINANTE: {req.estilo}
+RITMO DA EDIÇÃO (CENAS): {req.qtd_prompts}
+INSTRUÇÕES ESPECÍFICAS DO DIRETOR: {instrucoes_finais}
+
+ROTEIRO PARA DIREÇÃO:
+{req.roteiro}"""
         
         # Chama a IA Orquestradora
         max_retries = 3
@@ -82,7 +96,8 @@ async def process_scenemaker(
         # CONSTRÓI O ARQUIVO PARA O HISTÓRICO
         # ==========================================
         texto_historico = "🎬 SCENEMAKER - DIREÇÃO DE ARTE\n\n"
-        texto_historico += f"🎥 Formato: {req.formato}\n"
+        texto_historico += f"🎥 Formato: {req.formato} | {req.proporcao}\n"
+        texto_historico += f"🎨 Estilo: {req.estilo}\n"
         texto_historico += "=" * 50 + "\n\n"
         
         for i, cena in enumerate(dados_json.get("cenas", [])):
@@ -97,7 +112,7 @@ async def process_scenemaker(
         novo_historico = models.Historico(
             usuario_id=usuario.id,
             ferramenta="SceneMaker",
-            input_usuario=f"Formato: {req.formato} | Tamanho: {len(req.roteiro)} chars",
+            input_usuario=f"[{req.formato}] {req.estilo} | Tamanho: {len(req.roteiro)} chars",
             resultado=texto_historico.strip(), 
             custo_coins=custo_operacao
         )
