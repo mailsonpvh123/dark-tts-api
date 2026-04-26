@@ -11,12 +11,17 @@ load_dotenv()
 # ==========================================
 # 1. TRATAMENTO DE CHAVES DE API
 # ==========================================
-# Captura e limpa as chaves para evitar erros por espaços em branco invisíveis
-GEMINI_KEY = os.getenv("GEMINI_API_KEY", "").strip().strip('"').strip("'")
+# Captura a chave PAGA do Gemini como prioridade máxima. 
+# Se ela não existir, tenta o fallback para a GEMINI_API_KEY genérica.
+GEMINI_KEY_PAID = os.getenv("GEMINI_API_KEY_PAID", "").strip().strip('"').strip("'")
+GEMINI_KEY_GENERICA = os.getenv("GEMINI_API_KEY", "").strip().strip('"').strip("'")
+
+GEMINI_KEY = GEMINI_KEY_PAID if GEMINI_KEY_PAID else GEMINI_KEY_GENERICA
+
 GROQ_KEY = os.getenv("GROQ_API_KEY", "").strip().strip('"').strip("'")
 
 if not GEMINI_KEY:
-    print("ALERTA CRÍTICO: Chave do Gemini não encontrada no ambiente!")
+    print("ALERTA CRÍTICO: Chave do Gemini (Paga ou Genérica) não encontrada no ambiente!")
 if not GROQ_KEY:
     print("ALERTA CRÍTICO: Chave do Groq não encontrada no ambiente!")
 
@@ -25,11 +30,11 @@ client = genai.Client(api_key=GEMINI_KEY) if GEMINI_KEY else None
 
 
 # ==========================================
-# 2. MOTOR GEMINI (Paraphraser, SEO, Script)
+# 2. MOTOR GEMINI (Paraphraser, SEO, Script, SceneMaker)
 # ==========================================
 async def call_gemini(system_prompt, user_content):
     if not client:
-        raise Exception("CHAVE API AUSENTE: Configure a GEMINI_API_KEY no Easypanel.")
+        raise Exception("CHAVE API AUSENTE: Configure a GEMINI_API_KEY_PAID no Easypanel.")
 
     try:
         # Chamada assíncrona oficial da nova biblioteca google-genai
