@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 import models
 from database import get_db
 from auth import get_usuario_atual
-from services.ai_service import call_gemini
+from services.ai_service import call_groq_json
 
 router = APIRouter(prefix="/api/v1", tags=["SceneMaker"])
 
@@ -69,12 +69,12 @@ INSTRUÇÕES ESPECÍFICAS DO DIRETOR: {instrucoes_finais}
 ROTEIRO PARA DIREÇÃO:
 {req.roteiro}"""
         
-        # Chama a IA Orquestradora
+        # Chama a IA Orquestradora usando GROQ para altíssima velocidade
         max_retries = 3
         dados_str = ""
         for attempt in range(max_retries):
             try:
-                dados_str = await call_gemini(system_prompt, user_content)
+                dados_str = await call_groq_json(system_prompt, user_content)
                 break
             except Exception as e_api:
                 if attempt < max_retries - 1:
@@ -82,7 +82,7 @@ ROTEIRO PARA DIREÇÃO:
                 else:
                     raise e_api
 
-        # Limpa o markdown do JSON (Proteção blindada)
+        # Limpa o markdown do JSON (Proteção blindada, caso a IA envie o bloco de código)
         match = re.search(r'```json\s*(.*?)\s*```', dados_str, re.DOTALL)
         if match:
             dados_str = match.group(1)
@@ -95,7 +95,7 @@ ROTEIRO PARA DIREÇÃO:
         # ==========================================
         # CONSTRÓI O ARQUIVO PARA O HISTÓRICO
         # ==========================================
-        texto_historico = "🎬 SCENEMAKER - DIREÇÃO DE ARTE\n\n"
+        texto_historico = "🎬 SCENEMAKER - DIREÇÃO DE ARTE (Powered by Groq)\n\n"
         texto_historico += f"🎥 Formato: {req.formato} | {req.proporcao}\n"
         texto_historico += f"🎨 Estilo: {req.estilo}\n"
         texto_historico += "=" * 50 + "\n\n"
