@@ -30,9 +30,52 @@
                     </button>
                 </div>
                 
-                <div class="flex-1 flex flex-col min-h-[300px]">
+                <div class="space-y-4 mb-5 border-b border-zinc-800/80 pb-5">
+                    <div>
+                        <label class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-1 block">Estilo de Arte</label>
+                        <select id="scene_estilo" class="w-full bg-[#09090b] border border-zinc-800/50 rounded-lg p-2.5 text-xs text-zinc-300 focus:outline-none focus:border-cyan-500/50 shadow-inner">
+                            <option value="Realista / Cinematográfico">Realista / Cinematográfico</option>
+                            <option value="Cyberpunk / Sci-Fi">Cyberpunk / Sci-Fi</option>
+                            <option value="Anime / Studio Ghibli">Anime / Studio Ghibli</option>
+                            <option value="3D Render / Estilo Pixar">3D Render / Estilo Pixar</option>
+                            <option value="Dark Fantasy">Dark Fantasy</option>
+                            <option value="Retrô 80s / Synthwave">Retrô 80s / Synthwave</option>
+                            <option value="Cartoon / Comic Book">Cartoon / Comic Book</option>
+                        </select>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-1 block">Proporção</label>
+                            <select id="scene_proporcao" class="w-full bg-[#09090b] border border-zinc-800/50 rounded-lg p-2.5 text-xs text-zinc-300 focus:outline-none focus:border-cyan-500/50 shadow-inner">
+                                <option value="16:9 (Horizontal/YouTube)">16:9 (YouTube)</option>
+                                <option value="9:16 (Vertical/Shorts)">9:16 (Shorts/TikTok)</option>
+                                <option value="1:1 (Quadrado/Feed)">1:1 (Feed)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-1 block">Ritmo (Cenas)</label>
+                            <select id="scene_qtd" class="w-full bg-[#09090b] border border-zinc-800/50 rounded-lg p-2.5 text-xs text-zinc-300 focus:outline-none focus:border-cyan-500/50 shadow-inner">
+                                <option value="Modo Dinâmico (A IA decide o melhor)">Modo Dinâmico</option>
+                                <option value="1 cena por parágrafo">1 por parágrafo</option>
+                                <option value="2 cenas por parágrafo">2 por parágrafo</option>
+                                <option value="3 cenas por parágrafo">3 por parágrafo</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-1 block flex justify-between items-center">
+                            <span>Instruções do Diretor</span>
+                            <span class="text-[8px] bg-zinc-800 text-zinc-500 px-1.5 py-0.5 rounded">Opcional</span>
+                        </label>
+                        <textarea id="scene_instrucoes" class="w-full bg-[#09090b] border border-zinc-800/50 rounded-lg p-3 text-xs text-zinc-300 placeholder:text-zinc-600 focus:outline-none focus:border-cyan-500/50 transition-all custom-scrollbar resize-none shadow-inner min-h-[60px]" placeholder="Ex: Canal Porão do Reddit. Use um avatar 3D do Reddit nas cenas como personagem principal..."></textarea>
+                    </div>
+                </div>
+
+                <div class="flex-1 flex flex-col min-h-[250px]">
                     <div class="flex justify-between items-center mb-2">
-                        <label class="text-xs font-bold text-zinc-400 uppercase tracking-wider">Roteiro Completo</label>
+                        <label class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Roteiro Completo</label>
                         <span id="contador_scenemaker" class="text-[10px] bg-zinc-800/50 text-zinc-500 px-2 py-0.5 rounded font-mono font-bold">0 palavras</span>
                     </div>
                     
@@ -71,7 +114,7 @@
                             <div class="absolute inset-0 border border-zinc-700 rounded-2xl animate-ping opacity-10"></div>
                         </div>
                         <h3 class="text-base font-black text-zinc-500 tracking-tight">Timeline Vazia</h3>
-                        <p class="text-xs text-zinc-600 mt-2 max-w-sm mx-auto leading-relaxed">Envie o roteiro e eu vou fatiá-lo em cenas perfeitas com prompts gringos.</p>
+                        <p class="text-xs text-zinc-600 mt-2 max-w-sm mx-auto leading-relaxed">Envie o roteiro e os parâmetros visuais para que eu crie a direção de arte da sua obra.</p>
                     </div>
 
                     </div>
