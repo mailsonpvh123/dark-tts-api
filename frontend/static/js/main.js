@@ -497,7 +497,6 @@ async function tocarPreview(event, shortName) {
     if(icon) icon.className = "fa-solid fa-circle-notch fa-spin text-white"; 
     
     try {
-        // Agora o player busca exatamente o nome que foi gerado pelo back-end (que inclui o "padrao-")
         const audioUrl = `/static/audios/previews/${shortName}.mp3`;
         const playerPreview = new Audio(audioUrl);
         window.playerPreviewAtual = playerPreview; 
@@ -967,6 +966,11 @@ function atualizarContadorScene() {
 
 async function gerarScenes() {
     const roteiro = document.getElementById('texto_scenemaker').value;
+    const estilo = document.getElementById('scene_estilo').value;
+    const proporcao = document.getElementById('scene_proporcao').value;
+    const qtd = document.getElementById('scene_qtd').value;
+    const instrucoes = document.getElementById('scene_instrucoes').value;
+    
     const btn = document.getElementById('btn_gerar_scenes');
     const txtBtn = document.getElementById('txt_btn_scenes');
     const container = document.getElementById('container_cenas');
@@ -977,12 +981,12 @@ async function gerarScenes() {
 
     btn.disabled = true;
     btn.classList.add('opacity-70', 'cursor-not-allowed');
-    txtBtn.innerHTML = `Analisando Roteiro... <i class="fa-solid fa-circle-notch fa-spin ml-2"></i>`;
+    txtBtn.innerHTML = `Analisando Diretrizes... <i class="fa-solid fa-circle-notch fa-spin ml-2"></i>`;
     
     container.innerHTML = `
         <div class="flex flex-col items-center justify-center h-full">
             <i class="fa-solid fa-circle-notch fa-spin text-4xl text-cyan-500/50 mb-4"></i>
-            <p class="text-sm font-bold text-zinc-400 animate-pulse">A Dark Neural Engine está fatiando a sua história...</p>
+            <p class="text-sm font-bold text-zinc-400 animate-pulse">A Dark Neural Engine está processando as suas diretrizes de arte...</p>
         </div>
     `;
 
@@ -992,7 +996,11 @@ async function gerarScenes() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 roteiro: roteiro,
-                formato: formatoSceneAtual
+                formato: formatoSceneAtual,
+                estilo: estilo,
+                proporcao: proporcao,
+                qtd_prompts: qtd,
+                instrucoes: instrucoes
             })
         });
 
