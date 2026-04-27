@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 import models
 from database import get_db
 from auth import get_usuario_atual
-from services.ai_service import call_groq_json, call_gemini # <-- IMPORTANDO OS DOIS MOTORES
+from services.ai_service import call_groq_json, call_openai_json # <-- OPENAI IMPORTADA
 
 router = APIRouter(prefix="/api/v1", tags=["SceneMaker"])
 
@@ -70,7 +70,7 @@ ROTEIRO PARA DIREÇÃO:
 {req.roteiro}"""
         
         # ==========================================
-        # ROTEADOR NEURAL INTELIGENTE (GROQ <-> GEMINI)
+        # ROTEADOR NEURAL INTELIGENTE (GROQ <-> OPENAI)
         # ==========================================
         # Limite do Groq é 12.000 TPM. Definimos 30.000 caracteres como limite seguro.
         TAMANHO_MAXIMO_GROQ = 30000 
@@ -80,20 +80,20 @@ ROTEIRO PARA DIREÇÃO:
         motor_utilizado = "Groq"
 
         if tamanho_roteiro > TAMANHO_MAXIMO_GROQ:
-            # Roteiro gigante detectado: Roteia direto pro Gemini
-            motor_utilizado = "Gemini"
-            dados_str = await call_gemini(system_prompt, user_content)
+            # Roteiro gigante detectado: Roteia direto pro GPT-4o-mini
+            motor_utilizado = "OpenAI"
+            dados_str = await call_openai_json(system_prompt, user_content)
         else:
             try:
                 # Tenta o Groq para velocidade máxima
                 dados_str = await call_groq_json(system_prompt, user_content)
             except Exception as e:
                 erro_str = str(e)
-                # Se o Groq estourar o limite (413) ou falhar, o Gemini assume automaticamente
+                # Se o Groq estourar o limite (413) ou falhar, a OpenAI assume automaticamente
                 if "413" in erro_str or "Request too large" in erro_str or "Limit" in erro_str:
-                    print(f"⚠️ Groq sobrecarregado (Limite TPM). Roteando para o Gemini Flash...")
-                    motor_utilizado = "Gemini (Fallback)"
-                    dados_str = await call_gemini(system_prompt, user_content)
+                    print(f"⚠️ Groq sobrecarregado (Limite TPM). Roteando para a OpenAI (GPT-4o-mini)...")
+                    motor_utilizado = "OpenAI (Fallback)"
+                    dados_str = await call_openai_json(system_prompt, user_content)
                 else:
                     raise e
 
@@ -105,7 +105,7 @@ ROTEIRO PARA DIREÇÃO:
         try:
             dados_json = json.loads(dados_str)
         except json.JSONDecodeError:
-            raise Exception("A IA falhou em estruturar as cenas. Tente gerar novamente.")
+            raise Exception("A IA falhou em estruturar as cenas. Tente gerar novamente. O roteiro pode ser vasto demais até para a OpenAI.")
 
         # ==========================================
         # CONSTRÓI O ARQUIVO PARA O HISTÓRICO
