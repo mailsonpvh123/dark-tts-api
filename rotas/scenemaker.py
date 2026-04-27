@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 import models
 from database import get_db
 from auth import get_usuario_atual
-from services.ai_service import call_groq_json, call_openai_json # <-- OPENAI IMPORTADA
+from services.ai_service import call_groq_json, call_openai_json
 
 router = APIRouter(prefix="/api/v1", tags=["SceneMaker"])
 
@@ -48,17 +48,15 @@ async def process_scenemaker(
     if usuario.coins < custo_operacao:
         raise HTTPException(status_code=402, detail=f"Coins insuficientes! Necessário {custo_operacao} coins.")
     
-    # Deduz os coins
     usuario.coins -= custo_operacao
     db.commit()
 
     try:
         system_prompt = ler_prompt_arquivo("scenemaker.txt")
         if not system_prompt:
-            raise Exception("Prompt scenemaker.txt não encontrado na base.")
+            raise Exception("Prompt scenemaker.txt não encontrado.")
 
-        # Construção da String de Contexto Blindada
-        instrucoes_finais = req.instrucoes if req.instrucoes.strip() else "Nenhuma instrução específica. Use sua criatividade máxima."
+        instrucoes_finais = req.instrucoes if req.instrucoes.strip() else "Nenhuma instrução específica."
         
         user_content = f"""FORMATO DE MÍDIA: {req.formato}
 PROPORÇÃO DA TELA (ASPECT RATIO): {req.proporcao}
@@ -69,10 +67,6 @@ INSTRUÇÕES ESPECÍFICAS DO DIRETOR: {instrucoes_finais}
 ROTEIRO PARA DIREÇÃO:
 {req.roteiro}"""
         
-        # ==========================================
-        # ROTEADOR NEURAL INTELIGENTE (GROQ <-> OPENAI)
-        # ==========================================
-        # Limite do Groq é 12.000 TPM. Definimos 30.000 caracteres como limite seguro.
         TAMANHO_MAXIMO_GROQ = 30000 
         tamanho_roteiro = len(req.roteiro)
         
@@ -80,24 +74,20 @@ ROTEIRO PARA DIREÇÃO:
         motor_utilizado = "Groq"
 
         if tamanho_roteiro > TAMANHO_MAXIMO_GROQ:
-            # Roteiro gigante detectado: Roteia direto pro GPT-4o-mini
             motor_utilizado = "OpenAI"
             dados_str = await call_openai_json(system_prompt, user_content)
         else:
             try:
-                # Tenta o Groq para velocidade máxima
                 dados_str = await call_groq_json(system_prompt, user_content)
             except Exception as e:
                 erro_str = str(e)
-                # Se o Groq estourar o limite (413) ou falhar, a OpenAI assume automaticamente
                 if "413" in erro_str or "Request too large" in erro_str or "Limit" in erro_str:
-                    print(f"⚠️ Groq sobrecarregado (Limite TPM). Roteando para a OpenAI (GPT-4o-mini)...")
+                    print(f"⚠️ Groq Limite atingido. Usando OpenAI...")
                     motor_utilizado = "OpenAI (Fallback)"
                     dados_str = await call_openai_json(system_prompt, user_content)
                 else:
                     raise e
 
-        # Limpa o markdown do JSON
         match = re.search(r'```json\s*(.*?)\s*```', dados_str, re.DOTALL)
         if match:
             dados_str = match.group(1)
@@ -105,11 +95,8 @@ ROTEIRO PARA DIREÇÃO:
         try:
             dados_json = json.loads(dados_str)
         except json.JSONDecodeError:
-            raise Exception("A IA falhou em estruturar as cenas. Tente gerar novamente. O roteiro pode ser vasto demais até para a OpenAI.")
+            raise Exception("Erro na estrutura JSON da IA. Tente novamente.")
 
-        # ==========================================
-        # CONSTRÓI O ARQUIVO PARA O HISTÓRICO
-        # ==========================================
         texto_historico = f"🎬 SCENEMAKER - DIREÇÃO DE ARTE (Motor: {motor_utilizado})\n\n"
         texto_historico += f"🎥 Formato: {req.formato} | {req.proporcao}\n"
         texto_historico += f"🎨 Estilo: {req.estilo}\n"
@@ -127,7 +114,7 @@ ROTEIRO PARA DIREÇÃO:
         novo_historico = models.Historico(
             usuario_id=usuario.id,
             ferramenta="SceneMaker",
-            input_usuario=f"[{req.formato}] {req.estilo} | Tamanho: {tamanho_roteiro} chars",
+            input_usuario=f"[{req.formato}] {req.estilo} | {tamanho_roteiro} chars",
             resultado=texto_historico.strip(), 
             custo_coins=custo_operacao
         )
@@ -143,5 +130,4 @@ ROTEIRO PARA DIREÇÃO:
     except Exception as e:
         usuario.coins += custo_operacao
         db.commit()
-        print(f"❌ Erro no SceneMaker: {e}")
         raise HTTPException(status_code=500, detail=str(e))
