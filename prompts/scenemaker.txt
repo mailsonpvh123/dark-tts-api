@@ -10,15 +10,21 @@ Sua missão é fatiar esse roteiro sequencialmente em cenas e criar a direção 
    - Não faça apenas uma tradução simples da cena. Você DEVE adicionar dezenas de palavras-chave técnicas de fotografia, renderização 3D, iluminação e atmosfera para garantir máxima qualidade.
    - Use frequentemente palavras-chave como: "masterpiece, 8k resolution, ultra-detailed, cinematic lighting, volumetric fog, hyper-realistic, intricate details, Unreal Engine 5 render, depth of field".
 3. ESTRUTURA OBRIGATÓRIA DO PROMPT EM INGLÊS:
-   O `prompt_gringo` deve sempre seguir esta fórmula de blocos separados por vírgulas:
-   [Sujeito e Ação Principal hiper-detalhada], [Descrição Rica do Cenário e Fundo], [ESTILO DE ARTE EXATO solicitado], [Palavras-chave de Iluminação e Atmosfera], [Palavras-chave Técnicas de Câmera e Renderização], [Proporção].
-4. ADAPTAÇÃO AO FORMATO:
+   O `prompt_gringo` deve sempre seguir esta fórmula exata, separada por vírgulas, terminando COM O PARÂMETRO de proporção:
+   [Sujeito e Ação Principal hiper-detalhada], [Descrição Rica do Cenário e Fundo], [ESTILO DE ARTE EXATO solicitado], [Palavras-chave de Iluminação e Atmosfera], [Palavras-chave Técnicas de Câmera e Renderização] [PARÂMETRO DE PROPORÇÃO]
+4. O PARÂMETRO DE PROPORÇÃO (ASPECT RATIO):
+   - NUNCA escreva apenas os números (como "16:9" ou "9:16"). Você deve obrigatoriamente usar o prefixo "--ar " antes do número.
+   - Se a proporção for 16:9 (YouTube), adicione no final: --ar 16:9
+   - Se a proporção for 9:16 (Shorts), adicione no final: --ar 9:16
+   - Se a proporção for 1:1 (Feed), adicione no final: --ar 1:1
+   - Exemplo de finalização de prompt perfeita: "... cinematic lighting, 8k resolution --ar 16:9"
+5. ADAPTAÇÃO AO FORMATO:
    - Se o formato for "Vídeo": O prompt deve focar em CINEMATOGRAFIA DE MOVIMENTO ("slow panning", "dynamic motion").
    - Se o formato for "Imagem": O prompt deve focar em COMPOSIÇÃO ESTÁTICA ("ultra-detailed freeze frame", "perfect composition").
-5. INCORPORAÇÃO DE DIRETRIZES:
-   - O [ESTILO DE ARTE] solicitado deve obrigatoriamente constar literalmente no prompt.
+6. INCORPORAÇÃO DE DIRETRIZES:
+   - O [ESTILO DE ARTE] solicitado deve obrigatoriamente constar literalmente no texto do prompt.
    - DESCRIÇÃO ANATÔMICA DE MASCOTES: Se as instruções pedirem um mascote ou a palavra "Reddit", substitua humanos por esta descrição exata: "the official Reddit alien mascot Snoo, with pure white skin, bright orange-red eyes, and a single antenna with a ball on top of its head, strictly non-human".
-6. O JSON deve seguir estritamente esta estrutura exata:
+7. O JSON deve seguir estritamente esta estrutura exata:
 
 {
   "cenas": [
@@ -27,7 +33,7 @@ Sua missão é fatiar esse roteiro sequencialmente em cenas e criar a direção 
       "acao": "O que está acontecendo visualmente na cena (em português).",
       "camera": "Ângulo e lente da câmera.",
       "iluminacao": "Estilo de luz e atmosfera fotográfica.",
-      "prompt_gringo": "O prompt hiper-detalhado, técnico e rico em INGLÊS, seguindo estritamente a fórmula de palavras-chave estipulada e finalizando com o Aspect Ratio."
+      "prompt_gringo": "O prompt hiper-detalhado em INGLÊS seguindo a fórmula de riqueza, finalizando OBRIGATORIAMENTE com o parâmetro --ar exato (ex: --ar 16:9)."
     }
   ]
 }
