@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 import models
 from database import get_db
 from auth import get_usuario_atual
-from services.ai_service import call_groq_json
+from services.ai_service import call_groq_json, call_gemini # <-- IMPORTANDO OS DOIS MOTORES
 
 router = APIRouter(prefix="/api/v1", tags=["SceneMaker"])
 
@@ -57,7 +57,7 @@ async def process_scenemaker(
         if not system_prompt:
             raise Exception("Prompt scenemaker.txt não encontrado na base.")
 
-        # Construção da String de Contexto Blindada com as novas Diretrizes
+        # Construção da String de Contexto Blindada
         instrucoes_finais = req.instrucoes if req.instrucoes.strip() else "Nenhuma instrução específica. Use sua criatividade máxima."
         
         user_content = f"""FORMATO DE MÍDIA: {req.formato}
@@ -69,20 +69,35 @@ INSTRUÇÕES ESPECÍFICAS DO DIRETOR: {instrucoes_finais}
 ROTEIRO PARA DIREÇÃO:
 {req.roteiro}"""
         
-        # Chama a IA Orquestradora usando GROQ para altíssima velocidade
-        max_retries = 3
+        # ==========================================
+        # ROTEADOR NEURAL INTELIGENTE (GROQ <-> GEMINI)
+        # ==========================================
+        # Limite do Groq é 12.000 TPM. Definimos 30.000 caracteres como limite seguro.
+        TAMANHO_MAXIMO_GROQ = 30000 
+        tamanho_roteiro = len(req.roteiro)
+        
         dados_str = ""
-        for attempt in range(max_retries):
-            try:
-                dados_str = await call_groq_json(system_prompt, user_content)
-                break
-            except Exception as e_api:
-                if attempt < max_retries - 1:
-                    await asyncio.sleep(2)
-                else:
-                    raise e_api
+        motor_utilizado = "Groq"
 
-        # Limpa o markdown do JSON (Proteção blindada, caso a IA envie o bloco de código)
+        if tamanho_roteiro > TAMANHO_MAXIMO_GROQ:
+            # Roteiro gigante detectado: Roteia direto pro Gemini
+            motor_utilizado = "Gemini"
+            dados_str = await call_gemini(system_prompt, user_content)
+        else:
+            try:
+                # Tenta o Groq para velocidade máxima
+                dados_str = await call_groq_json(system_prompt, user_content)
+            except Exception as e:
+                erro_str = str(e)
+                # Se o Groq estourar o limite (413) ou falhar, o Gemini assume automaticamente
+                if "413" in erro_str or "Request too large" in erro_str or "Limit" in erro_str:
+                    print(f"⚠️ Groq sobrecarregado (Limite TPM). Roteando para o Gemini Flash...")
+                    motor_utilizado = "Gemini (Fallback)"
+                    dados_str = await call_gemini(system_prompt, user_content)
+                else:
+                    raise e
+
+        # Limpa o markdown do JSON
         match = re.search(r'```json\s*(.*?)\s*```', dados_str, re.DOTALL)
         if match:
             dados_str = match.group(1)
@@ -95,7 +110,7 @@ ROTEIRO PARA DIREÇÃO:
         # ==========================================
         # CONSTRÓI O ARQUIVO PARA O HISTÓRICO
         # ==========================================
-        texto_historico = "🎬 SCENEMAKER - DIREÇÃO DE ARTE (Powered by Groq)\n\n"
+        texto_historico = f"🎬 SCENEMAKER - DIREÇÃO DE ARTE (Motor: {motor_utilizado})\n\n"
         texto_historico += f"🎥 Formato: {req.formato} | {req.proporcao}\n"
         texto_historico += f"🎨 Estilo: {req.estilo}\n"
         texto_historico += "=" * 50 + "\n\n"
@@ -112,7 +127,7 @@ ROTEIRO PARA DIREÇÃO:
         novo_historico = models.Historico(
             usuario_id=usuario.id,
             ferramenta="SceneMaker",
-            input_usuario=f"[{req.formato}] {req.estilo} | Tamanho: {len(req.roteiro)} chars",
+            input_usuario=f"[{req.formato}] {req.estilo} | Tamanho: {tamanho_roteiro} chars",
             resultado=texto_historico.strip(), 
             custo_coins=custo_operacao
         )
@@ -126,7 +141,6 @@ ROTEIRO PARA DIREÇÃO:
         }
 
     except Exception as e:
-        # Reembolsa em caso de falha no motor neural
         usuario.coins += custo_operacao
         db.commit()
         print(f"❌ Erro no SceneMaker: {e}")
