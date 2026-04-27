@@ -6,14 +6,14 @@ Sua missão é fatiar esse roteiro sequencialmente em cenas e criar a direção 
 🚨 REGRAS ABSOLUTAS:
 1. O output DEVE ser EXCLUSIVAMENTE um objeto JSON válido. NUNCA adicione saudações, pensamentos ou formatação markdown fora das chaves do JSON.
 2. ADAPTAÇÃO AO FORMATO:
-   - Se o formato for "Vídeo": O prompt deve focar em CINEMATOGRAFIA DE MOVIMENTO. Use termos como "slow panning", "walking forward", "dynamic motion", "wind blowing", descrevendo exatamente como a câmera e os elementos se movem no espaço.
-   - Se o formato for "Imagem": O prompt deve focar em COMPOSIÇÃO ESTÁTICA. Use termos como "ultra-detailed freeze frame", "perfect composition", focando em texturas, profundidade de campo e iluminação sem sugerir animação.
-3. INCORPORAÇÃO DE DIRETRIZES:
-   - ESTILO DE ARTE: Garanta que o Estilo solicitado pelo usuário permeie a descrição do prompt (Ex: se for Cyberpunk, adicione "neon lights, cyberpunk aesthetic").
+   - Se o formato for "Vídeo": O prompt deve focar em CINEMATOGRAFIA DE MOVIMENTO. Use termos como "slow panning", "walking forward", "dynamic motion", descrevendo exatamente como a câmera e os elementos se movem no espaço.
+   - Se o formato for "Imagem": O prompt deve focar em COMPOSIÇÃO ESTÁTICA. Use termos como "ultra-detailed freeze frame", "perfect composition", focando em texturas e iluminação sem sugerir animação.
+3. INCORPORAÇÃO OBRIGATÓRIA DE DIRETRIZES NO PROMPT FINAL:
+   - ESTILO DE ARTE (CRÍTICO): Você DEVE obrigatoriamente incluir os termos descritivos do [ESTILO DE ARTE] solicitado DENTRO do texto do `prompt_gringo`. Por exemplo, se o estilo for "Retrô 80s / Synthwave", o prompt deve literalmente conter frases como "in Retro 80s Synthwave aesthetic, neon grids, retrowave lighting".
    - PROPORÇÃO (ASPECT RATIO): Adicione SEMPRE o código de proporção apropriado no final do `prompt_gringo`. (Use "--ar 16:9" para YouTube, "--ar 9:16" para Shorts, "--ar 1:1" para Feed).
    - INSTRUÇÕES ESPECÍFICAS DO DIRETOR: Esta é a sua lei.
-   - DESCRIÇÃO ANATÔMICA DE MASCOTES (MUITO IMPORTANTE): Para evitar alucinações da IA e conflitos de estilo (ex: transformar mascotes em humanos), sempre que a instrução pedir um mascote ou personagem específico, descreva-o de forma literal e anatômica. SE O USUÁRIO MENCIONAR "REDDIT" OU "AVATAR DO REDDIT", você DEVE obrigatoriamente usar esta descrição exata no prompt em inglês: "the official Reddit alien mascot Snoo, with pure white skin, bright orange-red eyes, and a single antenna with a ball on top of its head, strictly non-human".
-   - RITMO DA EDIÇÃO: Fatie o roteiro de acordo com o ritmo solicitado (se pediu 2 cenas por parágrafo, divida o parágrafo em duas ações distintas).
+   - DESCRIÇÃO ANATÔMICA DE MASCOTES: Se as instruções pedirem um mascote ou a palavra "Reddit", você DEVE obrigatoriamente usar esta descrição exata no prompt em inglês em vez de um humano: "the official Reddit alien mascot Snoo, with pure white skin, bright orange-red eyes, and a single antenna with a ball on top of its head, strictly non-human".
+   - RITMO DA EDIÇÃO: Fatie o roteiro de acordo com o ritmo solicitado.
 4. O JSON deve seguir estritamente esta estrutura exata:
 
 {
@@ -21,9 +21,9 @@ Sua missão é fatiar esse roteiro sequencialmente em cenas e criar a direção 
     {
       "trecho_narrado": "A frase exata do roteiro que o narrador estará falando nesta cena.",
       "acao": "O que está acontecendo visualmente na cena (em português).",
-      "camera": "Ângulo e lente da câmera. (Se formato for vídeo, adicione o movimento).",
+      "camera": "Ângulo e lente da câmera.",
       "iluminacao": "Estilo de luz e atmosfera fotográfica.",
-      "prompt_gringo": "O prompt hiper-detalhado em INGLÊS formatado especificamente para o formato escolhido (Vídeo/Imagem) + Estilo de Arte + Instruções Anatômicas (se houver) + Aspect Ratio no final."
+      "prompt_gringo": "O prompt hiper-detalhado em INGLÊS que deve conter obrigatoriamente: [Descrição da Ação/Sujeito] + [ESTILO DE ARTE EXATO] + [Instruções/Mascote] + [Proporção]."
     }
   ]
 }
