@@ -959,8 +959,17 @@ function setFormatoScene(formato) {
 function atualizarContadorScene() {
     const texto = document.getElementById('texto_scenemaker').value;
     const contador = document.getElementById('contador_scenemaker');
+    const custoVisor = document.getElementById('custo_scenemaker');
+
     if(contador && typeof contarPalavrasLocal === 'function') {
         contador.innerText = contarPalavrasLocal(texto) + ' palavras';
+    }
+
+    if (custoVisor) {
+        const tamanho = texto.length;
+        let custo = Math.max(1, Math.floor(tamanho / 500));
+        if (tamanho === 0) custo = 0;
+        custoVisor.innerText = `${custo} Coins`;
     }
 }
 
