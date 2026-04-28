@@ -967,8 +967,9 @@ function atualizarContadorScene() {
 
     if (custoVisor) {
         const tamanho = texto.length;
-        let custo = Math.max(1, Math.floor(tamanho / 500));
-        if (tamanho === 0) custo = 0;
+        // Nova fórmula: Base 5 Coins + 1 Coin a cada 2000 chars
+        let custo = 5 + Math.floor(tamanho / 2000);
+        if (tamanho === 0) custo = 0; // Se vazio, mostra 0
         custoVisor.innerText = `${custo} Coins`;
     }
 }
