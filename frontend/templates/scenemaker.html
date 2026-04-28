@@ -29,7 +29,7 @@
                         <i class="fa-solid fa-film text-purple-400"></i> Vídeo (Movimento)
                     </button>
                 </div>
-                
+
                 <div class="space-y-4 mb-5 border-b border-zinc-800/80 pb-5">
                     <div>
                         <label class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-1 block">Estilo de Arte</label>
@@ -72,8 +72,8 @@
                         <textarea id="scene_instrucoes" class="w-full bg-[#09090b] border border-zinc-800/50 rounded-lg p-3 text-xs text-zinc-300 placeholder:text-zinc-600 focus:outline-none focus:border-cyan-500/50 transition-all custom-scrollbar resize-none shadow-inner min-h-[60px]" placeholder="Ex: 'Todos os personagens devem usar terno escuro', 'Mantenha uma paleta de cores focada em verde neon', ou 'Crie um clima de suspense e terror'. Defina aqui os elementos visuais obrigatórios."></textarea>
                     </div>
                 </div>
-
-                <div class="flex-1 flex flex-col min-h-[250px]">
+                
+                <div class="flex-1 flex flex-col min-h-[200px]">
                     <div class="flex justify-between items-center mb-2">
                         <label class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Roteiro Completo</label>
                         <span id="contador_scenemaker" class="text-[10px] bg-zinc-800/50 text-zinc-500 px-2 py-0.5 rounded font-mono font-bold">0 palavras</span>
@@ -86,7 +86,7 @@
                 </div>
 
                 <div class="mt-5">
-                    <p class="text-[10px] text-zinc-500 text-center mb-3 font-semibold"><i class="fa-solid fa-coins text-yellow-500"></i> Custo da operação: <span class="text-cyan-400 font-bold">15 Coins</span></p>
+                    <p class="text-[10px] text-zinc-500 text-center mb-3 font-semibold"><i class="fa-solid fa-coins text-yellow-500"></i> Custo da operação: <span id="custo_scenemaker" class="text-cyan-400 font-bold">0 Coins</span></p>
                     <button id="btn_gerar_scenes" onclick="gerarScenes()" class="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-black py-4 px-4 rounded-xl shadow-[0_0_20px_rgba(6,182,212,0.3)] transition-all flex items-center justify-center gap-2 group border border-cyan-500/50">
                         <i class="fa-solid fa-wand-magic-sparkles group-hover:scale-110 transition-transform"></i>
                         <span id="txt_btn_scenes">Gerar Direção de Arte</span>
