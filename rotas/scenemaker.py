@@ -44,11 +44,11 @@ async def process_scenemaker(
         raise HTTPException(status_code=400, detail="O roteiro e o formato são obrigatórios.")
 
     # ==========================================
-    # CÁLCULO DINÂMICO DE CUSTO
-    # 1 Coin a cada 500 caracteres (mínimo 1)
+    # CÁLCULO DINÂMICO DE CUSTO (ATUALIZADO E BARATO)
+    # Custo Base de 5 Coins + 1 Coin a cada 2000 caracteres
     # ==========================================
     tamanho_roteiro = len(req.roteiro)
-    custo_operacao = max(1, tamanho_roteiro // 500)
+    custo_operacao = 5 + (tamanho_roteiro // 2000)
 
     if usuario.coins < custo_operacao:
         raise HTTPException(status_code=402, detail=f"Coins insuficientes! Necessário {custo_operacao} coins.")
