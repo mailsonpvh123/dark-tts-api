@@ -43,7 +43,12 @@ async def process_scenemaker(
     if not req.roteiro or not req.formato:
         raise HTTPException(status_code=400, detail="O roteiro e o formato são obrigatórios.")
 
-    custo_operacao = 15
+    # ==========================================
+    # CÁLCULO DINÂMICO DE CUSTO
+    # 1 Coin a cada 500 caracteres (mínimo 1)
+    # ==========================================
+    tamanho_roteiro = len(req.roteiro)
+    custo_operacao = max(1, tamanho_roteiro // 500)
 
     if usuario.coins < custo_operacao:
         raise HTTPException(status_code=402, detail=f"Coins insuficientes! Necessário {custo_operacao} coins.")
@@ -68,7 +73,6 @@ ROTEIRO PARA DIREÇÃO:
 {req.roteiro}"""
         
         TAMANHO_MAXIMO_GROQ = 30000 
-        tamanho_roteiro = len(req.roteiro)
         
         dados_str = ""
         motor_utilizado = "Groq"
