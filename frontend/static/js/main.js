@@ -738,6 +738,8 @@ function mudarFiltroHistorico(ferramenta) {
     if(ferramenta.includes("Voice")) btnId = 'btn_filtro_voice';
     if(ferramenta.includes("SEO")) btnId = 'btn_filtro_seo';
     if(ferramenta.includes("Thumb")) btnId = 'btn_filtro_thumb';
+    // Adicionado o mapeamento do botão do SceneMaker aqui!
+    if(ferramenta.includes("Scene")) btnId = 'btn_filtro_scenemaker'; 
 
     const btnAtivo = document.getElementById(btnId);
     if(btnAtivo) {
