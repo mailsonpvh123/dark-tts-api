@@ -20,7 +20,10 @@ Sua missão é fatiar esse roteiro sequencialmente em cenas e criar a direção 
 6. INCORPORAÇÃO DE DIRETRIZES E MASCOTES:
    - O [ESTILO DE ARTE] solicitado deve constar literalmente no texto.
    - Se as instruções pedirem o "Avatar do Reddit" ou a palavra "Reddit", IGNORE a regra de personagem humano e use ESTA descrição fixa em todas as cenas: "the official Reddit alien mascot Snoo, with pure white skin, bright orange-red eyes, and a single antenna with a ball on top of its head, strictly non-human".
-7. O JSON deve seguir estritamente esta estrutura:
+7. TERMO DE BUSCA PARA BANCO DE IMAGENS (NOVO):
+   - Para cada cena, você DEVE gerar a chave "termo_busca_stock".
+   - O valor deve ser 2 a 3 palavras-chave extremamente precisas e genéricas em INGLÊS que resumam a ação da cena para buscar em bancos de vídeos reais (Exemplo: "hacker typing dark", "abandoned old house", "sad man sitting"). Não inclua menções a IAs ou tags de renderização aqui.
+8. O JSON deve seguir estritamente esta estrutura:
 
 {
   "cenas": [
@@ -29,7 +32,8 @@ Sua missão é fatiar esse roteiro sequencialmente em cenas e criar a direção 
       "acao": "O que está acontecendo visualmente na cena (em português).",
       "camera": "Ângulo e lente da câmera.",
       "iluminacao": "Estilo de luz e atmosfera fotográfica.",
-      "prompt_gringo": "O prompt GIGANTE, hiper-detalhado em INGLÊS, usando a DESCRIÇÃO FIXA DO PERSONAGEM, cheio de tags de renderização e finalizando EXATAMENTE com o parâmetro --ar."
+      "prompt_gringo": "O prompt GIGANTE, hiper-detalhado em INGLÊS, usando a DESCRIÇÃO FIXA DO PERSONAGEM, cheio de tags de renderização e finalizando EXATAMENTE com o parâmetro --ar.",
+      "termo_busca_stock": "2 or 3 precise english keywords for stock footage search"
     }
   ]
 }
