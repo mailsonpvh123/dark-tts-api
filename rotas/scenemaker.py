@@ -44,8 +44,8 @@ async def process_scenemaker(
         raise HTTPException(status_code=400, detail="O roteiro e o formato são obrigatórios.")
 
     # ==========================================
-    # CÁLCULO DINÂMICO DE CUSTO (ATUALIZADO E BARATO)
-    # Custo Base de 5 Coins + 1 Coin a cada 2000 caracteres
+    # CÁLCULO DINÂMICO DE CUSTO
+    # Base 5 Coins + 1 Coin a cada 2000 caracteres
     # ==========================================
     tamanho_roteiro = len(req.roteiro)
     custo_operacao = 5 + (tamanho_roteiro // 2000)
@@ -112,6 +112,7 @@ ROTEIRO PARA DIREÇÃO:
             texto_historico += f"🎬 Ação: {cena.get('acao', '')}\n"
             texto_historico += f"🎥 Câmera: {cena.get('camera', '')}\n"
             texto_historico += f"💡 Luz: {cena.get('iluminacao', '')}\n"
+            texto_historico += f"🔍 Stock Search: {cena.get('termo_busca_stock', 'N/A')}\n"
             texto_historico += f"🪄 Prompt Gerado:\n{cena.get('prompt_gringo', '')}\n"
             texto_historico += "-" * 50 + "\n\n"
 
