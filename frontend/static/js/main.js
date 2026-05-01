@@ -738,8 +738,6 @@ function mudarFiltroHistorico(ferramenta) {
     if(ferramenta.includes("Voice")) btnId = 'btn_filtro_voice';
     if(ferramenta.includes("SEO")) btnId = 'btn_filtro_seo';
     if(ferramenta.includes("Thumb")) btnId = 'btn_filtro_thumb';
-    // Adicionado o mapeamento do botão do SceneMaker aqui!
-    if(ferramenta.includes("Scene")) btnId = 'btn_filtro_scenemaker'; 
 
     const btnAtivo = document.getElementById(btnId);
     if(btnAtivo) {
@@ -939,7 +937,7 @@ function encaminharPara(destino, index) {
 }
 
 // ==========================================
-// MÓDULO: SCENEMAKER
+// MÓDULO: SCENEMAKER E MINI CLIP HUNTER
 // ==========================================
 let formatoSceneAtual = "Imagem"; 
 let cenasGlobaisGeradas = [];
@@ -969,9 +967,8 @@ function atualizarContadorScene() {
 
     if (custoVisor) {
         const tamanho = texto.length;
-        // Nova fórmula: Base 5 Coins + 1 Coin a cada 2000 chars
         let custo = 5 + Math.floor(tamanho / 2000);
-        if (tamanho === 0) custo = 0; // Se vazio, mostra 0
+        if (tamanho === 0) custo = 0;
         custoVisor.innerText = `${custo} Coins`;
     }
 }
@@ -1064,6 +1061,8 @@ function renderizarTimeline(cenas, formato) {
     const badgeLabel = formato === 'Imagem' ? 'Midjourney / DALL-E' : 'Sora / Runway / Kling';
 
     cenas.forEach((cena, index) => {
+        let termoSeguro = cena.termo_busca_stock ? cena.termo_busca_stock.replace(/'/g, "\\'") : "";
+
         container.innerHTML += `
             <div class="bg-[#121214] border border-zinc-800 rounded-xl overflow-hidden hover:border-cyan-500/30 transition-colors shadow-lg relative group">
                 <div class="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-cyan-600 to-cyan-900 opacity-50 group-hover:opacity-100 transition-opacity"></div>
@@ -1099,9 +1098,14 @@ function renderizarTimeline(cenas, formato) {
                     <div>
                         <div class="flex justify-between items-center mb-2">
                             <h4 class="text-[10px] font-black uppercase tracking-wider ${corTema}"><i class="fa-solid ${iconePrincipal} mr-1"></i> Prompt Gringo (${badgeLabel})</h4>
-                            <button onclick="copiarPromptCena(this, \`${cena.prompt_gringo.replace(/`/g, "\\`")}\`)" class="text-[10px] font-bold text-zinc-400 hover:text-white px-2 py-1 rounded border border-zinc-700/50 bg-zinc-800/50 transition-colors">
-                                <i class="fa-solid fa-copy"></i> Copiar
-                            </button>
+                            <div class="flex gap-2">
+                                <button onclick="abrirMiniHunter('${termoSeguro}')" class="text-[10px] font-bold text-emerald-400 hover:text-white px-2 py-1 rounded border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-600 transition-colors flex items-center gap-1">
+                                    <i class="fa-solid fa-magnifying-glass"></i> Caçar Mídia
+                                </button>
+                                <button onclick="copiarPromptCena(this, \`${cena.prompt_gringo.replace(/`/g, "\\`")}\`)" class="text-[10px] font-bold text-zinc-400 hover:text-white px-2 py-1 rounded border border-zinc-700/50 bg-zinc-800/50 transition-colors">
+                                    <i class="fa-solid fa-copy"></i> Copiar
+                                </button>
+                            </div>
                         </div>
                         <textarea readonly class="w-full h-20 bg-black/50 border border-zinc-800 rounded-lg p-3 text-xs text-zinc-300 font-mono resize-none custom-scrollbar outline-none">${cena.prompt_gringo}</textarea>
                     </div>
@@ -1134,4 +1138,87 @@ function copiarTodosPrompts() {
     navigator.clipboard.writeText(textoFinal).then(() => {
         alert("Todos os prompts foram copiados para a área de transferência!");
     });
+}
+
+// ================== LÓGICA DO MINI CLIP HUNTER ==================
+async function abrirMiniHunter(termo) {
+    if (!termo || termo.trim() === "" || termo === "undefined") {
+        alert("A IA não conseguiu extrair um termo de busca para esta cena.");
+        return;
+    }
+
+    const modal = document.getElementById('minihunter_modal');
+    const content = document.getElementById('minihunter_content');
+    const termoLabel = document.getElementById('minihunter_termo');
+    
+    termoLabel.innerText = `"${termo}"`;
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    
+    content.innerHTML = `<div class="flex flex-col items-center justify-center h-64"><i class="fa-solid fa-circle-notch fa-spin text-4xl text-emerald-500 mb-4"></i><p class="text-sm font-bold text-zinc-400">Minerando as melhores mídias na nuvem...</p></div>`;
+    
+    const proporcaoSelect = document.getElementById('scene_proporcao').value;
+    let orientacao = 'horizontal';
+    if(proporcaoSelect.includes('9:16')) orientacao = 'vertical';
+    if(proporcaoSelect.includes('1:1')) orientacao = 'square';
+    
+    const mediaType = formatoSceneAtual === 'Imagem' ? 'image' : 'video';
+
+    try {
+        const resposta = await fetch(`/api/cliphunter/search?query=${encodeURIComponent(termo)}&media_type=${mediaType}&orientation=${orientacao}`);
+        const dados = await resposta.json();
+        
+        if(!resposta.ok) throw new Error(dados.detail || "Erro na busca na nuvem.");
+        
+        if(dados.results.length === 0) {
+            content.innerHTML = `<div class="text-center py-10 text-zinc-500"><i class="fa-solid fa-ghost text-4xl mb-3"></i><p>Nenhuma mídia encontrada para "${termo}". Você pode tentar refinar a busca no Clip Hunter completo.</p></div>`;
+            return;
+        }
+
+        let htmlGrid = '<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">';
+        
+        dados.results.forEach(item => {
+            let conteudoVisual = "";
+            let btnAcao = `<a href="${item.url}" target="_blank" download class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 text-center text-xs rounded transition-colors block mt-2"><i class="fa-solid fa-download mr-1"></i> Baixar</a>`;
+            
+            if(item.type === "video") {
+                conteudoVisual = `
+                    <div class="relative aspect-video bg-black group rounded-t-lg overflow-hidden">
+                        <img src="${item.thumb}" class="w-full h-full object-cover opacity-80 group-hover:opacity-50 transition-opacity">
+                        <button onclick="window.open('${item.url}', '_blank')" class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <i class="fa-solid fa-circle-play text-4xl text-emerald-400 drop-shadow-lg scale-90 group-hover:scale-100 transition-transform"></i>
+                        </button>
+                        <span class="absolute bottom-1 right-1 bg-black/80 px-1.5 py-0.5 text-[9px] rounded text-white font-bold">${item.duration}s</span>
+                    </div>`;
+            } else {
+                conteudoVisual = `
+                    <div class="relative aspect-video bg-black group rounded-t-lg overflow-hidden">
+                        <img src="${item.thumb}" class="w-full h-full object-cover opacity-90 transition-opacity">
+                    </div>`;
+            }
+
+            htmlGrid += `
+                <div class="bg-[#1E1E1E] rounded-lg border border-zinc-800 overflow-hidden hover:border-emerald-500/50 transition-all flex flex-col">
+                    ${conteudoVisual}
+                    <div class="p-2 flex-1 flex flex-col justify-between bg-[#121214]">
+                        <p class="text-[10px] text-zinc-400 truncate" title="${item.author || item.title}"><i class="fa-solid ${item.type === 'video' ? 'fa-video' : 'fa-camera'} mr-1"></i> ${item.author || item.title}</p>
+                        ${btnAcao}
+                    </div>
+                </div>
+            `;
+        });
+        
+        htmlGrid += '</div>';
+        content.innerHTML = htmlGrid;
+        
+    } catch(e) {
+        content.innerHTML = `<div class="text-center py-10 text-red-400 font-bold border border-red-500/30 bg-red-500/10 rounded-xl"><i class="fa-solid fa-triangle-exclamation mb-2 text-2xl block"></i>${e.message}</div>`;
+    }
+}
+
+function fecharMiniHunter() {
+    const modal = document.getElementById('minihunter_modal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    document.getElementById('minihunter_content').innerHTML = '';
 }
