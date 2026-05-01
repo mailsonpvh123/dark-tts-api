@@ -1162,7 +1162,9 @@ async function abrirMiniHunter(termo) {
     if(proporcaoSelect.includes('9:16')) orientacao = 'vertical';
     if(proporcaoSelect.includes('1:1')) orientacao = 'square';
     
-    const mediaType = formatoSceneAtual === 'Imagem' ? 'image' : 'video';
+    // REMENDO: Forçando o motor a buscar sempre 'video' (B-roll), 
+    // ignorando se a IA está gerando prompts de Imagem ou Vídeo.
+    const mediaType = 'video'; 
 
     try {
         const resposta = await fetch(`/api/cliphunter/search?query=${encodeURIComponent(termo)}&media_type=${mediaType}&orientation=${orientacao}`);
