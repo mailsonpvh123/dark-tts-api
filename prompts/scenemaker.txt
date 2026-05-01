@@ -5,25 +5,22 @@ Sua missão é fatiar esse roteiro sequencialmente em cenas e criar a direção 
 
 🚨 REGRAS ABSOLUTAS:
 1. O output DEVE ser EXCLUSIVAMENTE um objeto JSON válido. NUNCA adicione saudações ou formatação markdown fora das chaves.
-2. CONSISTÊNCIA DE PERSONAGEM (CRÍTICO E OBRIGATÓRIO):
-   - Geradores de imagem não têm memória. Para o personagem principal ser o MESMO em todas as imagens, você DEVE inventar uma descrição física EXATA e FIXA para ele (Exemplo: "a 25-year-old man with messy dark hair, sharp jawline, wearing a gray hoodie and round glasses").
-   - Em VEZ de usar termos genéricos como "a young man" ou "the protagonist", você DEVE REPETIR essa mesma descrição física fixa palavra por palavra em TODOS os `prompt_gringo` em que ele aparecer.
+2. CONSISTÊNCIA DE PERSONAGEM E ADAPTAÇÃO HISTÓRICA (CRÍTICO):
+   - Você DEVE analisar a época e o contexto do roteiro (ex: Idade Média, Sci-Fi, Dias Atuais).
+   - INVENTE uma descrição física EXATA, FIXA e COERENTE com a época para o personagem principal/sujeito (Exemplo: "a 30-year-old medieval archer with dirt on his face, wearing worn leather armor").
+   - REPITA essa mesma descrição física fixa em TODOS os `prompt_gringo` para manter a consistência entre as cenas.
+   - SE as "INSTRUÇÕES ESPECÍFICAS DO DIRETOR" exigirem um personagem ou elemento específico, você DEVE ignorar o contexto do roteiro e focar 100% na instrução fornecida pelo diretor.
 3. RIQUEZA OBRIGATÓRIA DOS PROMPTS:
-   - MESMO QUE AS INSTRUÇÕES DO DIRETOR ESTEJAM VAZIAS, você é obrigado a gerar prompts extremamente ricos, longos e detalhados. O `prompt_gringo` deve ter no MÍNIMO 40 palavras.
-   - Você DEVE adicionar dezenas de palavras-chave técnicas de fotografia e renderização: "masterpiece, 8k resolution, ultra-detailed, cinematic lighting, volumetric fog, hyper-realistic, intricate details, Unreal Engine 5 render, depth of field".
+   - O `prompt_gringo` deve ter no MÍNIMO 40 palavras.
+   - Adicione palavras-chave técnicas de fotografia: "masterpiece, 8k resolution, ultra-detailed, cinematic lighting, volumetric fog, hyper-realistic, intricate details, Unreal Engine 5 render, depth of field".
 4. ESTRUTURA OBRIGATÓRIA DO PROMPT EM INGLÊS:
-   Siga OBRIGATORIAMENTE esta fórmula de blocos separados por vírgulas:
-   [Descrição FIXA do Personagem + Ação Exata], [Descrição Rica do Cenário/Fundo], [ESTILO DE ARTE EXATO solicitado], [Iluminação e Atmosfera], [Palavras-chave Técnicas e Renderização] [PARÂMETRO DE PROPORÇÃO]
+   [Descrição FIXA do Personagem + Ação Exata], [Descrição Rica do Cenário/Fundo], [ESTILO DE ARTE EXATO solicitado], [Iluminação e Atmosfera], [Palavras-chave Técnicas] [PARÂMETRO DE PROPORÇÃO]
 5. O PARÂMETRO DE PROPORÇÃO (ASPECT RATIO):
-   - NUNCA escreva apenas os números (como "16:9"). Você deve obrigatoriamente usar o prefixo "--ar " antes do número, anexado no ÚLTIMO caractere do prompt.
-   - Exemplo perfeito: "... cinematic lighting, 8k resolution --ar 16:9"
-6. INCORPORAÇÃO DE DIRETRIZES E MASCOTES:
-   - O [ESTILO DE ARTE] solicitado deve constar literalmente no texto.
-   - Se as instruções pedirem o "Avatar do Reddit" ou a palavra "Reddit", IGNORE a regra de personagem humano e use ESTA descrição fixa em todas as cenas: "the official Reddit alien mascot Snoo, with pure white skin, bright orange-red eyes, and a single antenna with a ball on top of its head, strictly non-human".
-7. TERMO DE BUSCA PARA BANCO DE IMAGENS (NOVO):
-   - Para cada cena, você DEVE gerar a chave "termo_busca_stock".
-   - O valor deve ser 2 a 3 palavras-chave extremamente precisas e genéricas em INGLÊS que resumam a ação da cena para buscar em bancos de vídeos reais (Exemplo: "hacker typing dark", "abandoned old house", "sad man sitting"). Não inclua menções a IAs ou tags de renderização aqui.
-8. O JSON deve seguir estritamente esta estrutura:
+   - Use obrigatoriamente o prefixo "--ar " antes do número no ÚLTIMO caractere do prompt. (Ex: --ar 16:9).
+6. TERMO DE BUSCA PARA BANCO DE IMAGENS (CLIP HUNTER):
+   - Para cada cena, gere a chave "termo_busca_stock".
+   - Valor: 2 a 3 palavras-chave extremamente precisas em INGLÊS que resumam a ação da cena para busca em bancos de vídeos (Exemplo: "medieval archers battle", "old castle"). Não inclua menções a IAs ou tags de renderização aqui.
+7. O JSON deve seguir estritamente esta estrutura:
 
 {
   "cenas": [
@@ -32,8 +29,8 @@ Sua missão é fatiar esse roteiro sequencialmente em cenas e criar a direção 
       "acao": "O que está acontecendo visualmente na cena (em português).",
       "camera": "Ângulo e lente da câmera.",
       "iluminacao": "Estilo de luz e atmosfera fotográfica.",
-      "prompt_gringo": "O prompt GIGANTE, hiper-detalhado em INGLÊS, usando a DESCRIÇÃO FIXA DO PERSONAGEM, cheio de tags de renderização e finalizando EXATAMENTE com o parâmetro --ar.",
-      "termo_busca_stock": "2 or 3 precise english keywords for stock footage search"
+      "prompt_gringo": "Prompt GIGANTE em INGLÊS, com o personagem fixo (adaptado à época ou à instrução do diretor), tags técnicas de renderização, finalizando com o --ar.",
+      "termo_busca_stock": "2 or 3 precise english keywords for stock footage"
     }
   ]
 }
