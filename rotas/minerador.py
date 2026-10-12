@@ -64,50 +64,140 @@ async def miner_reddit(req: MinerRedditRequest, db: Session = Depends(get_db), u
     if usuario.coins < CUSTO_MINER: raise HTTPException(status_code=402, detail=f"Coins insuficientes!")
     
     try:
-        # Dica Oculta: Se o usuário já escrever em inglês, não traduz.
-        # Melhora a assertividade de "Golden Child" vs "Filhos Dourados".
+        # Se o usuário já escrever em inglês, não traduz.
         query_en = req.query if re.match(r'^[a-zA-Z0-9\s\-_]+$', req.query) else traduzir_seguro(req.query, target='en')
-        
-        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) DarkCreator/3.0'}
         sub = req.sub.strip().replace('r/', '')
-        
-        # URL MELHORADA: Agora usamos os parâmetros de SORT e TIME (Top All Time gera resultados 100x melhores)
-        base_url = f"https://www.reddit.com/r/{sub}/search.json" if sub else "https://www.reddit.com/search.json"
-        url = f"{base_url}?q={urllib.parse.quote(query_en)}&restrict_sr=1&type=link&limit=40&sort={req.sort}&t={req.time_filter}"
-            
-        r = requests.get(url, headers=headers, timeout=15)
-        if r.status_code != 200:
-            raise Exception("Reddit bloqueou a requisição. Tente novamente.")
-            
-        data = r.json()
+        posts_brutos = []
+
+        # =====================================================================
+        # MOTOR 1: PullPush API (Não bloqueia IP de VPS / Peramix)
+        # =====================================================================
+        try:
+            pp_params = {
+                "q": query_en,
+                "size": 100,
+                "sort": "desc",
+                "sort_type": "score" if req.sort == "top" else "created_utc",
+            }
+            if sub:
+                pp_params["subreddit"] = sub
+            if req.min_score > 0:
+                pp_params["score"] = f">{req.min_score}"
+            if req.time_filter == "year":
+                pp_params["after"] = "365d"
+            elif req.time_filter == "month":
+                pp_params["after"] = "30d"
+
+            r_pp = requests.get(
+                "https://api.pullpush.io/reddit/search/submission/",
+                params=pp_params,
+                headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"},
+                timeout=15
+            )
+            if r_pp.status_code == 200:
+                posts_brutos = r_pp.json().get("data", [])
+        except Exception as e_pp:
+            print(f"Aviso Motor 1 (PullPush): {e_pp}")
+
+        # =====================================================================
+        # MOTOR 2: Arctic Shift API (Fallback rápido caso o Motor 1 não traga dados)
+        # =====================================================================
+        if not posts_brutos:
+            try:
+                subs_busca = [sub] if sub else ["nosleep", "TrueOffMyChest", "LetsNotMeet", "confession", "AmItheAsshole"]
+                for s_atual in subs_busca:
+                    as_params = {
+                        "subreddit": s_atual,
+                        "query": query_en,
+                        "limit": 40,
+                        "sort": "desc"
+                    }
+                    r_as = requests.get(
+                        "https://arctic-shift.photon-reddit.com/api/posts/search",
+                        params=as_params,
+                        headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"},
+                        timeout=10
+                    )
+                    if r_as.status_code == 200:
+                        posts_brutos.extend(r_as.json().get("data", []))
+                    if len(posts_brutos) >= 60:
+                        break
+            except Exception as e_as:
+                print(f"Aviso Motor 2 (Arctic Shift): {e_as}")
+
+        # =====================================================================
+        # MOTOR 3: Old Reddit JSON (Última tentativa direta)
+        # =====================================================================
+        if not posts_brutos:
+            headers_reddit = {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+                "Accept": "application/json,text/html,application/xhtml+xml",
+                "Accept-Language": "en-US,en;q=0.9"
+            }
+            base_url = f"https://old.reddit.com/r/{sub}/search.json" if sub else "https://old.reddit.com/search.json"
+            url = f"{base_url}?q={urllib.parse.quote(query_en)}&restrict_sr={'1' if sub else '0'}&type=link&limit=50&sort={req.sort}&t={req.time_filter}&raw_json=1"
+            r_red = requests.get(url, headers=headers_reddit, timeout=12)
+            if r_red.status_code == 200:
+                children = r_red.json().get("data", {}).get("children", [])
+                posts_brutos = [c.get("data", {}) for c in children]
+
+        if not posts_brutos:
+            raise Exception("Nenhum servidor do Reddit respondeu ou nenhuma história foi encontrada para esse termo.")
+
+        # Se o usuário pediu 'top', garante ordenação pelos mais votados
+        if req.sort == "top":
+            posts_brutos.sort(key=lambda x: int(x.get("score") or 0), reverse=True)
+
         resultados = []
-        
-        for post in data.get('data', {}).get('children', []):
-            p = post['data']
-            texto_original = p.get('selftext', '')
-            titulo_original = p.get('title', '')
-            
-            # FILTROS DE QUALIDADE (Mínimo de palavras e Score)
-            if len(texto_original.split()) < req.min_words or p.get('score', 0) < req.min_score: 
+        urls_vistas = set()
+
+        for p in posts_brutos:
+            texto_original = (p.get("selftext") or "").strip()
+            titulo_original = (p.get("title") or "").strip()
+            score_post = int(p.get("score") or 0)
+
+            # Ignora posts deletados ou removidos pela moderação
+            if not texto_original or texto_original in ("[deleted]", "[removed]"):
                 continue
-                
-            # A TRAVA DE ATUALIZAÇÃO AGORA FUNCIONA
+
+            # FILTROS DE QUALIDADE (Mínimo de palavras e Score)
+            if len(texto_original.split()) < req.min_words or score_post < req.min_score:
+                continue
+
+            # TRAVA DE ATUALIZAÇÃO (Ignorar posts de "Update")
             if req.sem_atualizacao and re.search(r'\b(update|updated|atualização)\b', titulo_original, re.IGNORECASE):
                 continue
-            
+
+            sub_nome = p.get("subreddit", "reddit")
+            permalink = p.get("permalink") or f"/r/{sub_nome}/comments/{p.get('id', '')}/"
+            url_final = permalink if permalink.startswith("http") else f"https://reddit.com{permalink}"
+
+            if url_final in urls_vistas:
+                continue
+            urls_vistas.add(url_final)
+
             resultados.append({
                 "titulo": titulo_original,
-                "texto": texto_original[:300] + "...", 
-                "texto_completo": texto_original,      
-                "url": f"https://reddit.com{p.get('permalink')}",
-                "fonte": f"Reddit (r/{p.get('subreddit')})"
+                "texto": texto_original[:300] + "...",
+                "texto_completo": texto_original,
+                "url": url_final,
+                "fonte": f"Reddit (r/{sub_nome} | ⭐ {score_post})"
             })
-            if len(resultados) >= 10: break
-            
-        usuario.coins -= CUSTO_MINER
-        novo_historico = models.Historico(usuario_id=usuario.id, ferramenta="Data Miner", input_usuario=f"Fonte: Reddit | Query: {req.query}", resultado=f"{len(resultados)} posts.", custo_coins=CUSTO_MINER)
-        db.add(novo_historico)
-        db.commit()
+            if len(resultados) >= 10:
+                break
+
+        if len(resultados) > 0:
+            usuario.coins -= CUSTO_MINER
+            novo_historico = models.Historico(
+                usuario_id=usuario.id,
+                ferramenta="Data Miner",
+                input_usuario=f"Fonte: Reddit | Query: {req.query}",
+                resultado=f"{len(resultados)} posts.",
+                custo_coins=CUSTO_MINER
+            )
+            db.add(novo_historico)
+            db.commit()
+
         return {"status": "sucesso", "data": resultados, "novo_saldo": usuario.coins}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
