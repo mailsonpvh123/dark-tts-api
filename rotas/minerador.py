@@ -31,7 +31,8 @@ class MinerGenericRequest(BaseModel):
 
 def traduzir_seguro(texto, target='pt'):
     """Tradutor com redundância para evitar Erro 500"""
-    if not texto or len(texto.strip()) < 3: return texto
+    if not texto or len(texto.strip()) < 3:
+        return texto
     try:
         texto_limpo = texto[:4000]
         return GoogleTranslator(source='auto', target=target).translate(texto_limpo)
@@ -54,118 +55,153 @@ def extrair_texto_da_url(url):
                 return content.strip()[:15000]
     except:
         pass
-    return "" 
+    return ""
 
 CUSTO_MINER = 5
 
 @router.post("/miner/reddit")
 async def miner_reddit(req: MinerRedditRequest, db: Session = Depends(get_db), usuario: models.Usuario = Depends(get_usuario_atual)):
-    if not usuario: raise HTTPException(status_code=401, detail="Sessão expirada.")
-    if usuario.coins < CUSTO_MINER: raise HTTPException(status_code=402, detail=f"Coins insuficientes!")
-    
+    if not usuario:
+        raise HTTPException(status_code=401, detail="Sessão expirada.")
+    if usuario.coins < CUSTO_MINER:
+        raise HTTPException(status_code=402, detail="Coins insuficientes!")
+
     try:
-        # Se o usuário já escrever em inglês, não traduz.
-        query_en = req.query if re.match(r'^[a-zA-Z0-9\s\-_]+$', req.query) else traduzir_seguro(req.query, target='en')
-        sub = req.sub.strip().replace('r/', '')
+        # Se o utilizador já escrever em inglês, não traduz
+        query_en = req.query.strip() if re.match(r'^[a-zA-Z0-9\s\-_]+$', req.query.strip()) else traduzir_seguro(req.query.strip(), target='en')
+        sub = req.sub.strip().replace('r/', '').replace('/', '')
         posts_brutos = []
 
+        headers_padrao = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
+            "Accept": "application/json, text/plain, */*"
+        }
+
+        # URL oficial do Reddit que será usada nos túneis proxy caso o IP da VPS seja bloqueado
+        base_reddit = f"https://www.reddit.com/r/{sub}/search.json" if sub else "https://www.reddit.com/search.json"
+        reddit_target_url = f"{base_reddit}?q={urllib.parse.quote(query_en)}&restrict_sr={'1' if sub else '0'}&type=link&limit=100&sort={req.sort}&t={req.time_filter}&raw_json=1"
+
         # =====================================================================
-        # MOTOR 1: PullPush API (Não bloqueia IP de VPS / Peramix)
+        # MOTOR 1: PullPush API (Espelho direto sem bloqueio de VPS)
         # =====================================================================
         try:
             pp_params = {
                 "q": query_en,
                 "size": 100,
                 "sort": "desc",
-                "sort_type": "score" if req.sort == "top" else "created_utc",
+                "sort_type": "score" if req.sort == "top" else "created_utc"
             }
             if sub:
                 pp_params["subreddit"] = sub
-            if req.min_score > 0:
-                pp_params["score"] = f">{req.min_score}"
-            if req.time_filter == "year":
-                pp_params["after"] = "365d"
-            elif req.time_filter == "month":
-                pp_params["after"] = "30d"
 
             r_pp = requests.get(
                 "https://api.pullpush.io/reddit/search/submission/",
                 params=pp_params,
-                headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"},
-                timeout=15
+                headers=headers_padrao,
+                timeout=12
             )
             if r_pp.status_code == 200:
-                posts_brutos = r_pp.json().get("data", [])
-        except Exception as e_pp:
-            print(f"Aviso Motor 1 (PullPush): {e_pp}")
+                dados_pp = r_pp.json().get("data", [])
+                if isinstance(dados_pp, list) and len(dados_pp) > 0:
+                    posts_brutos.extend(dados_pp)
+        except Exception as e1:
+            print(f"[Miner v4.0] Aviso Motor 1 (PullPush): {e1}")
 
         # =====================================================================
-        # MOTOR 2: Arctic Shift API (Fallback rápido caso o Motor 1 não traga dados)
+        # MOTOR 2: Túnel Proxy CodeTabs -> Reddit Oficial JSON
         # =====================================================================
-        if not posts_brutos:
+        if len(posts_brutos) < 10:
             try:
-                subs_busca = [sub] if sub else ["nosleep", "TrueOffMyChest", "LetsNotMeet", "confession", "AmItheAsshole"]
+                proxy_codetabs = f"https://api.codetabs.com/v1/proxy?quest={urllib.parse.quote(reddit_target_url, safe='')}"
+                r_ct = requests.get(proxy_codetabs, headers=headers_padrao, timeout=12)
+                if r_ct.status_code == 200:
+                    children = r_ct.json().get("data", {}).get("children", [])
+                    posts_brutos.extend([c.get("data", {}) for c in children if isinstance(c, dict)])
+            except Exception as e2:
+                print(f"[Miner v4.0] Aviso Motor 2 (CodeTabs): {e2}")
+
+        # =====================================================================
+        # MOTOR 3: Túnel Proxy AllOrigins -> Reddit Oficial JSON
+        # =====================================================================
+        if len(posts_brutos) < 10:
+            try:
+                proxy_ao = f"https://api.allorigins.win/raw?url={urllib.parse.quote(reddit_target_url, safe='')}"
+                r_ao = requests.get(proxy_ao, headers=headers_padrao, timeout=12)
+                if r_ao.status_code == 200:
+                    children = r_ao.json().get("data", {}).get("children", [])
+                    posts_brutos.extend([c.get("data", {}) for c in children if isinstance(c, dict)])
+            except Exception as e3:
+                print(f"[Miner v4.0] Aviso Motor 3 (AllOrigins): {e3}")
+
+        # =====================================================================
+        # MOTOR 4: Arctic Shift API (Espelho secundário com busca em selftext)
+        # =====================================================================
+        if len(posts_brutos) < 10:
+            try:
+                subs_busca = [sub] if sub else ["nosleep", "TrueOffMyChest", "LetsNotMeet", "confession", "creepyencounters", "Paranormal"]
                 for s_atual in subs_busca:
                     as_params = {
                         "subreddit": s_atual,
-                        "query": query_en,
+                        "selftext": query_en,
                         "limit": 40,
                         "sort": "desc"
                     }
                     r_as = requests.get(
                         "https://arctic-shift.photon-reddit.com/api/posts/search",
                         params=as_params,
-                        headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"},
+                        headers=headers_padrao,
                         timeout=10
                     )
                     if r_as.status_code == 200:
-                        posts_brutos.extend(r_as.json().get("data", []))
+                        dados_as = r_as.json().get("data", [])
+                        if isinstance(dados_as, list):
+                            posts_brutos.extend(dados_as)
                     if len(posts_brutos) >= 60:
                         break
-            except Exception as e_as:
-                print(f"Aviso Motor 2 (Arctic Shift): {e_as}")
+            except Exception as e4:
+                print(f"[Miner v4.0] Aviso Motor 4 (Arctic Shift): {e4}")
 
         # =====================================================================
-        # MOTOR 3: Old Reddit JSON (Última tentativa direta)
+        # MOTOR 5: Old Reddit JSON Direto
         # =====================================================================
         if not posts_brutos:
-            headers_reddit = {
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-                "Accept": "application/json,text/html,application/xhtml+xml",
-                "Accept-Language": "en-US,en;q=0.9"
-            }
-            base_url = f"https://old.reddit.com/r/{sub}/search.json" if sub else "https://old.reddit.com/search.json"
-            url = f"{base_url}?q={urllib.parse.quote(query_en)}&restrict_sr={'1' if sub else '0'}&type=link&limit=50&sort={req.sort}&t={req.time_filter}&raw_json=1"
-            r_red = requests.get(url, headers=headers_reddit, timeout=12)
-            if r_red.status_code == 200:
-                children = r_red.json().get("data", {}).get("children", [])
-                posts_brutos = [c.get("data", {}) for c in children]
+            try:
+                old_url = reddit_target_url.replace("www.reddit.com", "old.reddit.com")
+                r_old = requests.get(old_url, headers=headers_padrao, timeout=10)
+                if r_old.status_code == 200:
+                    children = r_old.json().get("data", {}).get("children", [])
+                    posts_brutos.extend([c.get("data", {}) for c in children if isinstance(c, dict)])
+            except Exception as e5:
+                print(f"[Miner v4.0] Aviso Motor 5 (Old Reddit): {e5}")
 
         if not posts_brutos:
-            raise Exception("Nenhum servidor do Reddit respondeu ou nenhuma história foi encontrada para esse termo.")
+            raise Exception("[Miner v4.0] Nenhum resultado encontrado nos 5 motores de busca. Tente outro termo.")
 
-        # Se o usuário pediu 'top', garante ordenação pelos mais votados
+        # Ordena sempre pelos mais votados se o filtro for 'top'
         if req.sort == "top":
             posts_brutos.sort(key=lambda x: int(x.get("score") or 0), reverse=True)
 
         resultados = []
+        resultados_reserva = []
         urls_vistas = set()
 
         for p in posts_brutos:
+            if not isinstance(p, dict):
+                continue
             texto_original = (p.get("selftext") or "").strip()
             titulo_original = (p.get("title") or "").strip()
             score_post = int(p.get("score") or 0)
 
-            # Ignora posts deletados ou removidos pela moderação
+            # Ignora posts vazios ou apagados
             if not texto_original or texto_original in ("[deleted]", "[removed]"):
                 continue
 
-            # FILTROS DE QUALIDADE (Mínimo de palavras e Score)
-            if len(texto_original.split()) < req.min_words or score_post < req.min_score:
+            # Trava de atualização (Ignorar posts de "Update")
+            if req.sem_atualizacao and re.search(r'\b(update|updated|atualização)\b', titulo_original, re.IGNORECASE):
                 continue
 
-            # TRAVA DE ATUALIZAÇÃO (Ignorar posts de "Update")
-            if req.sem_atualizacao and re.search(r'\b(update|updated|atualização)\b', titulo_original, re.IGNORECASE):
+            # Verifica o mínimo de palavras
+            if len(texto_original.split()) < req.min_words:
                 continue
 
             sub_nome = p.get("subreddit", "reddit")
@@ -176,15 +212,26 @@ async def miner_reddit(req: MinerRedditRequest, db: Session = Depends(get_db), u
                 continue
             urls_vistas.add(url_final)
 
-            resultados.append({
+            item_formatado = {
                 "titulo": titulo_original,
                 "texto": texto_original[:300] + "...",
                 "texto_completo": texto_original,
                 "url": url_final,
                 "fonte": f"Reddit (r/{sub_nome} | ⭐ {score_post})"
-            })
+            }
+
+            if score_post >= req.min_score:
+                resultados.append(item_formatado)
+            else:
+                resultados_reserva.append(item_formatado)
+
             if len(resultados) >= 10:
                 break
+
+        # Se o filtro de Score Mínimo (ex: 500) foi rigoroso demais para o termo,
+        # entrega as melhores histórias com o mínimo de palavras para não voltar vazio
+        if not resultados and resultados_reserva:
+            resultados = resultados_reserva[:10]
 
         if len(resultados) > 0:
             usuario.coins -= CUSTO_MINER
@@ -204,8 +251,10 @@ async def miner_reddit(req: MinerRedditRequest, db: Session = Depends(get_db), u
 
 @router.post("/miner/wiki")
 async def miner_wiki(req: MinerGenericRequest, db: Session = Depends(get_db), usuario: models.Usuario = Depends(get_usuario_atual)):
-    if not usuario: raise HTTPException(status_code=401, detail="Sessão expirada.")
-    if usuario.coins < CUSTO_MINER: raise HTTPException(status_code=402, detail="Sem saldo")
+    if not usuario:
+        raise HTTPException(status_code=401, detail="Sessão expirada.")
+    if usuario.coins < CUSTO_MINER:
+        raise HTTPException(status_code=402, detail="Sem saldo")
 
     try:
         query_en = traduzir_seguro(req.query, target='en')
@@ -216,7 +265,7 @@ async def miner_wiki(req: MinerGenericRequest, db: Session = Depends(get_db), us
         
         try:
             search_res = r_search.json()
-        except Exception as json_err:
+        except Exception:
             return {"status": "sucesso", "data": [], "novo_saldo": usuario.coins}
         
         resultados = []
@@ -234,7 +283,8 @@ async def miner_wiki(req: MinerGenericRequest, db: Session = Depends(get_db), us
             
             for pid, pdata in pages.items():
                 content = pdata.get('extract', '')
-                if not content or len(content) < 100: continue
+                if not content or len(content) < 100:
+                    continue
                 
                 if req.traduzir:
                     titulo_pt = traduzir_seguro(page_title, 'pt')
@@ -258,13 +308,15 @@ async def miner_wiki(req: MinerGenericRequest, db: Session = Depends(get_db), us
             db.commit()
 
         return {"status": "sucesso", "data": resultados, "novo_saldo": usuario.coins}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro Wiki: Tente outro termo de busca.")
+    except Exception:
+        raise HTTPException(status_code=500, detail="Erro Wiki: Tente outro termo de busca.")
 
 @router.post("/miner/news")
 async def miner_news(req: MinerGenericRequest, db: Session = Depends(get_db), usuario: models.Usuario = Depends(get_usuario_atual)):
-    if not usuario: raise HTTPException(status_code=401, detail="Sessão expirada.")
-    if usuario.coins < CUSTO_MINER: raise HTTPException(status_code=402, detail="Coins insuficientes")
+    if not usuario:
+        raise HTTPException(status_code=401, detail="Sessão expirada.")
+    if usuario.coins < CUSTO_MINER:
+        raise HTTPException(status_code=402, detail="Coins insuficientes")
 
     try:
         query_en = traduzir_seguro(req.query, target='en')
@@ -308,8 +360,10 @@ async def miner_news(req: MinerGenericRequest, db: Session = Depends(get_db), us
 
 @router.post("/miner/web")
 async def miner_web(req: MinerGenericRequest, db: Session = Depends(get_db), usuario: models.Usuario = Depends(get_usuario_atual)):
-    if not usuario: raise HTTPException(status_code=401, detail="Sessão expirada.")
-    if usuario.coins < CUSTO_MINER: raise HTTPException(status_code=402, detail="Coins insuficientes")
+    if not usuario:
+        raise HTTPException(status_code=401, detail="Sessão expirada.")
+    if usuario.coins < CUSTO_MINER:
+        raise HTTPException(status_code=402, detail="Coins insuficientes")
     try:
         query_en = traduzir_seguro(req.query, target='en')
         headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
@@ -323,7 +377,8 @@ async def miner_web(req: MinerGenericRequest, db: Session = Depends(get_db), usu
             titulo_original = title_elem.text.strip() if title_elem else 'Site Encontrado'
             
             corpo_site = extrair_texto_da_url(href)
-            if not corpo_site: corpo_site = a.text.strip()
+            if not corpo_site:
+                corpo_site = a.text.strip()
 
             if req.traduzir:
                 titulo = traduzir_seguro(titulo_original, 'pt')
